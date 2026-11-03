@@ -35,6 +35,7 @@ build = [
 
 [tool.ruff]
 line-length = 100
+src = ["src", "tools"]  # so imports of tidewrack/release sort as first-party
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

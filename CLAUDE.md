@@ -49,7 +49,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | World structure | `networkx` | Dungeons and overworld as weighted graphs |
 | Overworld regions | `scipy.spatial.Voronoi` | Verify Pyodide availability if web is pursued |
 | Biomes | `opensimplex` | Coherent noise → biome per region |
-| ECS | `esper` | Entities/components/systems |
+| ECS | In-house (`core/engine/ecs.py`) | Instance-based, insertion-ordered `World`. Chosen over `esper` 3.x, whose state is module-global (bad for tests, multiple slots, save/load) |
 | Names/lore | `markovify` (+ `Faker` stopgap) | Late polish pass |
 | Dice | `d20` | Dice-notation rolls |
 | Validation | `pydantic` | All content + save + import payloads |
@@ -145,7 +145,10 @@ tidewrack/
 │   ├── version.py                   # app version for the UI (reads _build_info.py,
 │   │                                #   generated in CI; else pyproject)
 │   ├── core/                        # PURE PYTHON — no UI/IO imports
-│   │   ├── engine/                  # components/, systems/, events.py, turn loop
+│   │   ├── engine/                  # ecs.py, components.py, events.py,
+│   │   │                            #   game.py (commands, turn loop, view model)
+│   │   ├── world/                   # dungeon.py (point-crawl map model);
+│   │   │                            #   first_descent.py (hand-authored, → content/ in step 2)
 │   │   ├── procgen/                 # world_graph, biomes, names, quests, factions, pets, lore
 │   │   ├── gear/                    # stat_pipeline.py, compare.py
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
@@ -153,7 +156,7 @@ tidewrack/
 │   │   ├── codex/                   # discovery tracker, bestiary/lore/quest-log models,
 │   │   │                            #   help index + search, glossary
 │   │   ├── data/                    # schemas.py (pydantic), loader.py
-│   │   └── rng.py                   # single seeded stream
+│   │   └── rng.py                   # own xoshiro256** stream; derive() substreams
 │   ├── services/                    # platform adapters behind interfaces
 │   │   ├── storage/                 # SaveStore interface; file backend; browser backend
 │   │   ├── cloud/                   # CloudProvider interface; google_drive/; sync_engine.py;
@@ -348,9 +351,10 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 
 ## 11. Conventions
 
-- **All randomness via `core/rng.py`** — no bare `random` anywhere else. RNG state is saved.
+- **All randomness via `core/rng.py`** — no bare `random` anywhere else (a test enforces it). RNG state is saved. It's our own xoshiro256** so results don't depend on the Python version (CI runs 3.12, the APK bundles 3.14); changing its output means bumping `generator_version`. Give each subsystem its own `rng.derive("name")` substream so one system's draws never shift another's.
+- **Turn loop delivery order:** a command's events (and subscribers' follow-ups) are delivered first, then per-turn systems run, then `TurnEnded`. The UI only calls `Game.perform(command)` and reads `Game.view()`.
 - **Content is data, not code.** New monster/item/pet/recipe = new data file unless behavior truly diverges.
-- **`core/` is pure.** No UI/IO imports; enforce with an import-lint test.
+- **`core/` is pure.** No UI/IO imports, clock or system randomness; enforced by `tests/core/test_purity.py`.
 - **Subscribe, don't reach in.** New cross-cutting features (achievements, tutorial hints, codex) hook the event bus.
 - **Difficulty and economy are validated by simulation**, not by feel.
 - **Accessibility is default:** never color-only signaling; scalable text; large touch targets.
@@ -362,7 +366,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 1. **Mobile Google OAuth.** Flet's built-in OAuth supports Google and works on mobile via an in-app web browser, but its documented setup uses a client secret, which would ship inside the app. Confirm PKCE/no-secret flow is possible; and confirm Google accepts the in-app browser flow (Google has restricted OAuth in embedded webviews — verify on a real device). Fallback: Firebase Auth, or a minimal token-exchange function.
 2. **Drive `appDataFolder` from Python on-device** — read/write/list with a thin REST client; test token refresh and offline→online transitions.
 3. **Canvas map performance** — render/update a ~60-node graph with fog of war on a low-end phone.
-4. **Pyodide dependency check** (only if web is pursued) — verify `networkx`, `scipy`, `pydantic`, `markovify`, `opensimplex`, `esper`; time worldgen in-browser.
+4. **Pyodide dependency check** (only if web is pursued) — verify `networkx`, `scipy`, `pydantic`, `markovify`, `opensimplex`; time worldgen in-browser.
 5. **Share/import plumbing** — file picker, share sheet, clipboard, QR on mobile through Flet.
 6. **Search quality/perf** of the in-app help index on mobile.
 7. ✅ **Done (v0.0.1–v0.0.3).** **End-to-end Komi Store update cycle.** Install v0.0.1 via Komi Store, publish v0.0.2 from CI, and confirm detection, in-place update, and how tag / versionName / build-number comparisons behave (including the pre-release toggle and asset-variant pinning).

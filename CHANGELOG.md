@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- First playable slice: explore "The First Descent", a hand-authored seven-room
+  dungeon. Move between rooms, look around, wait, and start a new run; rooms you
+  have visited show by name on their exits.
+- Game core: seeded random number generator, entity-component store, event bus,
+  and turn loop.
+
 ## [0.0.3] - 2026-11-03
 
 - Testing pre-release builds.

@@ -1,6 +1,7 @@
 import datetime as dt
 
 import pytest
+
 from release import (
     ReleaseError,
     Tag,
