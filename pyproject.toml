@@ -11,7 +11,12 @@ authors = [
     { name = "Jonathon Duke" }
 ]
 dependencies = [
-    "flet>=1.0.5"
+    "flet>=1.0.5",
+    # Exact pin: the APK build installs binary wheels only, and pydantic pins one
+    # pydantic-core version. Flet's Android index (pypi.flet.dev) has cp314 arm64
+    # wheels for pydantic-core 2.46.4 (= pydantic 2.13.4), not for 2.14.x's 2.50.x.
+    # Check https://pypi.flet.dev/pydantic-core/ before bumping.
+    "pydantic==2.13.4",
 ]
 
 [dependency-groups]
