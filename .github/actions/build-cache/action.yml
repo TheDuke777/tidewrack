@@ -78,7 +78,7 @@ runs:
             if [ ! -e "$dest" ]; then
               mkdir -p "$ANDROID_HOME/$kind"
               ln -s "${src%/}" "$dest"
-              echo "Linked $dest"
+              echo "Linked $dest" >&2 # stdout is the SDK listing below
             fi
           done
           ls -1 "$ANDROID_HOME/$kind" 2>/dev/null | sed "s|^|$kind/|"
