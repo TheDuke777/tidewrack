@@ -18,6 +18,7 @@ env/
 # Flet
 .flet/
 build/
+tools/test.sh
 
 # IDE
 .idea/
