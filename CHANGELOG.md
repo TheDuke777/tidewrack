@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-03
+
 ### Added
 - First playable slice: explore "The First Descent", a hand-authored seven-room
   dungeon. Move between rooms, look around, wait, and start a new run; rooms you
