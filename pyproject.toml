@@ -1,0 +1,53 @@
+[project]
+name = "tidewrack"
+version = "0.0.1"
+description = "Text-based procgen roguelike"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Jonathon Duke" }
+]
+dependencies = [
+    "flet>=1.0.5"
+]
+
+[dependency-groups]
+dev = [
+    "flet-cli>=1.0.5",
+    "flet-desktop>=1.0.5",
+    "flet-web>=1.0.5",
+    # Integration testing with `flet test` / pytest. The `test` extra brings in
+    # pytest, pytest-asyncio and the screenshot-comparison dependencies.
+    "flet[test]>=1.0.5",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.flet]
+desktop_flavor = "light"    # Change to "full" to use flet-audio and flet-video
+# Permanent identity (CLAUDE.md §10): never change bundle_id. Dev builds override
+# it with `--bundle-id net.dukedigital.tidewrack.dev`.
+org = "net.dukedigital"
+product = "Tidewrack"
+bundle_id = "net.dukedigital.tidewrack"
+company = "Jonathon Duke"
+copyright = "Copyright (C) 2026 Jonathon Duke"
+# Android versionCode. Strictly increases every release; never reused.
+build_number = 1
+
+# src/assets/icon.png is the icon for every platform. Keep it transparent and
+# filling the whole canvas: web, Windows and Linux show it as-is, and Flet
+# shrinks it to the margin iOS, macOS and Android each mask away. This colour
+# is what sits behind it where transparency cannot survive - the iOS icon, the
+# macOS tile and the Android background layer. Defaults to white.
+# icon_background = "#ffffff"
+
+[tool.flet.app]
+path = "src"
+
+[tool.flet.android]
+# arm64-only, fixed from the first release so Komi Store's asset pinning stays valid.
+target_arch = ["arm64-v8a"]

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environments / secrets
+.env
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Flet
+.flet/
+build/
+
+# IDE
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Project venv
+env_tidewrack/
+
+# Editor backups / undo files
+*.un~
+*.swp
+*~
+
+# Signing material — never commit (CLAUDE.md §10)
+*.jks
+*.keystore
+key.properties
