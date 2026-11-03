@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2026-11-03
+
 ### Added
 - Every new world is a freshly generated dungeon: 14 sea-cave rooms with their
   own names, descriptions and layout, different every time.
