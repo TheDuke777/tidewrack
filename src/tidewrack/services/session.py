@@ -18,6 +18,7 @@ from tidewrack.core.data.loader import Content
 from tidewrack.core.data.save import GameState
 from tidewrack.core.engine.game import Command, Game, TurnResult
 from tidewrack.core.versions import GENERATOR_VERSION, SCHEMA_VERSION
+from tidewrack.core.world.dungeon import DungeonMap
 from tidewrack.services.storage import SaveError, SaveStore, SlotMeta, SlotSummary
 from tidewrack.services.storage.migrations import migrate
 from tidewrack.services.storage.store import SLOT_FORMAT
@@ -53,12 +54,13 @@ class GameSession:
         cls,
         store: SaveStore,
         content: Content,
-        dungeon_id: str,
+        dungeon: DungeonMap,
         name: str,
         seed: int,
         clock: Clock = utc_now,
     ) -> GameSession:
-        game = Game(seed, content.dungeon(dungeon_id))
+        """Start a world in a new slot (saved immediately)."""
+        game = Game(seed, dungeon)
         now = clock()
         meta = SlotMeta(
             slot_id=uuid.uuid4().hex,

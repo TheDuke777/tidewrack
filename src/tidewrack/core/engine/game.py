@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Literal
 
 from tidewrack.core.data.save import (
     EntityState,
@@ -84,6 +85,24 @@ class ExitView:
 
 
 @dataclass(frozen=True)
+class MapNode:
+    id: str
+    x: float
+    y: float
+    state: Literal["current", "visited", "seen"]  # "seen": known but not yet visited
+    name: str | None  # None until visited
+    exit_label: str | None  # set when one step from the current node: Move(exit_label)
+
+
+@dataclass(frozen=True)
+class MapView:
+    """The fog-of-war map: only nodes the player knows, only paths they've seen."""
+
+    nodes: tuple[MapNode, ...]
+    edges: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
 class GameView:
     dungeon_name: str
     location: str
@@ -94,6 +113,7 @@ class GameView:
     seed: int
     visited: int
     total_nodes: int
+    map: MapView | None  # None for dungeons without map positions
 
 
 # --- the game ----------------------------------------------------------------------
@@ -222,6 +242,7 @@ class Game:
             for e in here.exits
         )
         return GameView(
+            map=self._map_view(here.id, explorer) if self.dungeon.has_map else None,
             dungeon_name=self.dungeon.name,
             location=here.name,
             description=here.description,
@@ -232,6 +253,39 @@ class Game:
             visited=len(explorer.visited),
             total_nodes=len(self.dungeon.nodes),
         )
+
+    def _map_view(self, here: str, explorer: Explorer) -> MapView:
+        step = {e.to: e.label for e in self.dungeon.node(here).exits}
+        nodes = []
+        for node in self.dungeon.nodes.values():  # map order, so output is stable
+            if node.id not in explorer.discovered:
+                continue
+            state = (
+                "current"
+                if node.id == here
+                else "visited"
+                if node.id in explorer.visited
+                else "seen"
+            )
+            x, y = node.pos  # type: ignore[misc]  # has_map guarantees positions
+            nodes.append(
+                MapNode(
+                    id=node.id,
+                    x=x,
+                    y=y,
+                    state=state,
+                    name=node.name if node.id in explorer.visited else None,
+                    exit_label=step.get(node.id),
+                )
+            )
+        edges = sorted(
+            {
+                tuple(sorted((node_id, e.to)))
+                for node_id in explorer.visited
+                for e in self.dungeon.node(node_id).exits
+            }
+        )
+        return MapView(nodes=tuple(nodes), edges=tuple(edges))  # type: ignore[arg-type]
 
     # --- subscribers -----------------------------------------------------------------
 

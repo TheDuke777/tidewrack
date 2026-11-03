@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Every new world is a freshly generated dungeon: 14 sea-cave rooms with their
+  own names, descriptions and layout, different every time.
+- A map of the rooms you know, with unexplored rooms shown hollow and your
+  position ringed. Tap a neighbouring room to walk there, or hide the map with
+  the map button.
+- A temporary "Map test world (60 rooms)" button for checking map performance.
+
+### Changed
+- Exits are now named by compass direction ("Go north") in generated worlds.
+
 ## [0.2.0] - 2026-11-03
 
 ### Added

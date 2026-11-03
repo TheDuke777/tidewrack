@@ -23,7 +23,9 @@ def fake_clock():
 
 
 def new_session(store, name="World 1", seed=7, clock=None):
-    return GameSession.new(store, CONTENT, DUNGEON, name, seed, clock=clock or fake_clock())
+    return GameSession.new(
+        store, CONTENT, CONTENT.dungeon(DUNGEON), name, seed, clock=clock or fake_clock()
+    )
 
 
 # --- session + autosave ------------------------------------------------------------
@@ -156,6 +158,8 @@ def test_every_released_save_format_still_opens(tmp_path, fixture):
     assert session.game.turn == envelope["game"]["turn"] + 1
 
 
-def test_a_v1_fixture_exists():
+def test_there_is_a_fixture_for_every_schema_version():
+    from tidewrack.core.versions import SCHEMA_VERSION
+
     versions = {json.loads(p.read_text())["schema_version"] for p in FIXTURES.glob("*.json")}
-    assert 1 in versions
+    assert versions == set(range(1, SCHEMA_VERSION + 1))

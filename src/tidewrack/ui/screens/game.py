@@ -13,6 +13,7 @@ import flet as ft
 
 from tidewrack.core.engine.game import Command, Look, Move, Wait
 from tidewrack.services.session import GameSession
+from tidewrack.ui.map_canvas import MapCanvas
 from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
@@ -29,6 +30,10 @@ class GameScreen:
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(expand=True, spacing=6, auto_scroll=True)
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.map = MapCanvas(on_move=lambda label: self.act(Move(label)))
+        self.map_toggle = ft.IconButton(
+            icon=ft.Icons.MAP, selected_icon=ft.Icons.MAP_OUTLINED, on_click=self._toggle_map
+        )
 
         actions = ft.Row(
             spacing=8,
@@ -49,6 +54,7 @@ class GameScreen:
                     on_click=lambda _: on_back(),
                 ),
                 self.dungeon_name,
+                self.map_toggle,
             ],
         )
         self.control = ft.SafeArea(
@@ -60,6 +66,7 @@ class GameScreen:
                     spacing=12,
                     controls=[
                         header,
+                        self.map.control,
                         self.location,
                         self.description,
                         self.exits,
@@ -85,6 +92,10 @@ class GameScreen:
     def _wait(self, _: ft.Event) -> None:
         self.act(Wait())
 
+    def _toggle_map(self, _: ft.Event) -> None:
+        self.map.control.visible = not self.map.control.visible
+        self.refresh()
+
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
@@ -102,6 +113,14 @@ class GameScreen:
             for exit_ in view.exits
         ]
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
+        self.map_toggle.visible = view.map is not None
+        if view.map is None:
+            self.map.control.visible = False
+        else:
+            self.map.show(view.map, view.total_nodes)
+        shown = self.map.control.visible
+        self.map_toggle.selected = not shown
+        self.map_toggle.tooltip = "Hide map" if shown else "Show map"
         self.status.value = (
             f"Turn {view.turn} · Explored {view.visited}/{view.total_nodes} · "
             f"Seed {view.seed:x} · {self.version}"

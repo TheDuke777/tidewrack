@@ -1,0 +1,462 @@
+{
+ "content_version": "58283f50785f40d8e75572cbf1083ff7d651bb6dde32789e8ac9bccc60821aff",
+ "format": "tidewrack.slot",
+ "game": {
+  "ambient_rng": {
+   "s": [
+    14290497491475143694,
+    12385167907997040244,
+    10349399660614313082,
+    15342304334434118711
+   ],
+   "seed": 6143843289695912333
+  },
+  "dungeon": {
+   "id": "dungeon.generated",
+   "name": "The Gullet Caves",
+   "nodes": [
+    {
+     "ambient": [
+      "Surf booms behind you.",
+      "Gulls wheel overhead and will not follow you in."
+     ],
+     "description": "A ragged opening in the cliff, half-drowned at high tide. Cold air breathes out of it, smelling of salt and old stone.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_01"
+      },
+      {
+       "label": "Go west",
+       "to": "room_07"
+      }
+     ],
+     "features": [
+      "A rusted mooring ring, worn bright on one side by a rope long gone."
+     ],
+     "id": "room_00",
+     "name": "The Cave Mouth",
+     "pos": [
+      0.7793,
+      0.9523
+     ]
+    },
+    {
+     "ambient": [
+      "The kelp stirs in a draught you cannot feel."
+     ],
+     "description": "Dried kelp hangs from the ceiling in long curtains that rustle as you pass.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_02"
+      },
+      {
+       "label": "Go south",
+       "to": "room_00"
+      }
+     ],
+     "features": [],
+     "id": "room_01",
+     "name": "Glistening Kelp Hall",
+     "pos": [
+      0.7735,
+      0.7249
+     ]
+    },
+    {
+     "ambient": [
+      "A drop of water lands on your neck.",
+      "The glow pulses, very slowly."
+     ],
+     "description": "A grotto lit by a faint green glow from algae on the ceiling.",
+     "exits": [
+      {
+       "label": "Go east",
+       "to": "room_03"
+      },
+      {
+       "label": "Go south",
+       "to": "room_01"
+      }
+     ],
+     "features": [],
+     "id": "room_02",
+     "name": "Brackish Grotto",
+     "pos": [
+      0.7227,
+      0.6056
+     ]
+    },
+    {
+     "ambient": [
+      "A bubble rises from the black water and breaks."
+     ],
+     "description": "A chamber where seawater collects and slowly sours.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_04"
+      },
+      {
+       "label": "Go west",
+       "to": "room_02"
+      }
+     ],
+     "features": [],
+     "id": "room_03",
+     "name": "Silent Sump",
+     "pos": [
+      0.9138,
+      0.5913
+     ]
+    },
+    {
+     "ambient": [
+      "Your footsteps come back to you a moment late."
+     ],
+     "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_06"
+      },
+      {
+       "label": "Go south",
+       "to": "room_03"
+      },
+      {
+       "label": "Go west",
+       "to": "room_05"
+      }
+     ],
+     "features": [],
+     "id": "room_04",
+     "name": "Crooked Passage",
+     "pos": [
+      0.8815,
+      0.391
+     ]
+    },
+    {
+     "ambient": [
+      "The kelp stirs in a draught you cannot feel."
+     ],
+     "description": "A tall chamber festooned with kelp, as if the sea once filled it to the roof.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_11"
+      },
+      {
+       "label": "Go east",
+       "to": "room_04"
+      }
+     ],
+     "features": [
+      "Something has knotted the kelp into crude, careful shapes."
+     ],
+     "id": "room_05",
+     "name": "Brackish Kelp Hall",
+     "pos": [
+      0.7278,
+      0.381
+     ]
+    },
+    {
+     "ambient": [
+      "Wind sighs between the pillars."
+     ],
+     "description": "A long gallery with pillars of dripstone, like the nave of a drowned church.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_10"
+      },
+      {
+       "label": "Go south",
+       "to": "room_04"
+      },
+      {
+       "label": "Go west",
+       "to": "room_11"
+      }
+     ],
+     "features": [
+      "Tide-lines on the pillars, far above your head."
+     ],
+     "id": "room_06",
+     "name": "Echoing Gallery",
+     "pos": [
+      0.9491,
+      0.2379
+     ]
+    },
+    {
+     "ambient": [
+      "Wind sighs between the pillars."
+     ],
+     "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+     "exits": [
+      {
+       "label": "Go east",
+       "to": "room_00"
+      },
+      {
+       "label": "Go west",
+       "to": "room_08"
+      }
+     ],
+     "features": [],
+     "id": "room_07",
+     "name": "Narrow Gallery",
+     "pos": [
+      0.5771,
+      0.9246
+     ]
+    },
+    {
+     "ambient": [
+      "A bubble rises from the black water and breaks."
+     ],
+     "description": "A chamber where seawater collects and slowly sours.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_09"
+      },
+      {
+       "label": "Go east",
+       "to": "room_07"
+      }
+     ],
+     "features": [],
+     "id": "room_08",
+     "name": "Brackish Sump",
+     "pos": [
+      0.3929,
+      0.9198
+     ]
+    },
+    {
+     "ambient": [
+      "The kelp stirs in a draught you cannot feel."
+     ],
+     "description": "A tall chamber festooned with kelp, as if the sea once filled it to the roof.",
+     "exits": [
+      {
+       "label": "Go south",
+       "to": "room_08"
+      }
+     ],
+     "features": [
+      "Something has knotted the kelp into crude, careful shapes."
+     ],
+     "id": "room_09",
+     "name": "Flooded Kelp Hall",
+     "pos": [
+      0.43,
+      0.7461
+     ]
+    },
+    {
+     "ambient": [
+      "Your footsteps come back to you a moment late."
+     ],
+     "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+     "exits": [
+      {
+       "label": "Go south",
+       "to": "room_06"
+      }
+     ],
+     "features": [],
+     "id": "room_10",
+     "name": "Echoing Passage",
+     "pos": [
+      0.9351,
+      0.105
+     ]
+    },
+    {
+     "ambient": [
+      "Somewhere, something gnaws."
+     ],
+     "description": "A ledge heaped with the bones of fish and seabirds, picked clean.",
+     "exits": [
+      {
+       "label": "Go north",
+       "to": "room_12"
+      },
+      {
+       "label": "Go east",
+       "to": "room_06"
+      },
+      {
+       "label": "Go south",
+       "to": "room_05"
+      },
+      {
+       "label": "Go west",
+       "to": "room_13"
+      }
+     ],
+     "features": [],
+     "id": "room_11",
+     "name": "Hollow Bone Shelf",
+     "pos": [
+      0.7271,
+      0.2405
+     ]
+    },
+    {
+     "ambient": [
+      "Wind sighs between the pillars."
+     ],
+     "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+     "exits": [
+      {
+       "label": "Go south",
+       "to": "room_11"
+      }
+     ],
+     "features": [],
+     "id": "room_12",
+     "name": "Moonlit Gallery",
+     "pos": [
+      0.7591,
+      0.0749
+     ]
+    },
+    {
+     "ambient": [
+      "Wind sighs between the pillars."
+     ],
+     "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+     "exits": [
+      {
+       "label": "Go east",
+       "to": "room_11"
+      }
+     ],
+     "features": [],
+     "id": "room_13",
+     "name": "Flooded Gallery",
+     "pos": [
+      0.5779,
+      0.266
+     ]
+    }
+   ],
+   "start": "room_00"
+  },
+  "entities": [
+   {
+    "components": {
+     "Explorer": {
+      "discovered": [
+       "room_00",
+       "room_01",
+       "room_02",
+       "room_03",
+       "room_07"
+      ],
+      "visited": [
+       "room_00",
+       "room_01",
+       "room_02"
+      ]
+     },
+     "Name": {
+      "text": "You"
+     },
+     "Player": {},
+     "Position": {
+      "node": "room_02"
+     }
+    },
+    "id": 1
+   },
+   {
+    "components": {
+     "Position": {
+      "node": "room_00"
+     },
+     "Scenery": {
+      "text": "A rusted mooring ring, worn bright on one side by a rope long gone."
+     }
+    },
+    "id": 2
+   },
+   {
+    "components": {
+     "Position": {
+      "node": "room_05"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 3
+   },
+   {
+    "components": {
+     "Position": {
+      "node": "room_06"
+     },
+     "Scenery": {
+      "text": "Tide-lines on the pillars, far above your head."
+     }
+    },
+    "id": 4
+   },
+   {
+    "components": {
+     "Position": {
+      "node": "room_09"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 5
+   }
+  ],
+  "log": [
+   "— The Gullet Caves —",
+   "You stand at The Cave Mouth.",
+   "You make your way to Glistening Kelp Hall.",
+   "Nothing else here catches your eye.",
+   "You make your way to Brackish Grotto.",
+   "Time passes."
+  ],
+  "next_entity_id": 6,
+  "rng": {
+   "s": [
+    5843011988881251843,
+    7620229681788273117,
+    3728128964537905102,
+    1906953110644082044
+   ],
+   "seed": 20261103
+  },
+  "seed": 20261103,
+  "turn": 3
+ },
+ "generator_version": 1,
+ "meta": {
+  "created_at": "2026-11-03T13:00:00+00:00",
+  "name": "World 2",
+  "revision": 5,
+  "slot_id": "00000000000000000000000000000002",
+  "summary": {
+   "dungeon_name": "The Gullet Caves",
+   "location": "Brackish Grotto",
+   "total_nodes": 14,
+   "turn": 3,
+   "visited": 3
+  },
+  "updated_at": "2026-11-03T13:05:00+00:00"
+ },
+ "schema_version": 2
+}

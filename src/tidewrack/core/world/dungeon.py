@@ -25,6 +25,7 @@ class Node:
     exits: tuple[Exit, ...]
     features: tuple[str, ...] = ()  # scenery described by Look
     ambient: tuple[str, ...] = ()  # flavour lines that may play on entering
+    pos: tuple[float, float] | None = None  # map position, x/y in 0..1, north up
 
 
 @dataclass(frozen=True)
@@ -39,6 +40,10 @@ class DungeonMap:
 
     def exit(self, node_id: str, label: str) -> Exit | None:
         return next((e for e in self.nodes[node_id].exits if e.label == label), None)
+
+    @property
+    def has_map(self) -> bool:
+        return all(n.pos is not None for n in self.nodes.values())
 
     def neighbours(self, node_id: str) -> list[str]:
         return [e.to for e in self.nodes[node_id].exits]
@@ -59,6 +64,9 @@ class DungeonMap:
                 for e in node.exits
                 if e.to not in self.nodes
             ]
+        positioned = [n.pos is not None for n in self.nodes.values()]
+        if any(positioned) and not all(positioned):
+            found.append("map positions must be given for every node or none")
         if not found:
             seen, todo = {self.start}, deque([self.start])
             while todo:

@@ -45,8 +45,8 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | Concern | Choice | Notes |
 |---|---|---|
 | UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
-| Map rendering | Flet `canvas` | Draws the networkx world graph as a point-crawl diagram |
-| World structure | `networkx` | Dungeons and overworld as weighted graphs |
+| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war; tap a neighbouring room to move |
+| World structure | Hand-rolled (`core/procgen/dungeon_gen.py`) | Grid-based spanning tree + loops gives map positions directly and stays deterministic; chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 rooms). Revisit for the overworld if needed |
 | Overworld regions | `scipy.spatial.Voronoi` | Verify Pyodide availability if web is pursued |
 | Biomes | `opensimplex` | Coherent noise → biome per region |
 | ECS | In-house (`core/engine/ecs.py`) | Instance-based, insertion-ordered `World`. Chosen over `esper` 3.x, whose state is module-global (bad for tests, multiple slots, save/load) |
@@ -119,6 +119,8 @@ tidewrack/
 ├── art/                             # source artwork (not bundled into the APK)
 ├── src/content/                     # All game content as data, <kind>/<name>.json
 │                                    #   (under src/ because flet build only bundles src/)
+│   ├── dungeons/                    # hand-authored dungeons (first_descent → tutorial later)
+│   ├── roomsets/                    # room archetypes + names that generated dungeons use
 │   ├── monsters/
 │   ├── items/
 │   │   ├── gear/
@@ -147,7 +149,8 @@ tidewrack/
 │   │   ├── engine/                  # ecs.py, components.py, events.py,
 │   │   │                            #   game.py (commands, turn loop, view model)
 │   │   ├── world/                   # dungeon.py (point-crawl map model)
-│   │   ├── procgen/                 # world_graph, biomes, names, quests, factions, pets, lore
+│   │   ├── procgen/                 # dungeon_gen.py (seeded generator + world_hash);
+│   │   │                            #   later: biomes, names, quests, factions, pets, lore
 │   │   ├── gear/                    # stat_pipeline.py, compare.py
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
@@ -172,7 +175,7 @@ tidewrack/
 │       ├── app.py                   # navigation shell (slot picker ⇄ game)
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
 │       ├── components/              # gear_compare_card, stat_delta, tier_progress, toast, …
-│       ├── map_canvas.py            # point-crawl renderer + fog of war
+│       ├── map_canvas.py            # point-crawl renderer + fog of war + tap-to-move
 │       └── screens/                 # sign_in, slot_picker, game, map, inventory, shop,
 │                                    #   crafting, cooking, pets, achievements, codex,
 │                                    #   quest_log, help, settings, tutorial
@@ -308,7 +311,8 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, roomset, size)`, which uses the seed's `worldgen` substream; layout and naming use separate substreams so content edits to names don't reshape worlds.
+- `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
 ---
 
@@ -377,8 +381,8 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 
 1. **Mobile Google OAuth.** Flet's built-in OAuth supports Google and works on mobile via an in-app web browser, but its documented setup uses a client secret, which would ship inside the app. Confirm PKCE/no-secret flow is possible; and confirm Google accepts the in-app browser flow (Google has restricted OAuth in embedded webviews — verify on a real device). Fallback: Firebase Auth, or a minimal token-exchange function.
 2. **Drive `appDataFolder` from Python on-device** — read/write/list with a thin REST client; test token refresh and offline→online transitions.
-3. **Canvas map performance** — render/update a ~60-node graph with fog of war on a low-end phone.
-4. **Pyodide dependency check** (only if web is pursued) — verify `networkx`, `scipy`, `pydantic`, `markovify`, `opensimplex`; time worldgen in-browser.
+3. **Canvas map performance** — render/update a ~60-node graph with fog of war on a low-end phone. *In progress (v0.3.0):* the world list has a temporary "Map test world (60 rooms)" button for this; remove it (`SPIKE_WORLD_SIZE` in `ui/app.py`) once checked. Generating 60 rooms takes ~8 ms on desktop.
+4. **Pyodide dependency check** (only if web is pursued) — verify `scipy`, `pydantic`, `markovify`, `opensimplex`; time worldgen in-browser.
 5. **Share/import plumbing** — file picker, share sheet, clipboard, QR on mobile through Flet.
 6. **Search quality/perf** of the in-app help index on mobile.
 7. ✅ **Done (v0.0.1–v0.0.3).** **End-to-end Komi Store update cycle.** Install v0.0.1 via Komi Store, publish v0.0.2 from CI, and confirm detection, in-place update, and how tag / versionName / build-number comparisons behave (including the pre-release toggle and asset-variant pinning).

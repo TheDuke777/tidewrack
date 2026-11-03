@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_vali
 from tidewrack.core.world.dungeon import DungeonMap, Exit, Node
 
 Text = Annotated[str, StringConstraints(min_length=1)]
+Unit = Annotated[float, Field(ge=0.0, le=1.0)]
 LocalId = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$")]
 
 
@@ -24,6 +25,28 @@ def content_id(kind: str) -> type[str]:
 
 class Schema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+# --- roomsets (raw material for generated dungeons) ----------------------------
+
+
+class ArchetypeSchema(Schema):
+    """A kind of room: generated rooms are named "<adjective> <noun>"."""
+
+    noun: Text
+    weight: float = Field(default=1.0, gt=0)  # relative chance of being picked
+    descriptions: list[Text] = Field(min_length=1)
+    features: list[Text] = []
+    ambient: list[Text] = []
+
+
+class RoomsetSchema(Schema):
+    id: content_id("roomset")
+    name: Text
+    dungeon_names: list[Text] = Field(min_length=1)
+    adjectives: list[Text] = Field(min_length=1)
+    entrance: ArchetypeSchema
+    rooms: list[ArchetypeSchema] = Field(min_length=1)
 
 
 # --- dungeons ----------------------------------------------------------------------
@@ -41,6 +64,7 @@ class NodeSchema(Schema):
     exits: list[ExitSchema] = Field(min_length=1)
     features: list[Text] = []
     ambient: list[Text] = []
+    pos: tuple[Unit, Unit] | None = None  # map position, north up
 
 
 class DungeonSchema(Schema):
@@ -74,6 +98,7 @@ class DungeonSchema(Schema):
                     exits=[ExitSchema(label=e.label, to=e.to) for e in n.exits],
                     features=list(n.features),
                     ambient=list(n.ambient),
+                    pos=n.pos,
                 )
                 for n in dungeon.nodes.values()
             ],
@@ -92,6 +117,7 @@ class DungeonSchema(Schema):
                     exits=tuple(Exit(e.label, e.to) for e in n.exits),
                     features=tuple(n.features),
                     ambient=tuple(n.ambient),
+                    pos=n.pos,
                 )
                 for n in self.nodes
             },

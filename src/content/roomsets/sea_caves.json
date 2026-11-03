@@ -1,0 +1,102 @@
+{
+  "id": "roomset.sea_caves",
+  "name": "Sea Caves",
+  "dungeon_names": [
+    "The Drowned Warren",
+    "The Gullet Caves",
+    "The Brine Halls",
+    "The Hollow Reef",
+    "The Undertow Deep",
+    "The Saltgrave"
+  ],
+  "adjectives": [
+    "Dripping", "Echoing", "Silent", "Crooked", "Narrow", "Flooded", "Glistening",
+    "Bone-White", "Hollow", "Sunken", "Brackish", "Windless", "Moonlit", "Barnacled"
+  ],
+  "entrance": {
+    "noun": "Cave Mouth",
+    "descriptions": [
+      "A ragged opening in the cliff, half-drowned at high tide. Cold air breathes out of it, smelling of salt and old stone."
+    ],
+    "features": ["A rusted mooring ring, worn bright on one side by a rope long gone."],
+    "ambient": ["Surf booms behind you.", "Gulls wheel overhead and will not follow you in."]
+  },
+  "rooms": [
+    {
+      "noun": "Grotto",
+      "descriptions": [
+        "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+        "A grotto lit by a faint green glow from algae on the ceiling."
+      ],
+      "features": ["A ring of pebbles, carefully arranged, around nothing at all."],
+      "ambient": ["A drop of water lands on your neck.", "The glow pulses, very slowly."]
+    },
+    {
+      "noun": "Tidal Pool",
+      "weight": 0.8,
+      "descriptions": [
+        "A still pool fills most of the chamber, its surface flat as glass.",
+        "The floor dips into a pool that rises and falls with a tide you cannot hear."
+      ],
+      "features": ["Pale anemones close as your shadow passes over them."],
+      "ambient": ["The pool shivers, though nothing touched it."]
+    },
+    {
+      "noun": "Passage",
+      "weight": 1.5,
+      "descriptions": [
+        "A winding passage, scoured smooth by water. You walk bent to keep your head clear.",
+        "A crack in the rock just wide enough to pass, its walls slick with weed."
+      ],
+      "ambient": ["Your footsteps come back to you a moment late."]
+    },
+    {
+      "noun": "Kelp Hall",
+      "weight": 0.6,
+      "descriptions": [
+        "Dried kelp hangs from the ceiling in long curtains that rustle as you pass.",
+        "A tall chamber festooned with kelp, as if the sea once filled it to the roof."
+      ],
+      "features": ["Something has knotted the kelp into crude, careful shapes."],
+      "ambient": ["The kelp stirs in a draught you cannot feel."]
+    },
+    {
+      "noun": "Bone Shelf",
+      "weight": 0.5,
+      "descriptions": [
+        "A ledge heaped with the bones of fish and seabirds, picked clean.",
+        "Small bones crunch underfoot. Something feeds here, and is tidy about it."
+      ],
+      "features": ["A gull skull, polished, set apart from the rest."],
+      "ambient": ["Somewhere, something gnaws."]
+    },
+    {
+      "noun": "Shrine",
+      "weight": 0.3,
+      "descriptions": [
+        "A natural alcove someone has made holy: shells pressed into the walls in spirals.",
+        "A small, dry chamber with a flat stone like an altar at its centre."
+      ],
+      "features": ["Offerings of sea-glass, sorted by colour.", "A rune scratched into the stone, worn almost smooth."]
+    },
+    {
+      "noun": "Sump",
+      "weight": 0.7,
+      "descriptions": [
+        "The floor slopes down to black water. The air is thick and still.",
+        "A chamber where seawater collects and slowly sours."
+      ],
+      "ambient": ["A bubble rises from the black water and breaks."]
+    },
+    {
+      "noun": "Gallery",
+      "weight": 0.6,
+      "descriptions": [
+        "A long gallery with pillars of dripstone, like the nave of a drowned church.",
+        "A high, narrow gallery. Light from somewhere far above falls in a single thread."
+      ],
+      "features": ["Tide-lines on the pillars, far above your head."],
+      "ambient": ["Wind sighs between the pillars."]
+    }
+  ]
+}

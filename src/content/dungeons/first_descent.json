@@ -6,6 +6,10 @@
     {
       "id": "wrack_cove",
       "name": "Wrack Cove",
+      "pos": [
+        0.35,
+        0.12
+      ],
       "description": "A crescent of black shingle under a sky the colour of old pewter. The tide has gone out further than tides should, baring a stair cut into the cliff.",
       "exits": [
         {
@@ -29,6 +33,10 @@
     {
       "id": "wreck_hull",
       "name": "The Stranded Hull",
+      "pos": [
+        0.78,
+        0.2
+      ],
       "description": "A merchant ship lies on its side in the sand, ribs showing like a drowned whale's. A hatch in the deck hangs open.",
       "exits": [
         {
@@ -51,6 +59,10 @@
     {
       "id": "flooded_hold",
       "name": "Flooded Hold",
+      "pos": [
+        0.82,
+        0.55
+      ],
       "description": "Knee-deep water, cold enough to ache. Crates float in slow circles. A split in the hull opens onto a tunnel lined with barnacles.",
       "exits": [
         {
@@ -72,6 +84,10 @@
     {
       "id": "cliff_stair",
       "name": "The Cliff Stair",
+      "pos": [
+        0.32,
+        0.45
+      ],
       "description": "Steps worn to saddles by centuries of feet. Halfway down, an archway leads into the rock; the stair itself continues toward the sound of water.",
       "exits": [
         {
@@ -97,6 +113,10 @@
     {
       "id": "sea_cave",
       "name": "Sea Cave",
+      "pos": [
+        0.36,
+        0.82
+      ],
       "description": "A vaulted cave where the stair ends in a tidal pool. Light ripples on the ceiling from no visible source. A barnacled tunnel runs inland.",
       "exits": [
         {
@@ -119,6 +139,10 @@
     {
       "id": "barnacle_tunnel",
       "name": "Barnacle Tunnel",
+      "pos": [
+        0.66,
+        0.88
+      ],
       "description": "A low passage crusted with barnacles that crunch underfoot. It joins the sea cave to the wreck's broken hold.",
       "exits": [
         {
@@ -137,6 +161,10 @@
     {
       "id": "tide_shrine",
       "name": "Tide Shrine",
+      "pos": [
+        0.06,
+        0.5
+      ],
       "description": "A round chamber, dry and silent. An altar of green stone holds a bowl of seawater that never ripples, even when you breathe on it.",
       "exits": [
         {

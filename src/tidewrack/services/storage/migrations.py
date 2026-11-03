@@ -19,8 +19,14 @@ from tidewrack.services.storage.store import SaveError
 
 Envelope = dict[str, Any]
 
+
+def _v1_to_v2(envelope: Envelope) -> Envelope:
+    # v2 only added optional map positions to dungeon nodes; v1 maps have none.
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
-MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {}
+MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {1: _v1_to_v2}
 
 
 class NewerSaveError(SaveError):

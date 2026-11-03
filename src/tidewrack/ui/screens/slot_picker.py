@@ -16,6 +16,7 @@ class SlotPickerScreen:
         listings: list[SlotListing],
         on_open: Callable[[str], None],
         on_new: Callable[[], None],
+        on_new_large: Callable[[], None],
         on_delete: Callable[[SlotListing], None],
         footer: str,
     ) -> None:
@@ -36,6 +37,11 @@ class SlotPickerScreen:
                         ft.Text("Tidewrack", size=28, weight=ft.FontWeight.BOLD),
                         ft.FilledButton(
                             content="New world", icon=ft.Icons.ADD, on_click=lambda _: on_new()
+                        ),
+                        ft.TextButton(
+                            content="Map test world (60 rooms)",
+                            icon=ft.Icons.SCIENCE_OUTLINED,
+                            on_click=lambda _: on_new_large(),
                         ),
                         ft.ListView(expand=True, spacing=8, controls=cards or [empty]),
                         ft.Text(footer, size=12, color=ft.Colors.ON_SURFACE_VARIANT),

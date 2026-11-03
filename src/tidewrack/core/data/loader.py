@@ -19,12 +19,13 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from tidewrack.core.data.schemas import DungeonSchema
+from tidewrack.core.data.schemas import DungeonSchema, RoomsetSchema
 from tidewrack.core.world.dungeon import DungeonMap
 
 # kind directory -> (schema, id prefix)
 KINDS = {
     "dungeons": (DungeonSchema, "dungeon"),
+    "roomsets": (RoomsetSchema, "roomset"),
 }
 
 
@@ -37,15 +38,19 @@ class ContentError(Exception):
 @dataclass(frozen=True)
 class Content:
     dungeons: dict[str, DungeonMap]
+    roomsets: dict[str, RoomsetSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> DungeonMap:
         return self.dungeons[dungeon_id]
 
+    def roomset(self, roomset_id: str) -> RoomsetSchema:
+        return self.roomsets[roomset_id]
+
 
 def load_content(files: Mapping[str, str]) -> Content:
     problems: list[str] = []
-    dungeons: dict[str, DungeonMap] = {}
+    loaded: dict[str, dict] = {kind: {} for kind in KINDS}
 
     for path in sorted(files):
         kind, _, filename = path.partition("/")
@@ -72,11 +77,15 @@ def load_content(files: Mapping[str, str]) -> Content:
         if model.id != expected_id:
             problems.append(f"{path}: id is {model.id!r} but this file must hold {expected_id!r}")
             continue
-        dungeons[model.id] = model.to_map()
+        loaded[kind][model.id] = model
 
     if problems:
         raise ContentError(problems)
-    return Content(dungeons=dungeons, content_hash=content_hash(files))
+    return Content(
+        dungeons={i: m.to_map() for i, m in loaded["dungeons"].items()},
+        roomsets=loaded["roomsets"],
+        content_hash=content_hash(files),
+    )
 
 
 def content_hash(files: Mapping[str, str]) -> str:

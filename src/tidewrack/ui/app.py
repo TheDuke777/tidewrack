@@ -7,13 +7,16 @@ import secrets
 import flet as ft
 
 from tidewrack.core.data.loader import Content
+from tidewrack.core.procgen.dungeon_gen import generate_world
 from tidewrack.services.session import GameSession, next_world_name
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
 from tidewrack.ui.screens.game import GameScreen
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
 from tidewrack.version import get_build_info, version_label
 
-START_DUNGEON = "dungeon.first_descent"
+ROOMSET = "roomset.sea_caves"
+WORLD_SIZE = 14
+SPIKE_WORLD_SIZE = 60  # Spike 3 (map performance); remove the button once it's done
 
 
 def new_seed() -> int:
@@ -43,6 +46,7 @@ class App:
                 self.store.list_slots(),
                 on_open=self.open_slot,
                 on_new=self.new_world,
+                on_new_large=lambda: self.new_world(SPIKE_WORLD_SIZE),
                 on_delete=self.confirm_delete,
                 footer=version_label(get_build_info()),
             ).control
@@ -57,9 +61,11 @@ class App:
 
     # --- actions -----------------------------------------------------------------
 
-    def new_world(self) -> None:
+    def new_world(self, size: int = WORLD_SIZE) -> None:
         name = next_world_name([s.meta.name for s in self.store.list_slots()])
-        session = GameSession.new(self.store, self.content, START_DUNGEON, name, new_seed())
+        seed = new_seed()
+        dungeon = generate_world(seed, self.content.roomset(ROOMSET), size)
+        session = GameSession.new(self.store, self.content, dungeon, name, seed)
         self.show_game(session)
 
     def open_slot(self, slot_id: str) -> None:
