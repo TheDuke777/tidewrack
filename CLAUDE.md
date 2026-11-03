@@ -396,7 +396,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 ## 14. Build order (MVP-first)
 
 0. ✅ **Done (v0.0.3).** **Pipeline first.** Repo, `pyproject.toml`, bundle ID, release keystore, `ci.yml`, `release.yml`, `tools/release.py`, and a hello-world Flet app that shows its version — shipped end-to-end through GitHub Release → Komi Store → phone, with one real update cycle. (Spikes 7–8.)
-1. **Core skeleton:** ECS + event bus + turn loop + seeded RNG + one hand-authored dungeon. Import-lint test for `core/` purity.
+1. ✅ **Done (v0.1.0).** **Core skeleton:** ECS + event bus + turn loop + seeded RNG + one hand-authored dungeon. Import-lint test for `core/` purity.
 2. **Data layer:** pydantic schemas + content loader + content validation tests.
 3. **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.
 4. **World graph + map:** networkx generation, canvas point-crawl, fog of war. (Spike 3.)
