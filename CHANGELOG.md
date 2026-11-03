@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
 ### Added
 - Saved worlds: start several worlds and pick one to continue from the new
   world list. Progress saves automatically after every action, so closing the
