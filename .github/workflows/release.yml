@@ -101,3 +101,44 @@ jobs:
             --title "Tidewrack $TAG" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             "${flags[@]}"
+
+      # Runs whatever happened above. A missing secret or a Pushover outage only
+      # warns: by this point the release itself has already succeeded or failed.
+      - name: Notify via Pushover
+        if: always()
+        env:
+          PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
+          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+          STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+        run: |
+          if [ -z "$PUSHOVER_APP_TOKEN" ] || [ -z "$PUSHOVER_USER_KEY" ]; then
+            echo "::warning::Pushover secrets not set; skipping notification"
+            exit 0
+          fi
+          kind="release"
+          if [[ "$TAG" == *-* ]]; then kind="pre-release"; fi
+          case "$STATUS" in
+            success)
+              title="Tidewrack $TAG published"
+              message="The $kind is on GitHub; Komi Store will pick it up on its next check."
+              url="$RELEASE_URL"; url_title="View release" ;;
+            cancelled)
+              title="Tidewrack $TAG cancelled"
+              message="The release run was cancelled before it finished."
+              url="$RUN_URL"; url_title="View run" ;;
+            *)
+              title="Tidewrack $TAG FAILED"
+              message="The release run failed. Check the logs to see which step broke."
+              url="$RUN_URL"; url_title="View logs" ;;
+          esac
+          curl -sS --fail-with-body --retry 3 \
+            --form-string "token=$PUSHOVER_APP_TOKEN" \
+            --form-string "user=$PUSHOVER_USER_KEY" \
+            --form-string "title=$title" \
+            --form-string "message=$message" \
+            --form-string "url=$url" \
+            --form-string "url_title=$url_title" \
+            https://api.pushover.net/1/messages.json \
+            || echo "::warning::Pushover notification failed"
