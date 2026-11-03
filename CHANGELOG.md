@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Saved worlds: start several worlds and pick one to continue from the new
+  world list. Progress saves automatically after every action, so closing the
+  app (or Android closing it) never loses anything.
+- Delete a world from the list (with confirmation).
+- If a save file is ever damaged, the world is restored from one of its recent
+  backups.
+
+### Changed
+- "New run" is replaced by "New world" on the world list; the game screen has a
+  back button to return to it.
+
 ## [0.1.1] - 2026-11-03
 
 ### Changed

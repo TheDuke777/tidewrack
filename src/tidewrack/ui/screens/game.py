@@ -1,35 +1,29 @@
-"""Step-1 text screen: walk the hand-authored dungeon.
+"""The game screen: walk the dungeon of the open save slot.
 
-Reads only Game.view() and sends only commands (CLAUDE.md §4). Flet re-renders
-after each event handler returns, so handlers just update controls.
+Reads only Game.view() and sends only commands, through the GameSession so every
+action autosaves (CLAUDE.md §4, §6). Flet re-renders after each event handler
+returns, so handlers just update controls.
 """
 
 from __future__ import annotations
 
-import secrets
+from collections.abc import Callable
 
 import flet as ft
 
-from tidewrack.core.data.loader import Content
-from tidewrack.core.engine.game import Command, Game, Look, Move, Wait
+from tidewrack.core.engine.game import Command, Look, Move, Wait
+from tidewrack.services.session import GameSession
 from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
-START_DUNGEON = "dungeon.first_descent"
-
-
-def new_seed() -> int:
-    # The UI picks fresh seeds; core itself never touches system randomness.
-    return secrets.randbits(63)
 
 
 class GameScreen:
-    def __init__(self, content: Content) -> None:
-        self.dungeon = content.dungeon(START_DUNGEON)
-        self.game = Game(new_seed(), self.dungeon)
+    def __init__(self, session: GameSession, on_back: Callable[[], None]) -> None:
+        self.session = session
         self.version = version_label(get_build_info())
 
-        self.dungeon_name = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.dungeon_name = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
         self.location = ft.Text(size=26, weight=ft.FontWeight.BOLD)
         self.description = ft.Text(size=16)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
@@ -48,10 +42,13 @@ class GameScreen:
             ],
         )
         header = ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
+                ft.IconButton(
+                    icon=ft.Icons.ARROW_BACK,
+                    tooltip="Back to worlds",
+                    on_click=lambda _: on_back(),
+                ),
                 self.dungeon_name,
-                ft.TextButton(content="New run", icon=ft.Icons.REFRESH, on_click=self._new_run),
             ],
         )
         self.control = ft.SafeArea(
@@ -79,7 +76,7 @@ class GameScreen:
     # --- handlers ----------------------------------------------------------------
 
     def act(self, command: Command) -> None:
-        self.game.perform(command)
+        self.session.perform(command)  # autosaves
         self.refresh()
 
     def _look(self, _: ft.Event) -> None:
@@ -88,15 +85,11 @@ class GameScreen:
     def _wait(self, _: ft.Event) -> None:
         self.act(Wait())
 
-    def _new_run(self, _: ft.Event) -> None:
-        self.game = Game(new_seed(), self.dungeon)
-        self.refresh()
-
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
-        view = self.game.view()
-        self.dungeon_name.value = view.dungeon_name
+        view = self.session.game.view()
+        self.dungeon_name.value = f"{self.session.meta.name} · {view.dungeon_name}"
         self.location.value = view.location
         self.description.value = view.description
         self.exits.controls = [

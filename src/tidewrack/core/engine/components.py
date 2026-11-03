@@ -33,3 +33,8 @@ class Scenery:
     """A non-interactive feature described when looking around a node."""
 
     text: str
+
+
+# Every component type, by name, for saving and loading. Names are part of the save
+# format: renaming one needs a save migration.
+COMPONENTS: dict[str, type] = {c.__name__: c for c in (Player, Name, Position, Explorer, Scenery)}

@@ -154,18 +154,22 @@ tidewrack/
 │   │   ├── codex/                   # discovery tracker, bestiary/lore/quest-log models,
 │   │   │                            #   help index + search, glossary
 │   │   ├── data/                    # schemas.py (pydantic → runtime models);
-│   │   │                            #   loader.py (pure: {path: text} → Content)
+│   │   │                            #   loader.py (pure: {path: text} → Content);
+│   │   │                            #   save.py (GameState schema + component codec)
+│   │   ├── versions.py              # SCHEMA_VERSION, GENERATOR_VERSION (§9)
 │   │   └── rng.py                   # own xoshiro256** stream; derive() substreams
 │   ├── services/                    # platform adapters behind interfaces
 │   │   ├── content/                 # reads bundled src/content files → core loader
-│   │   ├── storage/                 # SaveStore interface; file backend; browser backend
+│   │   ├── storage/                 # SaveStore interface + FileSaveStore (store.py),
+│   │   │                            #   migrations.py; browser backend later
+│   │   ├── session.py               # GameSession: a Game bound to a slot, autosaves
 │   │   ├── cloud/                   # CloudProvider interface; google_drive/; sync_engine.py;
 │   │   │                            #   conflict.py  (onedrive/ later, same interface)
 │   │   ├── auth/                    # OAuth wrappers, token storage
 │   │   ├── share/                   # world/save export + import codec, validation
 │   │   └── settings/                # settings model + persistence
 │   └── ui/
-│       ├── app.py                   # routing / navigation shell
+│       ├── app.py                   # navigation shell (slot picker ⇄ game)
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
 │       ├── components/              # gear_compare_card, stat_delta, tier_progress, toast, …
 │       ├── map_canvas.py            # point-crawl renderer + fog of war
@@ -177,7 +181,8 @@ tidewrack/
 │   └── economy_sim.py               # arbitrage + shop-vs-craft balance checks
 └── tests/
     ├── core/                        # golden-seed tests, compare tests, economy lint
-    ├── services/                    # sync/conflict tests, import fuzz tests
+    ├── services/                    # storage/session tests, sync/conflict, import fuzz
+    ├── fixtures/saves/              # one save per released schema_version — never delete
     └── content/                     # schema validation of every content file
 ```
 
@@ -202,6 +207,12 @@ tidewrack/
 - **Never silently overwrite.** Conflict dialog: *Keep this device / Keep cloud / Keep both (duplicate slot)*, showing playtime, prestige, last-played for each side.
 - Keep rolling local backups (last N autosaves per slot) and one prior cloud revision where the provider allows.
 - Autosave on meaningful events (node change, combat end, shop/craft transaction), not just on exit — mobile apps get killed.
+
+### Local implementation (step 3)
+- Slots live in `$FLET_APP_STORAGE_DATA/saves/` (the app's private dir, kept across updates; `flet run` maps it to `.flet/storage/data`). One file per slot, `slot_<uuid hex>.json.gz`: an **envelope** of `format`, `schema_version`, `generator_version`, `content_version` (content hash), `meta` (name, timestamps, `revision`, picker summary) and `game` (a `GameState`).
+- `GameSession` autosaves after **every** command that produced events. Writes are atomic (temp + fsync + rename); the previous **3** revisions are copied to `saves/backups/` first, and loading falls back to the newest readable backup (the picker flags it).
+- Locally the slot list comes from scanning slot files (no local manifest to drift); `manifest.json` is for cloud sync.
+- A `GameState` **snapshots the dungeon map** and every entity, so saves never depend on current content files (§9).
 
 ---
 
@@ -296,7 +307,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - **Stable content IDs, forever.** Never rename; deprecate with a replacement mapping.
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
-- `services/storage/migrations/` upgrades old saves; migration tests run against fixture saves from every released schema.
+- `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
 - Golden-seed tests: seed X + generator version Y must produce a stable world hash.
 
 ---

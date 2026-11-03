@@ -18,6 +18,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from tidewrack.core.data.save import (
+    EntityState,
+    GameState,
+    RngState,
+    decode_component,
+    encode_component,
+)
+from tidewrack.core.data.schemas import DungeonSchema
 from tidewrack.core.engine.components import Explorer, Name, Player, Position, Scenery
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
@@ -93,6 +101,19 @@ class GameView:
 
 class Game:
     def __init__(self, seed: int, dungeon: DungeonMap) -> None:
+        """Start a new run of `dungeon`."""
+        self._setup(seed, dungeon)
+        self.player = self.world.create(Player(), Name("You"), Position(dungeon.start), Explorer())
+        for node in dungeon.nodes.values():
+            for text in node.features:
+                self.world.create(Scenery(text), Position(node.id))
+
+        self.bus.emit(GameStarted(seed, dungeon.id))
+        self.bus.emit(NodeEntered(self.player, dungeon.start, None, first_visit=True))
+        self.bus.flush()
+
+    def _setup(self, seed: int, dungeon: DungeonMap) -> None:
+        """Runtime wiring shared by new and loaded games."""
         self.seed = seed
         self.dungeon = dungeon
         self.rng = Rng(seed)
@@ -110,14 +131,45 @@ class Game:
         self.bus.subscribe(NodeEntered, self._explore)
         self.bus.subscribe(Event, self._narrate)
 
-        self.player = self.world.create(Player(), Name("You"), Position(dungeon.start), Explorer())
-        for node in dungeon.nodes.values():
-            for text in node.features:
-                self.world.create(Scenery(text), Position(node.id))
+    # --- saving ----------------------------------------------------------------------
 
-        self.bus.emit(GameStarted(seed, dungeon.id))
-        self.bus.emit(NodeEntered(self.player, dungeon.start, None, first_visit=True))
-        self.bus.flush()
+    def to_state(self) -> GameState:
+        next_id, entities = self.world.snapshot()
+        return GameState(
+            seed=self.seed,
+            turn=self.turn,
+            log=list(self.log),
+            dungeon=DungeonSchema.from_map(self.dungeon),
+            rng=RngState(**self.rng.get_state()),
+            ambient_rng=RngState(**self.ambient_rng.get_state()),
+            next_entity_id=next_id,
+            entities=[
+                EntityState(id=e, components=dict(encode_component(c) for c in components))
+                for e, components in entities.items()
+            ],
+        )
+
+    @classmethod
+    def from_state(cls, state: GameState) -> Game:
+        """Resume a saved game exactly where it stopped (RNG streams included)."""
+        game = cls.__new__(cls)
+        game._setup(state.seed, state.dungeon.to_map())
+        game.rng = Rng.from_state(state.rng.model_dump())
+        game.ambient_rng = Rng.from_state(state.ambient_rng.model_dump())
+        game.turn = state.turn
+        game.log = list(state.log)
+        game.world = World.restore(
+            state.next_entity_id,
+            {
+                e.id: tuple(decode_component(n, f) for n, f in e.components.items())
+                for e in state.entities
+            },
+        )
+        game.player = game.world.single(Player)[0]
+        for entity, (position,) in game.world.query(Position):
+            if position.node not in game.dungeon.nodes:
+                raise ValueError(f"entity {entity} is at unknown node {position.node!r}")
+        return game
 
     # --- turn loop -------------------------------------------------------------------
 

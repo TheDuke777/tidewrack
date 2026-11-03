@@ -59,6 +59,26 @@ class DungeonSchema(Schema):
             raise ValueError("; ".join(problems))
         return self
 
+    @classmethod
+    def from_map(cls, dungeon: DungeonMap) -> DungeonSchema:
+        """The inverse of to_map, used to snapshot a map into a save."""
+        return cls(
+            id=dungeon.id,
+            name=dungeon.name,
+            start=dungeon.start,
+            nodes=[
+                NodeSchema(
+                    id=n.id,
+                    name=n.name,
+                    description=n.description,
+                    exits=[ExitSchema(label=e.label, to=e.to) for e in n.exits],
+                    features=list(n.features),
+                    ambient=list(n.ambient),
+                )
+                for n in dungeon.nodes.values()
+            ],
+        )
+
     def to_map(self) -> DungeonMap:
         return DungeonMap(
             id=self.id,

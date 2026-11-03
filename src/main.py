@@ -2,7 +2,8 @@ import flet as ft
 
 from tidewrack.core.data.loader import ContentError
 from tidewrack.services.content import load_bundled_content
-from tidewrack.ui.screens.game import GameScreen
+from tidewrack.services.storage import FileSaveStore, saves_dir
+from tidewrack.ui.app import App
 
 
 def main(page: ft.Page):
@@ -24,7 +25,7 @@ def main(page: ft.Page):
             )
         )
         return
-    page.add(GameScreen(content).control)
+    App(page, FileSaveStore(saves_dir()), content).show_picker()
 
 
 if __name__ == "__main__":

@@ -71,6 +71,24 @@ class World:
             if all(t in components for t in component_types):
                 yield entity, tuple(components[t] for t in component_types)
 
+    # --- persistence -------------------------------------------------------------
+
+    def snapshot(self) -> tuple[int, dict[int, tuple[Any, ...]]]:
+        """(next entity id, {entity: components}) — everything needed to restore."""
+        return self._next_id, {e: tuple(c.values()) for e, c in self._entities.items()}
+
+    @classmethod
+    def restore(cls, next_id: int, entities: dict[int, tuple[Any, ...]]) -> World:
+        world = cls()
+        if entities and next_id <= max(entities):
+            raise ValueError("next entity id must be above every existing id")
+        world._next_id = next_id
+        for entity in sorted(entities):
+            world._entities[entity] = {}
+            for component in entities[entity]:
+                world.add(entity, component)
+        return world
+
     def single(self, component_type: type[C]) -> tuple[int, C]:
         """The one entity with `component_type` (e.g. the player). Errors otherwise."""
         found = [(e, c[0]) for e, c in self.query(component_type)]
