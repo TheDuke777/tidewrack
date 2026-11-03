@@ -42,7 +42,19 @@ Releases are published as signed APKs on this repo's GitHub Releases page. The e
 
 ## Development
 
-_Setup instructions TBD._ See [`CLAUDE.md`](./CLAUDE.md) §10 for the build and release process.
+Requires Python 3.12+.
+
+```bash
+python -m venv env_tidewrack && source env_tidewrack/bin/activate
+pip install --upgrade pip
+pip install flet --group dev --group ci
+flet run                      # desktop dev loop with hot reload
+pytest -q && ruff check .     # what CI runs
+```
+
+Releases are cut with `python tools/release.py patch|minor|major` (`--pre` for a beta,
+`--dry-run` to preview); pushing the tag builds and publishes the signed APK. See
+[`CLAUDE.md`](./CLAUDE.md) §10 for the full build and release process.
 
 ## License
 

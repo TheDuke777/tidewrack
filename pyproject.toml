@@ -1,9 +1,10 @@
 [project]
 name = "tidewrack"
-version = "0.0.1"
+# Last released version (bumped by tools/release.py; do not edit by hand).
+version = "0.0.0"
 description = "Text-based procgen roguelike"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     { name = "Jonathon Duke" }
 ]
@@ -20,23 +21,38 @@ dev = [
     # pytest, pytest-asyncio and the screenshot-comparison dependencies.
     "flet[test]>=1.0.5",
 ]
+# Lint + unit tests, used by CI and tools/release.py.
+ci = [
+    "pytest>=8",
+    "ruff>=0.6",
+]
+# Pinned so CI-built APKs are reproducible (the bundled Python is chosen by flet-cli).
+build = [
+    "flet-cli==1.0.5",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tools"]
 
 [tool.flet]
 desktop_flavor = "light"    # Change to "full" to use flet-audio and flet-video
 # Permanent identity (CLAUDE.md §10): never change bundle_id. Dev builds override
-# it with `--bundle-id net.dukedigital.tidewrack.dev`.
-org = "net.dukedigital"
+# it with `--bundle-id tech.dukedigital.tidewrack.dev`.
+org = "tech.dukedigital"
 product = "Tidewrack"
-bundle_id = "net.dukedigital.tidewrack"
-company = "Jonathon Duke"
-copyright = "Copyright (C) 2026 Jonathon Duke"
+bundle_id = "tech.dukedigital.tidewrack"
+company = "Duke Digital"
+copyright = "Copyright (C) 2026 Duke Digital"
 # Android versionCode. Strictly increases every release; never reused.
-build_number = 1
+# Bumped by tools/release.py; do not edit by hand.
+build_number = 0
 
 # src/assets/icon.png is the icon for every platform. Keep it transparent and
 # filling the whole canvas: web, Windows and Linux show it as-is, and Flet

@@ -1,22 +1,25 @@
 import flet as ft
 
+from tidewrack.version import get_build_info, version_label
+
 
 def main(page: ft.Page):
-    counter = ft.Text("0", size=50, data=0)
+    page.title = "Tidewrack"
+    page.theme_mode = ft.ThemeMode.SYSTEM
 
-    def increment_click(e: ft.Event[ft.FloatingActionButton]):
-        counter.data += 1
-        counter.value = str(counter.data)
-
-    page.floating_action_button = ft.FloatingActionButton(
-        icon=ft.Icons.ADD, key="increment", on_click=increment_click
-    )
     page.add(
         ft.SafeArea(
             expand=True,
             content=ft.Container(
-                content=counter,
                 alignment=ft.Alignment.CENTER,
+                content=ft.Column(
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text("Tidewrack", size=40, weight=ft.FontWeight.BOLD),
+                        ft.Text(version_label(get_build_info()), key="version"),
+                    ],
+                ),
             ),
         )
     )

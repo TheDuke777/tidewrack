@@ -38,3 +38,9 @@ env_tidewrack/
 *.jks
 *.keystore
 key.properties
+
+# Generated at build time by tools/release.py build-info
+src/tidewrack/_build_info.py
+
+# Tool state that leaks into the repo dir (e.g. gh CLI)
+.local/

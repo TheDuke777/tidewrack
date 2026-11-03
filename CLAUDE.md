@@ -309,8 +309,8 @@ Recommended: **CI-built releases** (reproducible; the keystore never sits on a d
 
 ### Signing & identity (permanent decisions)
 - **One release keystore**, created once, backed up in two places (password manager + offline copy), stored in GitHub as a base64 secret with its passwords as separate secrets. Never committed. Losing it means everyone must uninstall to update (cloud saves and backups soften this, but avoid it).
-- **Bundle ID chosen now and never changed** (`net.dukedigital.tidewrack`); a different ID is a different app to Android.
-- **Dev builds use a different ID** (`net.dukedigital.tidewrack.dev`) so they install side-by-side and don't confuse Komi Store's tracking.
+- **Bundle ID chosen now and never changed** (`tech.dukedigital.tidewrack`); a different ID is a different app to Android.
+- **Dev builds use a different ID** (`tech.dukedigital.tidewrack.dev`) so they install side-by-side and don't confuse Komi Store's tracking.
 - Create the keystore and fix the bundle ID **before** registering any Google OAuth credentials (Google may tie Android credentials to package name + signing fingerprint).
 
 ### Asset conventions

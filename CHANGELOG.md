@@ -7,4 +7,6 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- Project scaffold (Flet app template, pyproject, CLAUDE.md architecture notes).
+- Hello-world app screen showing the app version and build number.
+- Release pipeline: CI checks, tag-triggered signed APK builds published to
+  GitHub Releases, and `tools/release.py` for version bumps and tagging.
