@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Game data now comes from content files that are validated when the app starts;
+  if they ever fail to load, the app explains why instead of showing a blank screen.
+
 ## [0.1.0] - 2026-11-03
 
 ### Added

@@ -1,14 +1,14 @@
 """Point-crawl dungeon map: nodes joined by labelled exits.
 
-Hand-authored maps and (from step 4) generated ones share this model. Maps are
-immutable; what the player knows of one lives in the Explorer component.
+Hand-authored maps (validated from content files by core.data.schemas) and, from
+step 4, generated ones share this model. Maps are immutable; what the player
+knows of one lives in the Explorer component.
 """
 
 from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Any
 
 
 @dataclass(frozen=True)
@@ -68,21 +68,3 @@ class DungeonMap:
                         todo.append(nxt)
             found += [f"{n}: unreachable from start" for n in self.nodes if n not in seen]
         return found
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> DungeonMap:
-        """Build from plain data (the shape content files will use from step 2)."""
-        nodes = {}
-        for raw in data["nodes"]:
-            nodes[raw["id"]] = Node(
-                id=raw["id"],
-                name=raw["name"],
-                description=raw["description"],
-                exits=tuple(Exit(e["label"], e["to"]) for e in raw["exits"]),
-                features=tuple(raw.get("features", ())),
-                ambient=tuple(raw.get("ambient", ())),
-            )
-        dungeon = cls(id=data["id"], name=data["name"], start=data["start"], nodes=nodes)
-        if problems := dungeon.problems():
-            raise ValueError(f"invalid dungeon {data['id']!r}: " + "; ".join(problems))
-        return dungeon

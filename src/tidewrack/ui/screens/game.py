@@ -10,10 +10,12 @@ import secrets
 
 import flet as ft
 
+from tidewrack.core.data.loader import Content
 from tidewrack.core.engine.game import Command, Game, Look, Move, Wait
 from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
+START_DUNGEON = "dungeon.first_descent"
 
 
 def new_seed() -> int:
@@ -22,8 +24,9 @@ def new_seed() -> int:
 
 
 class GameScreen:
-    def __init__(self) -> None:
-        self.game = Game(new_seed())
+    def __init__(self, content: Content) -> None:
+        self.dungeon = content.dungeon(START_DUNGEON)
+        self.game = Game(new_seed(), self.dungeon)
         self.version = version_label(get_build_info())
 
         self.dungeon_name = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT)
@@ -86,7 +89,7 @@ class GameScreen:
         self.act(Wait())
 
     def _new_run(self, _: ft.Event) -> None:
-        self.game = Game(new_seed())
+        self.game = Game(new_seed(), self.dungeon)
         self.refresh()
 
     # --- rendering ---------------------------------------------------------------

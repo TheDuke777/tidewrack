@@ -34,7 +34,6 @@ from tidewrack.core.engine.events import (
 )
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.dungeon import DungeonMap
-from tidewrack.core.world.first_descent import FIRST_DESCENT
 
 AMBIENT_CHANCE = 0.35  # per turn, when the current node has ambient lines
 LOG_LIMIT = 200
@@ -93,7 +92,7 @@ class GameView:
 
 
 class Game:
-    def __init__(self, seed: int, dungeon: DungeonMap = FIRST_DESCENT) -> None:
+    def __init__(self, seed: int, dungeon: DungeonMap) -> None:
         self.seed = seed
         self.dungeon = dungeon
         self.rng = Rng(seed)

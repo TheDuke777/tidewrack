@@ -52,7 +52,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | ECS | In-house (`core/engine/ecs.py`) | Instance-based, insertion-ordered `World`. Chosen over `esper` 3.x, whose state is module-global (bad for tests, multiple slots, save/load) |
 | Names/lore | `markovify` (+ `Faker` stopgap) | Late polish pass |
 | Dice | `d20` | Dice-notation rolls |
-| Validation | `pydantic` | All content + save + import payloads |
+| Validation | `pydantic` **==2.13.4** | All content + save + import payloads. Exact pin: APK builds install binary wheels only, and Flet's Android index (pypi.flet.dev) has cp314 arm64 `pydantic-core` 2.46.4 (pydantic 2.13.4) but not 2.14.x's. Check the index before bumping, and do the same for any new compiled dependency |
 | Local persistence | JSON(+gzip) slot files; `sqlite3` optional | Behind `SaveStore`; browser backend if web |
 | Auth | Flet built-in OAuth (Google first; GitHub/Microsoft via same mechanism) | See Spikes — secret handling and webview policy |
 | Cloud storage | **Per-provider app-private storage** (Google Drive `appDataFolder` first) | Thin REST client, no heavy SDK; see §6 |
@@ -117,9 +117,8 @@ tidewrack/
 ├── tools/
 │   └── release.py                   # bump version/build_number, changelog, tag, push
 ├── art/                             # source artwork (not bundled into the APK)
-├── content/                         # All game content as data
-│                                    #   ⚠ Flet only bundles src/ — move under src/
-│                                    #   (or change [tool.flet.app]) before step 2
+├── src/content/                     # All game content as data, <kind>/<name>.json
+│                                    #   (under src/ because flet build only bundles src/)
 │   ├── monsters/
 │   ├── items/
 │   │   ├── gear/
@@ -147,17 +146,18 @@ tidewrack/
 │   ├── core/                        # PURE PYTHON — no UI/IO imports
 │   │   ├── engine/                  # ecs.py, components.py, events.py,
 │   │   │                            #   game.py (commands, turn loop, view model)
-│   │   ├── world/                   # dungeon.py (point-crawl map model);
-│   │   │                            #   first_descent.py (hand-authored, → content/ in step 2)
+│   │   ├── world/                   # dungeon.py (point-crawl map model)
 │   │   ├── procgen/                 # world_graph, biomes, names, quests, factions, pets, lore
 │   │   ├── gear/                    # stat_pipeline.py, compare.py
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
 │   │   ├── codex/                   # discovery tracker, bestiary/lore/quest-log models,
 │   │   │                            #   help index + search, glossary
-│   │   ├── data/                    # schemas.py (pydantic), loader.py
+│   │   ├── data/                    # schemas.py (pydantic → runtime models);
+│   │   │                            #   loader.py (pure: {path: text} → Content)
 │   │   └── rng.py                   # own xoshiro256** stream; derive() substreams
 │   ├── services/                    # platform adapters behind interfaces
+│   │   ├── content/                 # reads bundled src/content files → core loader
 │   │   ├── storage/                 # SaveStore interface; file backend; browser backend
 │   │   ├── cloud/                   # CloudProvider interface; google_drive/; sync_engine.py;
 │   │   │                            #   conflict.py  (onedrive/ later, same interface)
@@ -354,6 +354,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 - **All randomness via `core/rng.py`** — no bare `random` anywhere else (a test enforces it). RNG state is saved. It's our own xoshiro256** so results don't depend on the Python version (CI runs 3.12, the APK bundles 3.14); changing its output means bumping `generator_version`. Give each subsystem its own `rng.derive("name")` substream so one system's draws never shift another's.
 - **Turn loop delivery order:** a command's events (and subscribers' follow-ups) are delivered first, then per-turn systems run, then `TurnEnded`. The UI only calls `Game.perform(command)` and reads `Game.view()`.
 - **Content is data, not code.** New monster/item/pet/recipe = new data file unless behavior truly diverges.
+- **Loading content:** `core/data/loader.py` is pure (takes `{relative path: text}`), so it never reads files; `services/content` does the reading. A new content kind = a schema in `schemas.py` + an entry in `loader.KINDS`. Schemas reject unknown keys, and all problems are reported together with file paths; `tests/content/` validates every bundled file in CI. The app shows load errors on screen instead of crashing.
 - **`core/` is pure.** No UI/IO imports, clock or system randomness; enforced by `tests/core/test_purity.py`.
 - **Subscribe, don't reach in.** New cross-cutting features (achievements, tutorial hints, codex) hook the event bus.
 - **Difficulty and economy are validated by simulation**, not by feel.
@@ -385,11 +386,11 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 6. **CI-built releases** (§10).
 7. **Public repo**, **MIT** licensed.
 8. **arm64-only APK**, fixed from the first release (`[tool.flet.android] target_arch`).
+9. **Content lives in `src/content/`** (bundled by `flet build`). Files are `<kind>/<name>.json`; each holds the ID `<prefix>.<name>` (e.g. `dungeons/first_descent.json` → `dungeon.first_descent`).
 
 **Still open**
 1. Other SSOs at launch or later? Recommended: Google only at launch; the `CloudProvider` interface makes others additive.
 2. Do shared worlds carry modifiers/difficulty settings? Recommended: yes, as world params.
-3. Where `content/` lives so it's bundled (see §5 note). Recommended: under `src/` (e.g. `src/content/`), decided at the start of step 2.
 
 ---
 

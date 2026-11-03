@@ -1,5 +1,3 @@
-import pytest
-
 from tidewrack.core.engine.components import Explorer, Position
 from tidewrack.core.engine.events import (
     ActionRejected,
@@ -8,8 +6,9 @@ from tidewrack.core.engine.events import (
     TurnEnded,
 )
 from tidewrack.core.engine.game import Game, Look, Move, Wait
-from tidewrack.core.world.dungeon import DungeonMap
-from tidewrack.core.world.first_descent import FIRST_DESCENT, FIRST_DESCENT_DATA
+from tidewrack.services.content import load_bundled_content
+
+FIRST_DESCENT = load_bundled_content().dungeon("dungeon.first_descent")
 
 # A walk that visits every node of the first dungeon.
 FULL_TOUR = [
@@ -24,40 +23,19 @@ FULL_TOUR = [
 ]
 
 
+def new_game(seed: int) -> Game:
+    return Game(seed, FIRST_DESCENT)
+
+
 def _kinds(result):
     return [type(e).__name__ for e in result.events]
-
-
-# --- dungeon data ----------------------------------------------------------------
-
-
-def test_first_descent_is_valid():
-    assert FIRST_DESCENT.problems() == []
-    assert len(FIRST_DESCENT.nodes) == 7
-
-
-def test_dungeon_validation_catches_errors():
-    broken = {
-        "id": "dungeon.broken",
-        "name": "Broken",
-        "start": "a",
-        "nodes": [
-            {"id": "a", "name": "A", "description": "", "exits": [{"label": "x", "to": "nowhere"}]},
-            {"id": "island", "name": "I", "description": "", "exits": [{"label": "y", "to": "a"}]},
-        ],
-    }
-    with pytest.raises(ValueError, match="unknown node 'nowhere'"):
-        DungeonMap.from_dict(broken)
-    broken["nodes"][0]["exits"][0]["to"] = "a"
-    with pytest.raises(ValueError, match="island: unreachable"):
-        DungeonMap.from_dict(broken)
 
 
 # --- turn loop -------------------------------------------------------------------
 
 
 def test_start_state():
-    game = Game(seed=1)
+    game = new_game(1)
     view = game.view()
     assert view.location == "Wrack Cove"
     assert view.turn == 0
@@ -67,7 +45,7 @@ def test_start_state():
 
 
 def test_move_takes_a_turn_and_reveals_neighbours():
-    game = Game(seed=1)
+    game = new_game(1)
     result = game.perform(Move("Descend the cliff stair"))
     assert result.took_turn
     kinds = _kinds(result)
@@ -79,7 +57,7 @@ def test_move_takes_a_turn_and_reveals_neighbours():
 
 
 def test_rejected_move_is_free():
-    game = Game(seed=1)
+    game = new_game(1)
     result = game.perform(Move("Fly away"))
     assert not result.took_turn
     assert [type(e) for e in result.events] == [ActionRejected]
@@ -88,21 +66,21 @@ def test_rejected_move_is_free():
 
 
 def test_look_is_free_and_describes_scenery():
-    game = Game(seed=1)
+    game = new_game(1)
     result = game.perform(Look())
     assert not result.took_turn
     assert "Gulls watch you from the rocks and do not cry out." in game.log
 
 
 def test_wait_takes_a_turn():
-    game = Game(seed=1)
+    game = new_game(1)
     result = game.perform(Wait())
     assert result.took_turn and isinstance(result.events[-1], TurnEnded)
     assert "Time passes." in game.log
 
 
 def test_revisits_are_marked_and_exits_show_known_destinations():
-    game = Game(seed=1)
+    game = new_game(1)
     game.perform(Move("Descend the cliff stair"))
     result = game.perform(Move("Climb back to the cove"))
     entered = next(e for e in result.events if isinstance(e, NodeEntered))
@@ -113,7 +91,7 @@ def test_revisits_are_marked_and_exits_show_known_destinations():
 
 
 def test_full_tour_explores_everything():
-    game = Game(seed=1)
+    game = new_game(1)
     for label in FULL_TOUR:
         assert game.perform(Move(label)).took_turn, label
     explorer = game.world.get(game.player, Explorer)
@@ -123,7 +101,7 @@ def test_full_tour_explores_everything():
 
 def test_same_seed_and_commands_give_identical_runs():
     def run(seed):
-        game = Game(seed)
+        game = new_game(seed)
         events = []
         for label in FULL_TOUR:
             events += game.perform(Move(label)).events
@@ -132,11 +110,3 @@ def test_same_seed_and_commands_give_identical_runs():
 
     assert run(2024) == run(2024)
     assert run(2024)[0] != run(2025)[0]  # ambient lines differ between seeds
-
-
-def test_dungeon_data_is_not_mutated_by_play():
-    before = repr(FIRST_DESCENT_DATA)
-    game = Game(seed=3)
-    for label in FULL_TOUR:
-        game.perform(Move(label))
-    assert repr(FIRST_DESCENT_DATA) == before
