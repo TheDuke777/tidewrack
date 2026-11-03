@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Tidewrack app icon and splash screen, and the logo on the home screen.
+
 ## [0.0.1] - 2026-11-02
 
 ### Added

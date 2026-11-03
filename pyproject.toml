@@ -59,7 +59,16 @@ build_number = 1
 # shrinks it to the margin iOS, macOS and Android each mask away. This colour
 # is what sits behind it where transparency cannot survive - the iOS icon, the
 # macOS tile and the Android background layer. Defaults to white.
-# icon_background = "#ffffff"
+# Tidewrack's icon (transparent art in icon.png) sits on black, matching the
+# original artwork; black also hides background-removal halos around the sword.
+# Android uses icon_android.png instead: the same art padded to ~60% of the
+# canvas so circular launcher masks don't clip it. Source art lives in art/.
+icon_background = "#000000"
+
+# The splash falls back to icon.png, so give it the same black backdrop in both themes.
+[tool.flet.splash]
+color = "#000000"
+dark_color = "#000000"
 
 [tool.flet.app]
 path = "src"
