@@ -2,6 +2,11 @@
 
 A text-based, procedurally generated roguelike RPG for Android, built in Python + Flet.
 
+> **This is an unabashedly vibe-coded project.** It's an experiment in building a
+> complete app mostly by directing an AI coding assistant. The design, code, and
+> docs are AI-written under human direction. Expect rough edges, and don't take
+> anything here as a model of best practice. It's a hobby experiment, not a product.
+
 ## Concept
 
 Every world is generated from systems and data: dungeons, quests, factions, lore, and companions. Runs end, but progress carries forward through an ascension/prestige loop with scaling difficulty and scaling achievements. There's no tile grid — the game is read and chosen — but a schematic map keeps the world easy to understand without drawing your own.
