@@ -105,14 +105,21 @@ Not used: `tcod` FOV/pathfinding/renderer (tile-grid problems we don't have).
 tidewrack/
 ├── CLAUDE.md
 ├── README.md
+├── LICENSE                          # MIT
 ├── CHANGELOG.md                     # "Unreleased" section promoted on release
 ├── pyproject.toml                   # version + build_number live here
-├── .github/workflows/
-│   ├── ci.yml                       # tests, lint, content validation, quick sims
-│   └── release.yml                  # tag → signed APK → GitHub Release
+├── .github/
+│   ├── actions/build-cache/         # restore/save Flutter, NDK, Gradle caches (§10)
+│   └── workflows/
+│       ├── ci.yml                   # tests, lint, content validation, quick sims
+│       ├── release.yml              # tag → signed APK → GitHub Release → Pushover
+│       └── warm-build-cache.yml     # Mon/Thu on main: fills + refreshes build caches
 ├── tools/
 │   └── release.py                   # bump version/build_number, changelog, tag, push
+├── art/                             # source artwork (not bundled into the APK)
 ├── content/                         # All game content as data
+│                                    #   ⚠ Flet only bundles src/ — move under src/
+│                                    #   (or change [tool.flet.app]) before step 2
 │   ├── monsters/
 │   ├── items/
 │   │   ├── gear/
@@ -132,7 +139,11 @@ tidewrack/
 │   ├── corpora/                     # markovify training text
 │   ├── help/                        # Markdown articles (searchable)
 │   └── tutorial/                    # fixed tutorial world + step script
+├── src/main.py                      # Flet entry point
+├── src/assets/                      # bundled: icon.png, icon_android.png, logo
 ├── src/tidewrack/
+│   ├── version.py                   # app version for the UI (reads _build_info.py,
+│   │                                #   generated in CI; else pyproject)
 │   ├── core/                        # PURE PYTHON — no UI/IO imports
 │   │   ├── engine/                  # components/, systems/, events.py, turn loop
 │   │   ├── procgen/                 # world_graph, biomes, names, quests, factions, pets, lore
@@ -296,16 +307,27 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - `pyproject.toml` → `[tool.flet].build_number` = integer (Android `versionCode`). **Strictly increases every release; never reused.**
 - Git tag `vX.Y.Z` (pre-releases: `vX.Y.Z-beta.N`) = the release trigger and what Komi Store sees.
 - App version is **separate** from `schema_version` / `content_version` / `generator_version` (§9), which describe data compatibility. Settings → About shows all of them.
-- Flet's build version is plain `x.y.z`, so a beta tag builds as `x.y.z` with a higher build number; the tag + GitHub "pre-release" flag carry the beta-ness. Confirm in Spike 7.
+- Flet's build version is plain `x.y.z`, so a beta tag builds as `x.y.z` with a higher build number; the tag + GitHub "pre-release" flag carry the beta-ness. Verified with Komi Store (Spike 7): betas are ignored unless its pre-release toggle is on, and the final `x.y.z` installs over its betas.
+- `release.py` bumps from the **last final tag**: `patch --pre` repeatedly → `-beta.1`, `-beta.2`…; the same part without `--pre` promotes to the final release, whose CHANGELOG section folds in its betas' notes. It refuses an empty "Unreleased" section (except when promoting betas).
+- Packaged apps don't ship `pyproject.toml`, so `release.yml` runs `release.py build-info <tag>` to write `src/tidewrack/_build_info.py` (gitignored) for the in-app version label.
 
 ### Release flow
 1. Work merges to `main`; `ci.yml` runs lint, `core/` import-lint, golden-seed tests, migration tests, content validation, import fuzz tests, and quick sims.
 2. Locally: `python tools/release.py patch|minor|major` (add `--pre` for a beta, `--dry-run` to preview). It refuses on a dirty tree, a non-`main` branch, or failing tests; then bumps `version` and `build_number`, promotes the CHANGELOG's "Unreleased" section, commits `release: vX.Y.Z`, tags, and pushes commit + tag.
-3. The tag triggers `release.yml`: verify tag == pyproject version → run tests → restore the keystore from secrets → `flet build apk` → write a SHA-256 file → create the GitHub Release (marked pre-release if the tag has a suffix) with notes from the CHANGELOG → attach the APK + checksum. Uses the built-in `GITHUB_TOKEN` with `contents: write`.
+3. The tag triggers `release.yml`: verify tag == pyproject version → run tests → restore the keystore from secrets → `flet build apk` → write a SHA-256 file → create the GitHub Release (marked pre-release if the tag has a suffix) with notes from the CHANGELOG → attach the APK + checksum → send a Pushover notification (success links the release, failure links the logs; skipped if the `PUSHOVER_*` secrets are absent). It refuses to publish a debug-signed APK. Uses the built-in `GITHUB_TOKEN` with `contents: write`.
 4. Phone: Komi Store's background check finds the release, notifies, and installs over the existing app (its update interval and pre-release inclusion are configurable per its settings).
 5. First launch after an update: if a schema migration is needed, **snapshot every slot first**, then migrate.
 
-Recommended: **CI-built releases** (reproducible; the keystore never sits on a dev machine's disk during builds). A local `flet build apk` + `gh release create` fallback uses the same version files.
+Releases are **CI-built** (reproducible; the keystore never sits on a dev machine's disk during builds). A local `flet build apk` + `gh release create` fallback uses the same version files.
+
+### Build cache
+- `flet build apk` downloads Flutter, the NDK/CMake and Gradle deps every run; the `build-cache` action restores them (~6¾ → ~4¾ min). Keys follow the pinned `flet-cli` + its Flutter version, so they only change when Flet is upgraded.
+- **Tag runs can only read caches saved on `main`**, so `release.yml` only restores; `warm-build-cache.yml` (Mon/Thu + manual) saves them, keeps them inside GitHub's 7-day eviction window, and smoke-tests an unsigned build of `main`. After bumping `flet-cli`, run it manually (`gh workflow run warm-build-cache.yml`).
+- Only NDKs the build adds are cached (staged in `~/android-sdk-extra`, symlinked back), not the runner's preinstalled ones.
+- Pinning `flet-cli` (pyproject `build` group) also pins the APK's bundled Python (highest version allowed by `requires-python`).
+
+### Secrets (GitHub Actions)
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` (same as the store password for PKCS12), `ANDROID_KEY_ALIAS` (`tidewrack`), `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`.
 
 ### Signing & identity (permanent decisions)
 - **One release keystore**, created once, backed up in two places (password manager + offline copy), stored in GitHub as a base64 secret with its passwords as separate secrets. Never committed. Losing it means everyone must uninstall to update (cloud saves and backups soften this, but avoid it).
@@ -315,7 +337,8 @@ Recommended: **CI-built releases** (reproducible; the keystore never sits on a d
 
 ### Asset conventions
 - **One APK per release** with a consistent name pattern (e.g. `tidewrack-<version>-arm64-v8a.apk`) plus a `.sha256`. Komi Store can pin the specific asset variant it installed, so don't change the architecture/naming scheme later.
-- Public repo is the simplest setup (secrets stay in Actions). Private-repo support in Komi Store is unverified.
+- The repo is **public** (secrets stay in Actions). Private-repo support in Komi Store is unverified.
+- **App icon:** `src/assets/icon.png` (transparent art, used for splash/desktop/web) and `src/assets/icon_android.png` (same art padded to ~60% of the canvas, used as-is for Android so launcher masks don't clip it). `icon_background` and the splash colours are black. Flet does **not** pad a generic `icon.png` for Android adaptive icons; preview with `flet_platform_assets.render_icons` before shipping new art.
 
 ### Rules
 - **Roll forward, never back.** A bad release is fixed by a higher version + build number; never reuse or delete-and-republish a build number.
@@ -342,8 +365,8 @@ Recommended: **CI-built releases** (reproducible; the keystore never sits on a d
 4. **Pyodide dependency check** (only if web is pursued) — verify `networkx`, `scipy`, `pydantic`, `markovify`, `opensimplex`, `esper`; time worldgen in-browser.
 5. **Share/import plumbing** — file picker, share sheet, clipboard, QR on mobile through Flet.
 6. **Search quality/perf** of the in-app help index on mobile.
-7. **End-to-end Komi Store update cycle.** Install v0.0.1 via Komi Store, publish v0.0.2 from CI, and confirm detection, in-place update, and how tag / versionName / build-number comparisons behave (including the pre-release toggle and asset-variant pinning).
-8. **Signing-identity lock-in.** Keystore and bundle ID are permanent; changing either breaks in-place updates. Create and back them up before any OAuth client registration.
+7. ✅ **Done (v0.0.1–v0.0.3).** **End-to-end Komi Store update cycle.** Install v0.0.1 via Komi Store, publish v0.0.2 from CI, and confirm detection, in-place update, and how tag / versionName / build-number comparisons behave (including the pre-release toggle and asset-variant pinning).
+8. ✅ **Done** — keystore created and backed up in two places; bundle ID fixed. **Signing-identity lock-in.** Keystore and bundle ID are permanent; changing either breaks in-place updates. Create and back them up before any OAuth client registration.
 
 ---
 
@@ -355,19 +378,20 @@ Recommended: **CI-built releases** (reproducible; the keystore never sits on a d
 3. **iOS is not targeted for now.** Android first; revisit later (if added, check Apple's rules for apps that offer third-party sign-in).
 4. **Prestige pacing** targets a middle path — neither fast nor slow (§8.7).
 5. **Distribution** via GitHub Releases + Komi Store (§10).
+6. **CI-built releases** (§10).
+7. **Public repo**, **MIT** licensed.
+8. **arm64-only APK**, fixed from the first release (`[tool.flet.android] target_arch`).
 
 **Still open**
 1. Other SSOs at launch or later? Recommended: Google only at launch; the `CloudProvider` interface makes others additive.
 2. Do shared worlds carry modifiers/difficulty settings? Recommended: yes, as world params.
-3. CI-built vs locally built releases? Recommended: CI-built.
-4. Public vs private repo? Recommended: public.
-5. arm64-only vs universal APK? Recommended: arm64-only, fixed from the first release.
+3. Where `content/` lives so it's bundled (see §5 note). Recommended: under `src/` (e.g. `src/content/`), decided at the start of step 2.
 
 ---
 
 ## 14. Build order (MVP-first)
 
-0. **Pipeline first.** Repo, `pyproject.toml`, bundle ID, release keystore, `ci.yml`, `release.yml`, `tools/release.py`, and a hello-world Flet app that shows its version — shipped end-to-end through GitHub Release → Komi Store → phone, with one real update cycle. (Spikes 7–8.)
+0. ✅ **Done (v0.0.3).** **Pipeline first.** Repo, `pyproject.toml`, bundle ID, release keystore, `ci.yml`, `release.yml`, `tools/release.py`, and a hello-world Flet app that shows its version — shipped end-to-end through GitHub Release → Komi Store → phone, with one real update cycle. (Spikes 7–8.)
 1. **Core skeleton:** ECS + event bus + turn loop + seeded RNG + one hand-authored dungeon. Import-lint test for `core/` purity.
 2. **Data layer:** pydantic schemas + content loader + content validation tests.
 3. **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.

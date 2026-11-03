@@ -35,7 +35,7 @@ Every world is generated from systems and data: dungeons, quests, factions, lore
 
 ## Status
 
-Early design/architecture phase. See [`CLAUDE.md`](./CLAUDE.md) for the full architecture, feature specs, risks, and build order.
+Release pipeline is live (signed APKs via GitHub Releases + Komi Store); game systems are next. See [`CLAUDE.md`](./CLAUDE.md) for the full architecture, feature specs, risks, and build order.
 
 ## Tech stack
 
@@ -63,4 +63,4 @@ Releases are cut with `python tools/release.py patch|minor|major` (`--pre` for a
 
 ## License
 
-TBD
+[MIT](./LICENSE).
