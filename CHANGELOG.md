@@ -5,6 +5,9 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+## [0.0.3-beta.1] - 2026-11-03
+
 - Testing pre-release builds.
 
 ## [0.0.2] - 2026-11-03
