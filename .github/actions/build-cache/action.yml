@@ -1,0 +1,138 @@
+name: Android build cache
+description: >
+  Restore (or save) the toolchain `flet build apk` downloads on every run: the
+  Flutter SDK, the Android NDK/CMake it installs, and Gradle/pub/flet download
+  caches. Keys follow the pinned flet-cli and the Flutter version it requires, so
+  they only change when Flet is upgraded.
+
+  Tag-triggered runs can only read caches saved on the default branch, so
+  release.yml uses `phase: restore` and warm-build-cache.yml (on main) runs both
+  phases to create and refresh them. Requires flet-cli to be installed first.
+
+inputs:
+  phase:
+    description: "`restore` before `flet build`, `save` after it"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # --- restore ---------------------------------------------------------------
+
+    - name: Compute cache keys
+      if: inputs.phase == 'restore'
+      shell: bash
+      run: |
+        flutter=$(python -c "import flet.version as v; print(v.flutter_version)")
+        cli=$(python -c "import importlib.metadata as m; print(m.version('flet-cli'))")
+        {
+          echo "BUILD_CACHE_FLUTTER_VERSION=$flutter"
+          echo "BUILD_CACHE_FLUTTER_KEY=flutter-$RUNNER_OS-$flutter"
+          echo "BUILD_CACHE_ANDROID_KEY=android-extra-$RUNNER_OS-flutter$flutter"
+          echo "BUILD_CACHE_DEPS_KEY=build-deps-$RUNNER_OS-flet$cli-flutter$flutter"
+        } >> "$GITHUB_ENV"
+
+    - name: Restore Flutter SDK
+      if: inputs.phase == 'restore'
+      id: flutter
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/flutter/${{ env.BUILD_CACHE_FLUTTER_VERSION }}
+        key: ${{ env.BUILD_CACHE_FLUTTER_KEY }}
+
+    - name: Restore Android NDK/CMake
+      if: inputs.phase == 'restore'
+      id: android
+      uses: actions/cache/restore@v4
+      with:
+        path: ~/android-sdk-extra
+        key: ${{ env.BUILD_CACHE_ANDROID_KEY }}
+
+    - name: Restore Gradle/pub/flet downloads
+      if: inputs.phase == 'restore'
+      id: deps
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          ~/.gradle/caches/modules-2
+          ~/.gradle/wrapper
+          ~/.pub-cache
+          ~/.flet/cache
+        key: ${{ env.BUILD_CACHE_DEPS_KEY }}
+
+    # The runner's SDK already holds several large NDKs, so only the ones the build
+    # adds are cached, under ~/android-sdk-extra, and symlinked back into the SDK.
+    - name: Link cached NDK/CMake into the Android SDK
+      if: inputs.phase == 'restore'
+      shell: bash
+      run: |
+        {
+          echo "BUILD_CACHE_FLUTTER_HIT=${{ steps.flutter.outputs.cache-hit }}"
+          echo "BUILD_CACHE_ANDROID_HIT=${{ steps.android.outputs.cache-hit }}"
+          echo "BUILD_CACHE_DEPS_HIT=${{ steps.deps.outputs.cache-hit }}"
+        } >> "$GITHUB_ENV"
+        for kind in ndk cmake; do
+          for src in ~/android-sdk-extra/"$kind"/*/; do
+            [ -d "$src" ] || continue
+            dest="$ANDROID_HOME/$kind/$(basename "$src")"
+            if [ ! -e "$dest" ]; then
+              mkdir -p "$ANDROID_HOME/$kind"
+              ln -s "${src%/}" "$dest"
+              echo "Linked $dest"
+            fi
+          done
+          ls -1 "$ANDROID_HOME/$kind" 2>/dev/null | sed "s|^|$kind/|"
+        done > "$RUNNER_TEMP/android-sdk-before.txt"
+        echo "Cache hits: flutter=${{ steps.flutter.outputs.cache-hit }}" \
+          "android=${{ steps.android.outputs.cache-hit }}" \
+          "deps=${{ steps.deps.outputs.cache-hit }}"
+
+    # --- save ------------------------------------------------------------------
+
+    - name: Stage new NDK/CMake and tidy Gradle cache
+      if: inputs.phase == 'save'
+      shell: bash
+      run: |
+        # Stop Gradle so nothing is mid-write, and drop files Gradle recreates.
+        pkill -f GradleDaemon || true
+        rm -f ~/.gradle/caches/modules-2/*.lock ~/.gradle/caches/modules-2/gc.properties
+
+        if [ "$BUILD_CACHE_ANDROID_HIT" != "true" ]; then
+          for kind in ndk cmake; do
+            ls -1 "$ANDROID_HOME/$kind" 2>/dev/null | sed "s|^|$kind/|"
+          done > "$RUNNER_TEMP/android-sdk-after.txt"
+          comm -13 <(sort "$RUNNER_TEMP/android-sdk-before.txt") \
+                   <(sort "$RUNNER_TEMP/android-sdk-after.txt") | while read -r entry; do
+            if [ -d "$ANDROID_HOME/$entry" ] && [ ! -L "$ANDROID_HOME/$entry" ]; then
+              mkdir -p ~/android-sdk-extra/"$(dirname "$entry")"
+              cp -a "$ANDROID_HOME/$entry" ~/android-sdk-extra/"$entry"
+              echo "Staged $entry for caching"
+              echo "BUILD_CACHE_ANDROID_STAGED=true" >> "$GITHUB_ENV"
+            fi
+          done
+        fi
+
+    - name: Save Flutter SDK
+      if: inputs.phase == 'save' && env.BUILD_CACHE_FLUTTER_HIT != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/flutter/${{ env.BUILD_CACHE_FLUTTER_VERSION }}
+        key: ${{ env.BUILD_CACHE_FLUTTER_KEY }}
+
+    - name: Save Android NDK/CMake
+      if: inputs.phase == 'save' && env.BUILD_CACHE_ANDROID_STAGED == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ~/android-sdk-extra
+        key: ${{ env.BUILD_CACHE_ANDROID_KEY }}
+
+    - name: Save Gradle/pub/flet downloads
+      if: inputs.phase == 'save' && env.BUILD_CACHE_DEPS_HIT != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.gradle/caches/modules-2
+          ~/.gradle/wrapper
+          ~/.pub-cache
+          ~/.flet/cache
+        key: ${{ env.BUILD_CACHE_DEPS_KEY }}

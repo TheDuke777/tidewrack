@@ -1,0 +1,47 @@
+name: Warm build cache
+
+# Keeps the Android toolchain cache that release.yml restores alive and current:
+# - Tag-triggered releases can only read caches saved on main, so they're made here.
+# - GitHub evicts caches unused for 7 days; running twice a week prevents that.
+# - Building main's APK (unsigned, discarded) doubles as an early warning if the
+#   Flet/Flutter toolchain breaks before the next release.
+# Run it manually after upgrading flet-cli so the next release starts warm.
+on:
+  schedule:
+    - cron: "17 6 * * 1,4" # Mon + Thu, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warm-build-cache
+  cancel-in-progress: false
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install Flet CLI
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group build
+
+      - uses: ./.github/actions/build-cache
+        with:
+          phase: restore
+
+      - name: Build APK (unsigned)
+        run: flet build apk --yes --no-rich-output
+
+      - uses: ./.github/actions/build-cache
+        with:
+          phase: save

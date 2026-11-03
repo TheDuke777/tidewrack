@@ -51,7 +51,14 @@ jobs:
       - name: Write build info
         run: python tools/release.py build-info "$TAG"
 
-      # flet-cli installs the Flutter SDK, JDK and Android SDK pieces it needs (--yes).
+      # Read-only: caches are saved by warm-build-cache.yml on main, because a cache
+      # saved from a tag run would be invisible to every later tag.
+      - uses: ./.github/actions/build-cache
+        with:
+          phase: restore
+
+      # flet-cli installs whatever the cache didn't supply: Flutter SDK, JDK and
+      # Android SDK pieces (--yes).
       - name: Build APK
         env:
           FLET_ANDROID_SIGNING_KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
