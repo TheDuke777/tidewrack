@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0-beta.1] - 2026-11-04
+
 ### Added
 - Quests. Each town's gate has a notice board with a few quests to accept:
   - **Bounty:** hunt down a named, tougher enemy.
