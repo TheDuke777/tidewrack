@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-04
+
+### Added
+- A navigation bar at the bottom switches between Explore and Inventory.
+- Filter your pack by slot, affix or set, and select several items to drop at
+  once (filter first, then "Select all shown").
+- Gate rooms, where roads leave from, show as squares on the area map. On the
+  world map, each place's name starts with a symbol for its kind (⌂ Town,
+  ≈ Sea Caves, ♣ Forest, ⚒ Mine), with a key below the map.
+- Gear. You start with a Driftwood Club and a Patched Coat, and every new world
+  has gear lying in its rooms: cutlasses, harpoons, bucklers, lanterns, helms,
+  boots and charms, some with a twist such as "Keen" or "of the Gull".
+- Six equipment slots (main hand, off hand, head, body, feet, trinket).
+  Two-handed weapons take both hands.
+- Your stats (ATK, DEF and HP) show at the bottom of the game screen.
+- Every piece of gear shows how it compares with what you have on: a Better,
+  Worse or Mixed verdict, the change to each stat (both the item's own stats
+  and with its bonuses), what your stats would become, what it would replace,
+  and what it could reach fully upgraded. Changes are marked with ▲, ▼ or ＝
+  and a sign, never by colour alone.
+- Take, Take & equip, Equip, Take off and Drop. The new inventory shows your
+  stats, what adds up to them, your six slots and your pack.
+- The Drowned Watch set: wear two or three pieces for extra DEF and HP.
+
+### Changed
+- Dropping gear asks first.
+- Worlds made with earlier versions open with the starting stats and no gear;
+  their rooms have nothing to find. Start a new world to find gear.
+
 ## [0.4.0-beta.2] - 2026-11-04
 
 ### Added
