@@ -6,11 +6,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Fixed
-- After switching between Explore and Inventory, some rows could show twice
-  (such as set bonuses in the stat list, or a "ghost" copy of a pack item that
-  couldn't be dropped) until you switched tabs again.
-
 ## [0.4.0-beta.2] - 2026-11-04
 
 ### Added
@@ -22,8 +17,7 @@ All notable changes to this project are documented here. The format follows
   ≈ Sea Caves, ♣ Forest, ⚒ Mine), with a key below the map.
 
 ### Changed
-- Dropping gear now asks first.
-- The inventory is a tab instead of a button in the top bar.
+- Dropping gear asks first.
 
 ## [0.4.0-beta.1] - 2026-11-04
 
@@ -39,9 +33,8 @@ All notable changes to this project are documented here. The format follows
   and with its bonuses), what your stats would become, what it would replace,
   and what it could reach fully upgraded. Changes are marked with ▲, ▼ or ＝
   and a sign, never by colour alone.
-- Take, Take & equip, Equip, Take off and Drop. The new inventory screen
-  (backpack button) shows your stats, what adds up to them, your six slots and
-  your pack.
+- Take, Take & equip, Equip, Take off and Drop. The new inventory shows your
+  stats, what adds up to them, your six slots and your pack.
 - The Drowned Watch set: wear two or three pieces for extra DEF and HP.
 
 ### Changed
