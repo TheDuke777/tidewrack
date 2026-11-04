@@ -29,6 +29,7 @@ class RulesState(Schema):
 
     flee_chance: float = Field(default=STANDARD.flee_chance, ge=0, le=1)
     regen_every: int = Field(default=STANDARD.regen_every, ge=1)
+    regen_fraction: float = Field(default=STANDARD.regen_fraction, ge=0, le=1)
     regen_amount: int = Field(default=STANDARD.regen_amount, ge=0)
     respawn_hp: float = Field(default=STANDARD.respawn_hp, gt=0, le=1)
     enemy_strength: float = Field(default=STANDARD.enemy_strength, gt=0)

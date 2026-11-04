@@ -3,7 +3,7 @@
 from math import ceil
 
 from tidewrack.core.codex.foes import DROPS_AT, STATS_AT, foes_view
-from tidewrack.core.combat.rules import STANDARD, Rules, damage
+from tidewrack.core.combat.rules import STANDARD, Rules, damage, regen
 from tidewrack.core.data.save import GameState
 from tidewrack.core.engine.components import Codex, Enemy, FoeEntry, Health, Position, Spawner
 from tidewrack.core.engine.events import ActionRejected, Attacked, CombatStarted, Rested
@@ -174,7 +174,16 @@ def test_regeneration_out_of_fights():
     game.world.get(game.player, Health).damage = 5
     for _ in range(STANDARD.regen_every):
         game.perform(Wait())
-    assert game.view().hp == 20 - 5 + STANDARD.regen_amount
+    assert game.view().hp == 20 - 5 + 1  # 5% of 20
+
+
+def test_regeneration_scales_with_max_hp():
+    game = game_with(player={"atk": 4, "def": 2, "hp": 200})
+    game.world.get(game.player, Health).damage = 50
+    for _ in range(STANDARD.regen_every):
+        game.perform(Wait())
+    assert game.view().hp == 200 - 50 + 10  # 5% of 200
+    assert regen(5, STANDARD) == STANDARD.regen_amount  # small bars still heal
 
 
 def test_waiting_in_a_town_rests_you_to_full():

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Recovering outside fights now heals a share of your maximum HP (5% every
+  three turns, at least 1), so it keeps pace as your health grows.
+
 ## [0.5.0-beta.1] - 2026-11-04
 
 ### Added

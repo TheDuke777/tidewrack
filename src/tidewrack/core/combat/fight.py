@@ -16,7 +16,7 @@ from __future__ import annotations
 from math import ceil
 from typing import TYPE_CHECKING
 
-from tidewrack.core.combat.rules import damage, scaled
+from tidewrack.core.combat.rules import damage, regen, scaled
 from tidewrack.core.engine.components import (
     Codex,
     Enemy,
@@ -211,9 +211,9 @@ def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:
 
 
 def regen_system(game: Game) -> None:
-    """Out of a fight, slowly heal (resting in a town heals fully: see Wait)."""
+    """Out of a fight, slowly heal by a share of max HP (resting in a town heals fully)."""
     if game.world.has(game.player, Fighting):
         return
     health = game.world.get(game.player, Health)
     if health.damage and game.turn % game.rules.regen_every == 0:
-        health.damage = max(0, health.damage - game.rules.regen_amount)
+        health.damage = max(0, health.damage - regen(game.max_hp(), game.rules))
