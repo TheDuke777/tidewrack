@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0-beta.3] - 2026-11-03
+
 ### Added
 - Pinch to zoom and drag to pan either map. The map follows you as you walk,
   "centre on me" jumps back to where you are, and "show the whole map" zooms
