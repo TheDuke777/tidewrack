@@ -40,6 +40,11 @@ class App:
 
     def _notify(self, message: str) -> None:
         self.page.show_dialog(ft.SnackBar(ft.Text(message)))
+        # show_dialog updates only the dialog layer, and any explicit update() in an
+        # event handler turns off Flet's automatic page update when it returns. So
+        # without this, whatever the handler changed besides the toast never reached
+        # the screen (a turned-in quest stayed on the notice board).
+        self.page.update()
 
     # --- screens -----------------------------------------------------------------
 

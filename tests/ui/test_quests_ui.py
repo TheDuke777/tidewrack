@@ -99,3 +99,24 @@ def test_map_marks():
     node = MapNode("r", 0.5, 0.5, "visited", "Hall", None, items=True, quest=True)
     assert badges(node) == "✦◆"
     assert badges(MapNode("r", 0.5, 0.5, "visited", "Hall", None)) == ""
+
+
+def test_toasts_push_the_whole_page():
+    # show_dialog updates only the dialog layer, which also turns off Flet's update
+    # of the page after the handler; the toast must push everything else itself, or
+    # a turned-in quest stays on the board.
+    from tidewrack.ui.app import App
+
+    class FakePage:
+        def __init__(self):
+            self.calls = []
+
+        def show_dialog(self, dialog):
+            self.calls.append("dialog")
+
+        def update(self):
+            self.calls.append("update")
+
+    page = FakePage()
+    App(page, None, None, CONTENT)._notify("Reward Charm added to your pack.")
+    assert page.calls == ["dialog", "update"]
