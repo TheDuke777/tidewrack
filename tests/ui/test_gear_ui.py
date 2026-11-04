@@ -177,3 +177,88 @@ def test_filter_options_come_from_the_pack():
     options = filter_options([replace(view, affixes=("Keen",)), replace(view, slot="Feet")])
     assert [k for k, _ in options["slot"]] == ["all", "Both hands", "Feet"]
     assert [k for k, _ in options["affix"]][-1] == "Keen"
+
+
+# --- sorting -----------------------------------------------------------------------
+
+
+def _pack_item(name, slot="Feet", verdict="better", affixes=(), gear_set=None, **total):
+    from tidewrack.core.gear.compare import StatRow
+
+    view = _game().view().items_here[0]
+    change = total.get("def", 0)  # enough to tell items apart by gain
+    rows = (
+        StatRow("atk", 0, 0, 4, 4),
+        StatRow("def", 0, 0, 2, 2 + change),
+        StatRow("hp", 0, 0, 20, 20),
+    )
+    comparison = replace(view.comparison, verdict=verdict, rows=rows)
+    full = {"atk": 0, "def": 0, "hp": 0, **total}
+    return replace(
+        view,
+        id=hash(name) % 10_000,
+        name=name,
+        slot=slot,
+        affixes=tuple(affixes),
+        gear_set=gear_set,
+        total=full,
+        comparison=comparison,
+    )
+
+
+def test_sort_pack_by_each_key_and_direction():
+    from tidewrack.ui.screens.inventory import sort_pack
+
+    boots = _pack_item("Boots", verdict="better", hp=0, **{"def": 1})
+    helm = _pack_item("Helm", "Head", verdict="mixed", hp=4, **{"def": 1})
+    club = _pack_item("Club", "Main hand", verdict="worse", atk=2)
+    knife = _pack_item("knife", "Main hand", verdict="same", atk=2)
+    pack = [helm, knife, boots, club]
+
+    def names(by, descending=True):
+        return [i.name for i in sort_pack(pack, by, descending)]
+
+    assert names("name", descending=False) == ["Boots", "Club", "Helm", "knife"]  # case-blind
+    assert names("name") == ["knife", "Helm", "Club", "Boots"]
+    assert names("atk") == ["knife", "Club", "Boots", "Helm"]  # ATK tie: better verdict first
+    assert names("hp") == ["Helm", "Boots", "knife", "Club"]
+    assert names("def") == ["Boots", "Helm", "knife", "Club"]
+    assert names("verdict") == ["Boots", "Helm", "knife", "Club"]
+    assert names("verdict", descending=False) == ["Club", "knife", "Helm", "Boots"]
+
+
+def test_sorting_applies_to_the_filtered_pack_and_survives_refreshes(tmp_path):
+    session, shell, asked = _shell(tmp_path, confirm=True)
+    _fill_pack(session)
+    for _ in range(3):  # a few more, so there's something to sort
+        _fill_pack(session)
+    screen = shell.inventory
+    pack = session.game.inventory().pack
+    feet = [i for i in pack if i.slot == pack[0].slot]
+
+    screen.filters["slot"].value = pack[0].slot
+    screen._filter_changed("slot")
+    screen.sort.value = "hp"
+    screen._sort_changed()
+    shown = [i.id for i in screen._shown]
+    expected = [i.id for i in sorted(feet, key=lambda i: (-i.total["hp"],))]
+    assert sorted(shown) == sorted(i.id for i in feet)  # filter still applied
+    assert [screen_item.total["hp"] for screen_item in screen._shown] == sorted(
+        (i.total["hp"] for i in feet), reverse=True
+    )
+    assert screen.order_button.content == "Best first"
+
+    screen._flip_order()
+    assert [i.total["hp"] for i in screen._shown] == sorted(i.total["hp"] for i in feet)
+    assert screen.order_button.content == "Worst first"
+
+    screen.refresh()  # e.g. switching tabs
+    assert screen.sort.value == "hp" and not screen.descending
+    assert len(expected) == len(screen._shown)
+
+    # Selecting "all shown" and dropping touches exactly the filtered, sorted items.
+    screen._toggle_select(None)
+    screen._select_all_shown(None)
+    screen._drop_selected(None)
+    left = {i.id for i in session.game.inventory().pack}
+    assert left == {i.id for i in pack} - {i.id for i in feet}

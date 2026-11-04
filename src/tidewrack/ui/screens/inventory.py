@@ -2,8 +2,9 @@
 
 Reads only Game.inventory() and sends only commands, through the GameSession so
 every change autosaves (CLAUDE.md §4, §6). The pack can be filtered by slot,
-affix and set, and a select mode acts on several items at once (drop now; sell
-once shops exist). Dropping always asks first.
+affix and set, then sorted (name, ATK, DEF, HP or verdict, either way round),
+and a select mode acts on several items at once (drop now; sell once shops
+exist). Dropping always asks first.
 """
 
 from __future__ import annotations
@@ -77,6 +78,32 @@ def filter_options(pack: Iterable[ItemView]) -> dict[str, list[tuple[str, str]]]
     }
 
 
+BY_NAME = "name"
+SORTS = [(BY_NAME, "Name"), *((s, STAT_LABELS[s]) for s in STATS), ("verdict", "Verdict")]
+VERDICT_RANK = {"better": 3, "mixed": 2, "same": 1, "worse": 0}
+
+
+def sort_pack(items: Iterable[ItemView], by: str, descending: bool = True) -> list[ItemView]:
+    """The pack in `by` order; `descending` puts the most first (Z→A for names).
+    Ties fall back to the verdict, then the name, so the order never jumps around
+    between refreshes."""
+    items = list(items)
+    if by == BY_NAME:
+        return sorted(items, key=lambda i: (i.name.casefold(), i.id), reverse=descending)
+
+    def gain(item: ItemView) -> int:
+        return sum(row.change for row in item.comparison.rows)
+
+    def key(item: ItemView) -> tuple:
+        verdict = VERDICT_RANK[item.comparison.verdict]
+        if by == "verdict":
+            return (verdict, gain(item))
+        return (item.total[by], verdict, gain(item))
+
+    ranked = sorted(items, key=lambda i: (i.name.casefold(), i.id))  # A→Z breaks ties
+    return sorted(ranked, key=key, reverse=descending)
+
+
 class InventoryScreen:
     def __init__(
         self, session: GameSession, confirm: Confirm, notify: Callable[[str], None]
@@ -85,6 +112,8 @@ class InventoryScreen:
         self.confirm = confirm
         self.notify = notify  # a toast, for actions the game refuses (e.g. mid-fight)
         self.filter = PackFilter()
+        self.sort_by = BY_NAME
+        self.descending = False  # names A→Z; stats and verdict best first
         self.selecting = False
         self.selected: set[int] = set()
         self._shown: list[ItemView] = []  # the pack after filtering
@@ -103,7 +132,17 @@ class InventoryScreen:
             )
             for name, label in (("slot", "Slot"), ("affix", "Affix"), ("gear_set", "Set"))
         }
+        self.sort = ft.Dropdown(
+            label="Sort",
+            dense=True,
+            expand=True,
+            value=BY_NAME,
+            options=[ft.DropdownOption(key=k, text=t) for k, t in SORTS],
+            on_select=lambda _: self._sort_changed(),
+        )
+        self.order_button = ft.TextButton(on_click=lambda _: self._flip_order())
         self.selection_bar = ft.Row(wrap=True, spacing=8, run_spacing=4)
+        self.sort_row = ft.Row(spacing=8, controls=[self.sort, self.order_button])
         self.control = ft.SafeArea(
             expand=True,
             content=ft.Container(
@@ -121,6 +160,7 @@ class InventoryScreen:
                                 self.equipped,
                                 ft.Row(controls=[self.pack_heading, self.select_button]),
                                 ft.Row(spacing=8, controls=list(self.filters.values())),
+                                self.sort_row,
                                 self.selection_bar,
                                 self.pack,
                             ],
@@ -185,6 +225,16 @@ class InventoryScreen:
         self.selected = {i.id for i in self._shown}
         self.refresh()
 
+    def _sort_changed(self) -> None:
+        self.sort_by = self.sort.value or BY_NAME
+        # Stats and verdict read best first; names read A→Z.
+        self.descending = self.sort_by != BY_NAME
+        self.refresh()
+
+    def _flip_order(self) -> None:
+        self.descending = not self.descending
+        self.refresh()
+
     def _filter_changed(self, name: str) -> None:
         values = {n: d.value or ALL for n, d in self.filters.items()}
         self.filter = PackFilter(**values)
@@ -204,7 +254,14 @@ class InventoryScreen:
             dropdown.value = current if current in {k for k, _ in options[name]} else ALL
         self.filter = PackFilter(**{n: d.value for n, d in self.filters.items()})
 
-        self._shown = [i for i in view.pack if self.filter.keeps(i)]
+        kept = [i for i in view.pack if self.filter.keeps(i)]
+        self._shown = sort_pack(kept, self.sort_by, self.descending)
+        self.sort.value = self.sort_by
+        self.sort_row.visible = len(view.pack) > 1
+        self.order_button.icon = (
+            ft.Icons.ARROW_DOWNWARD if self.descending else ft.Icons.ARROW_UPWARD
+        )
+        self.order_button.content = _order_label(self.sort_by, self.descending)
         self.selected &= {i.id for i in self._shown}
         count = len(view.pack)
         self.pack_heading.value = (
@@ -296,6 +353,12 @@ class InventoryScreen:
             icon=ft.Icons.FILE_DOWNLOAD_OUTLINED,
             on_click=lambda _, i=item: self._drop(i),
         )
+
+
+def _order_label(by: str, descending: bool) -> str:
+    if by == BY_NAME:
+        return "Z to A" if descending else "A to Z"
+    return "Best first" if descending else "Worst first"
 
 
 def _heading(text: str) -> ft.Text:
