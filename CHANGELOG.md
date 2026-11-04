@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-04
+
 ### Added
 - Enemies come back. Every 30 turns, each cave, forest and mine gains one
   wandering enemy, up to as many as it started with. Rooms you've cleared stay
