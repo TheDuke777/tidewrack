@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.rules import damage, regen, scaled
 from tidewrack.core.engine.components import (
+    Bounty,
     Codex,
     Enemy,
     Explorer,
@@ -87,12 +88,14 @@ def _start(game: Game, entity: int, enemy: Enemy, event: RoomEntered, wandering:
     )
     codex = game.world.get(game.player, Codex)
     if enemy.enemy_id not in codex.foes:
+        # A bounty is a named, tougher one: the codex records its ordinary kind.
+        bounty = game.world.try_get(entity, Bounty)
         codex.foes[enemy.enemy_id] = FoeEntry(
             enemy_id=enemy.enemy_id,
-            name=enemy.name,
+            name=bounty.kind_name if bounty else enemy.name,
             category=enemy.category,
             description=enemy.description,
-            stats=dict(enemy.stats),
+            stats=dict(bounty.kind_stats if bounty else enemy.stats),
             drops=list(enemy.drops),
         )
     game.bus.emit(CombatStarted(entity, enemy.enemy_id, enemy.name, wandering))
@@ -166,6 +169,7 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
         game.world.create(item, Position(position.location, position.room))
     codex = game.world.get(game.player, Codex)
     codex.kills[enemy.enemy_id] = codex.kills.get(enemy.enemy_id, 0) + 1
+    bounty = game.world.try_get(fighting.enemy, Bounty)
     game.world.remove(game.player, Fighting)
     game.world.destroy(fighting.enemy)
     game.bus.emit(
@@ -175,6 +179,7 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
             enemy.name,
             enemy.category,
             tuple(item.display_name for item in enemy.loot),
+            bounty.quest_id if bounty else None,
         )
     )
 

@@ -132,6 +132,58 @@ class Codex:
     kills: dict[str, int] = field(default_factory=dict)
 
 
+@dataclass
+class Bounty:
+    """On an enemy a bounty quest is after. The enemy is a tougher, named one of
+    its kind; `kind_name` and `kind_stats` are its ordinary kind's, for the codex."""
+
+    quest_id: str
+    kind_name: str
+    kind_stats: dict[str, int]
+
+
+@dataclass
+class Quest:
+    """A quest, on an entity of its own: a snapshot, reward included.
+
+    States: board quests go posted → active → ready → done; found quests start
+    hidden (their Clue is still lying somewhere) and go active when found.
+    """
+
+    quest_id: str
+    kind: str  # "bounty", "cull", "explore" or "recover"
+    title: str
+    summary: str
+    reward: Item
+    state: str = "posted"  # posted, hidden, active, ready, done
+    source: str = "board"  # "board" or "found"
+    board: str | None = None  # the town whose notice board posts it
+    found_in: str | None = None  # where its clue was found
+    location: str | None = None  # where it sends you (cull: where they're common)
+    enemy_id: str | None = None  # cull: the kind to defeat
+    target: str | None = None  # bounty enemy, culled kind (plural) or recovered item
+    needed: int = 1  # cull: how many
+    progress: int = 0  # cull: defeated since accepting
+    achieved: bool = False  # bounty beaten or item recovered (counts before accepting)
+
+
+@dataclass
+class QuestItem:
+    """Something a Recover quest wants, lying in a room until you walk in."""
+
+    quest_id: str
+    name: str
+    description: str
+
+
+@dataclass
+class Clue:
+    """A found quest's start (a torn notice, a letter), lying in a room."""
+
+    quest_id: str
+    text: str
+
+
 # Every component type, by name, for saving and loading. Names are part of the save
 # format: renaming one needs a save migration.
 COMPONENTS: dict[str, type] = {
@@ -152,5 +204,9 @@ COMPONENTS: dict[str, type] = {
         Respawn,
         Spawner,
         Codex,
+        Bounty,
+        Quest,
+        QuestItem,
+        Clue,
     )
 }

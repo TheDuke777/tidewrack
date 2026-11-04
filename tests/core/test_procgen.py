@@ -6,6 +6,7 @@ from tidewrack.core.procgen.enemy_gen import enemies_hash, generate_enemies
 from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate_kit
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
+from tidewrack.core.procgen.quest_gen import generate_quests, quests_hash
 from tidewrack.core.procgen.world_gen import generate_world, world_hash
 from tidewrack.core.rng import Rng
 from tidewrack.core.versions import GENERATOR_VERSION
@@ -25,24 +26,37 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 5
+    assert GENERATOR_VERSION == 6
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 5
+    assert GENERATOR_VERSION == 6
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 5
+    assert GENERATOR_VERSION == 6
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
+def test_golden_quests():
+    # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
+    assert GENERATOR_VERSION == 6
+    assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
+
+
+def quests_for(seed: int):
+    world = new_world(seed)
+    placed, spawners = generate_enemies(seed, world, CONTENT)
+    return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
+
+
+GOLDEN_QUESTS = "b49bc177ccf1b768733013e00b05d3278aac68c55bf559bbe482f3c8ca099aa6"
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
 GOLDEN_ENEMIES = "a071c9e302ccb084e03dd8323926b46711b4a0cf559eb04ccd37bddc701add6e"
 GOLDEN_FINDS = "ad3e543e3e78e20f6f9c99679912e3051e93fab9d463a8fe525fe5ae11c4763b"
@@ -316,3 +330,51 @@ def test_enemies_dont_change_the_world_or_its_finds():
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
+
+
+def test_quests_are_valid_deterministic_and_placed_away_from_gates_and_towns():
+    kinds = set()
+    for seed in range(20):
+        world = new_world(seed)
+        placed, spawners = generate_enemies(seed, world, CONTENT)
+        plan = generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
+        assert plan == generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
+        ids = [q.quest_id for q in plan.quests]
+        assert len(ids) == len(set(ids))
+        towns = [loc for loc in world.locations.values() if loc.kind == "Town"]
+        board = [q for q in plan.quests if q.source == "board"]
+        assert len(board) == 3 * len(towns) and all(q.state == "posted" for q in board)
+        found = [q for q in plan.quests if q.source == "found"]
+        assert len(found) == 2 and all(q.state == "hidden" for q in found)
+        enemy_rooms = {(p.location, p.room) for p in placed}
+        supply = {}
+        for p in placed:
+            supply[p.enemy.enemy_id] = supply.get(p.enemy.enemy_id, 0) + 1
+        for s in spawners:
+            for e in s.queue:
+                supply[e.enemy_id] = supply.get(e.enemy_id, 0) + 1
+        for quest in plan.quests:
+            kinds.add(quest.kind)
+            assert world.location(quest.location).kind != "Town"
+            assert "{" not in quest.title + quest.summary
+            if quest.kind == "cull":
+                assert supply[quest.enemy_id] >= 2 * quest.needed
+            if quest.kind == "explore":
+                assert quest.needed == len(world.location(quest.location).rooms)
+        for b in plan.bounties:
+            location = world.location(b.location)
+            assert b.room not in location.gates and location.kind != "Town"
+            assert (b.location, b.room) not in enemy_rooms
+            assert b.enemy.stats["hp"] > b.bounty.kind_stats["hp"]
+        for p in plan.placed:
+            location = world.location(p.location)
+            assert p.room not in location.gates and location.kind != "Town"
+            assert "{" not in getattr(p.thing, "text", "")
+    assert kinds == {"bounty", "cull", "explore", "recover"}
+
+
+def test_quests_dont_change_the_world_finds_or_enemies():
+    world = new_world(20261103)
+    assert world_hash(world) == GOLDEN_STANDARD
+    assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
+    assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES

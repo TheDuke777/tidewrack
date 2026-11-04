@@ -16,7 +16,9 @@ from dataclasses import dataclass
 
 import flet as ft
 
+from tidewrack.core.engine.events import QuestCompleted
 from tidewrack.core.engine.game import (
+    AcceptQuest,
     Command,
     Equip,
     GameView,
@@ -25,21 +27,27 @@ from tidewrack.core.engine.game import (
     Move,
     Take,
     Travel,
+    TurnInQuest,
     Wait,
 )
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import Settings, SettingsStore
 from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
+from tidewrack.ui.components.quest_card import quest_card
 from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
 
 LOG_LINES_SHOWN = 40
 
 ROOM_LEGEND = (
     "● visited   ○ unexplored   ◉ you   ■ gate (roads leave from here)\n"
+    "✦ items left here   ◆ quest target\n"
     "Tap a ringed room to go there."
 )
-WORLD_LEGEND = "● visited   ○ unexplored   ◉ you\nAt a gate, tap a ringed place to travel."
+WORLD_LEGEND = (
+    "● visited   ○ unexplored   ◉ you   ✓ fully explored   ◆ quest\n"
+    "At a gate, tap a ringed place to travel."
+)
 
 MIN_LOG_SHARE, MAX_LOG_SHARE = 0.1, 0.8  # same bounds as Settings.log_share
 HIDE_LOG_BELOW = 0.06  # dragging the log smaller than this hides it
@@ -83,8 +91,10 @@ class GameScreen:
         session: GameSession,
         settings: SettingsStore,
         on_back: Callable[[], None],
+        notify: Callable[[str], None] = lambda _: None,
     ) -> None:
         self.session = session
+        self.notify = notify
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
@@ -93,6 +103,7 @@ class GameScreen:
         self.room = ft.Text(size=26, weight=ft.FontWeight.BOLD)
         self.description = ft.Text(size=16)
         self.here = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.board = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
@@ -131,6 +142,7 @@ class GameScreen:
                 self.room,
                 self.description,
                 self.combat,
+                self.board,
                 self.here,
                 self.exits,
                 self.roads,
@@ -284,7 +296,8 @@ class GameScreen:
             self._scroll_details_to_top()  # the fight panel is the first thing you see
         self._was_fighting = fighting
         self.combat.controls = [combat_panel(view, self.act)] if fighting else []
-        for section in (self.here, self.exits, self.roads, self.actions):
+        self.board.controls = self._board(view)
+        for section in (self.board, self.here, self.exits, self.roads, self.actions):
             section.visible = not fighting
         resting = view.in_town and view.hp < view.max_hp
         self.wait_button.content = "Rest" if resting else "Wait"
@@ -326,6 +339,37 @@ class GameScreen:
             return
         if page is not None:
             page.run_task(self.details.scroll_to, offset=0)
+
+    def _board(self, view: GameView) -> list[ft.Control]:
+        if view.board is None:
+            return []
+        if not view.board:
+            heading = "Notice board · nothing new pinned up"
+        else:
+            heading = "Notice board"
+        cards: list[ft.Control] = [ft.Text(heading, size=18, weight=ft.FontWeight.BOLD)]
+        for quest in view.board:
+            if quest.state == "ready":
+                button = ft.FilledButton(
+                    content="Turn in",
+                    icon=ft.Icons.TASK_ALT,
+                    on_click=lambda _, q=quest.id: self._turn_in(q),
+                )
+            else:
+                button = ft.FilledTonalButton(
+                    content="Accept",
+                    icon=ft.Icons.ADD_TASK,
+                    on_click=lambda _, q=quest.id: self.act(AcceptQuest(q)),
+                )
+            cards.append(quest_card(quest, [button]))
+        return cards
+
+    def _turn_in(self, quest: str) -> None:
+        result = self.session.perform(TurnInQuest(quest))
+        for event in result.events:
+            if isinstance(event, QuestCompleted):
+                self.notify(f"{event.reward} added to your pack.")
+        self.refresh()
 
     def _take_buttons(self, item: ItemView) -> list[ft.Control]:
         return [

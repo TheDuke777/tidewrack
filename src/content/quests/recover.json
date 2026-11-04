@@ -1,0 +1,19 @@
+{
+  "id": "quest.recover",
+  "type": "recover",
+  "titles": ["Recover the {item}", "The lost {item}"],
+  "summaries": [
+    "The {item} went missing somewhere in {location}. Find it and bring it back.",
+    "Someone left the {item} behind in {location} and won't go back for it. You might."
+  ],
+  "clues": [
+    "A letter, never sent: \"I hid the {item} in {location}. Whoever finds this, take it to the harbour.\""
+  ],
+  "items": [
+    { "name": "Harbourmaster's Ledger", "description": "Its pages are stuck together with salt, but the figures are legible." },
+    { "name": "Saint's Reliquary", "description": "A little tin box with a knucklebone inside, wrapped in faded silk." },
+    { "name": "Brass Sextant", "description": "Green with verdigris, its mirror cracked, its arc still true." },
+    { "name": "Smuggler's Tally", "description": "A knotted cord, each knot a debt. Several people would pay to see it burned." },
+    { "name": "Drowned Bell", "description": "A ship's bell no bigger than a fist. It doesn't ring, though the clapper moves." }
+  ]
+}

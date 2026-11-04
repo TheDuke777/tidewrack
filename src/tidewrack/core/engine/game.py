@@ -32,7 +32,9 @@ from tidewrack.core.data.save import (
 )
 from tidewrack.core.data.schemas import OverworldSchema
 from tidewrack.core.engine.components import (
+    Bounty,
     Carried,
+    Clue,
     Codex,
     Enemy,
     Equipped,
@@ -42,6 +44,8 @@ from tidewrack.core.engine.components import (
     Name,
     Player,
     Position,
+    Quest,
+    QuestItem,
     Respawn,
     Scenery,
     Spawner,
@@ -67,6 +71,12 @@ from tidewrack.core.engine.events import (
     LocationEntered,
     LookedAround,
     PlayerDefeated,
+    QuestAccepted,
+    QuestCompleted,
+    QuestFound,
+    QuestItemFound,
+    QuestProgress,
+    QuestReady,
     Respawned,
     Rested,
     RoomDiscovered,
@@ -79,6 +89,7 @@ from tidewrack.core.gear.compare import Comparison, compare
 from tidewrack.core.gear.item import SLOT_LABELS, SLOTS, Item, slots_taken
 from tidewrack.core.gear.stat_pipeline import StatSheet, item_base, item_total, player_stats
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
+from tidewrack.core.quests import quests as questing
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location, Room
 from tidewrack.core.world.overworld import Overworld
@@ -157,7 +168,35 @@ class Flee:
     """Try to escape back the way you came; if it fails, the enemy gets a free blow."""
 
 
-Command = Move | Travel | Look | Wait | Take | Drop | Equip | Unequip | Attack | Defend | Flee
+@dataclass(frozen=True)
+class AcceptQuest:
+    """Take a notice from the board you're at (free)."""
+
+    quest: str  # quest id, from a QuestView
+
+
+@dataclass(frozen=True)
+class TurnInQuest:
+    """Hand in a finished quest at any town's board for its reward (free)."""
+
+    quest: str
+
+
+Command = (
+    Move
+    | Travel
+    | Look
+    | Wait
+    | Take
+    | Drop
+    | Equip
+    | Unequip
+    | Attack
+    | Defend
+    | Flee
+    | AcceptQuest
+    | TurnInQuest
+)
 COMBAT_COMMANDS = (Attack, Defend, Flee)
 ALLOWED_IN_COMBAT = (Look, *COMBAT_COMMANDS)
 
@@ -195,6 +234,9 @@ class MapNode:
     command: Command | None  # set when one step away: perform it to go there
     gate: bool = False  # a room roads leave from (area maps)
     kind: str | None = None  # a location's kind, e.g. "Town" (world maps)
+    items: bool = False  # a visited room with items left lying in it (area maps)
+    quest: bool = False  # where an active quest sends you (a seen bounty, a target place)
+    charted: bool = False  # every room visited (world maps)
 
 
 @dataclass(frozen=True)
@@ -250,6 +292,25 @@ class CombatView:
 
 
 @dataclass(frozen=True)
+class QuestView:
+    id: str  # for AcceptQuest / TurnInQuest
+    kind: str  # "Bounty", "Cull", "Explore", "Recover"
+    title: str
+    summary: str
+    source: str  # "Posted at Saltmere" / "Found in the Kelp Caves"
+    progress: str  # "2/4 Shore Crabs defeated", …
+    state: str  # posted, active, ready, done
+    reward: ItemView
+
+
+@dataclass(frozen=True)
+class QuestLogView:
+    ready: tuple[QuestView, ...]
+    active: tuple[QuestView, ...]
+    done: tuple[QuestView, ...]
+
+
+@dataclass(frozen=True)
 class GameView:
     location: str  # the location's name
     kind: str  # "Town", "Sea Caves", …
@@ -274,6 +335,7 @@ class GameView:
     max_hp: int
     combat: CombatView | None  # set while fighting
     in_town: bool  # Wait here rests you to full
+    board: tuple[QuestView, ...] | None = None  # at a notice board: posted + ready quests
 
 
 # --- the game ----------------------------------------------------------------------
@@ -290,10 +352,14 @@ class Game:
         enemies: Iterable[tuple[str, str, Enemy]] = (),
         spawners: Iterable[Spawner] = (),
         rules: Rules = STANDARD,
+        quests: Iterable[Quest] = (),
+        bounties: Iterable[tuple[str, str, Enemy, Bounty]] = (),
+        quest_things: Iterable[tuple[str, str, QuestItem | Clue]] = (),
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
-        each location's wandering enemies in `spawners`, under `rules`."""
+        each location's wandering enemies in `spawners`, under `rules`; plus the
+        world's `quests`, their `bounties` and their items and clues."""
         self._setup(seed, world)
         self.rules = rules
         start = world.location(world.start)
@@ -327,6 +393,17 @@ class Game:
         for spawner in spawners:
             world.location(spawner.location)  # must exist
             self.world.create(spawner)
+        for quest in quests:
+            self.world.create(quest)
+        for location_id, room_id, enemy, bounty in bounties:
+            location = world.location(location_id)
+            if room_id not in location.rooms or room_id in location.gates:
+                raise ValueError(f"bounty placed in a gate or unknown room {location_id}/{room_id}")
+            self.world.create(enemy, bounty, Position(location_id, room_id))
+        for location_id, room_id, thing in quest_things:
+            if room_id not in world.location(location_id).rooms:
+                raise ValueError(f"quest item placed in unknown room {location_id}/{room_id}")
+            self.world.create(thing, Position(location_id, room_id))
 
         self.bus.emit(GameStarted(seed))
         self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
@@ -360,7 +437,9 @@ class Game:
         self.bus.subscribe(LocationEntered, self._explore_location)
         self.bus.subscribe(LocationEntered, lambda e: fight.note_town(self, e))
         self.bus.subscribe(RoomEntered, self._explore_room)
+        self.bus.subscribe(RoomEntered, lambda e: questing.on_room_entered(self, e))
         self.bus.subscribe(RoomEntered, lambda e: fight.encounter(self, e))
+        self.bus.subscribe(EnemyKilled, lambda e: questing.on_enemy_killed(self, e))
         self.bus.subscribe(Event, self._narrate)
 
     # --- saving ----------------------------------------------------------------------
@@ -515,6 +594,10 @@ class Game:
                 took_turn = self._equip(entity)
             case Unequip(item=entity):
                 took_turn = self._unequip(entity)
+            case AcceptQuest(quest=quest_id):
+                questing.accept(self, quest_id)
+            case TurnInQuest(quest=quest_id):
+                questing.turn_in(self, quest_id)
             case _:
                 raise TypeError(f"unknown command: {command!r}")
 
@@ -627,7 +710,7 @@ class Game:
             id=entity,
             name=item.display_name,
             slot="Both hands" if item.two_handed else SLOT_LABELS[item.slot],
-            equipped=self.world.has(entity, Equipped),
+            equipped=entity >= 0 and self.world.has(entity, Equipped),
             base=item_base(item),
             total=item_total(item),
             upgrade=f"+{item.upgrade}/{item.max_upgrade}" if item.max_upgrade else None,
@@ -668,6 +751,60 @@ class Game:
             max_hp=max_hp,
             stats=stats.full(fighting.enemy_stats),
         )
+
+    # --- quests --------------------------------------------------------------------
+
+    def _quest_view(self, quest: Quest) -> QuestView:
+        def name(location_id: str | None) -> str:
+            return self.overworld.location(location_id).name if location_id else "the wild"
+
+        if quest.source == "found":
+            source = f"Found in {name(quest.found_in)}"
+        else:
+            source = f"Posted at {name(quest.board)}"
+        return QuestView(
+            id=quest.quest_id,
+            kind=questing.KIND_LABELS[quest.kind],
+            title=quest.title,
+            summary=quest.summary,
+            source=source,
+            progress=questing.progress_text(self, quest),
+            state=quest.state,
+            reward=self._item_view(-1, quest.reward),  # not in the world until earned
+        )
+
+    def quests(self) -> QuestLogView:
+        """The quest log: everything accepted or found, by state."""
+        known = questing.all_quests(self)
+
+        def views(state: str) -> tuple[QuestView, ...]:
+            return tuple(self._quest_view(q) for q in known if q.state == state)
+
+        return QuestLogView(ready=views("ready"), active=views("active"), done=views("done"))
+
+    def _board(self) -> tuple[QuestView, ...] | None:
+        board = questing.board_here(self)
+        if board is None:
+            return None
+        return tuple(
+            self._quest_view(q)
+            for q in questing.all_quests(self)
+            if q.state == "ready" or (q.state == "posted" and q.board == board)
+        )
+
+    def _quest_places(self) -> tuple[set[str], set[tuple[str, str]]]:
+        """Where active quests send you: target locations, and rooms where a
+        bounty you're after has been seen (a visited room it's still in)."""
+        explorer = self._explorer()
+        active = [q for q in questing.all_quests(self) if q.state == "active"]
+        places = {q.location for q in active if q.location and q.kind != "cull"}
+        wanted = {q.quest_id for q in active if q.kind == "bounty"}
+        rooms = {
+            (p.location, p.room)
+            for _, (bounty, p) in self.world.query(Bounty, Position)
+            if bounty.quest_id in wanted and p.room in explorer.rooms_visited.get(p.location, ())
+        }
+        return places, rooms  # type: ignore[return-value]
 
     def sheet(self) -> StatSheet:
         return player_stats(self.world.get(self.player, Stats).base, self._equipped())
@@ -730,6 +867,7 @@ class Game:
             for to in location.roads
         )
         room_map = world_map = None
+        quest_places, quest_rooms = self._quest_places()
         if location.has_map:
             room_map = _fog_map(
                 nodes=[(r.id, r.pos, r.name) for r in location.rooms.values()],
@@ -740,6 +878,12 @@ class Game:
                 commands={e.to: Move(e.label) for e in room.exits},
                 names_on_discovery=False,
                 gates=set(location.gates),
+                items={
+                    p.room
+                    for _, (_, p) in self.world.query(Item, Position)
+                    if p.location == location.id and p.room in rooms_visited
+                },
+                quests={r for loc, r in quest_rooms if loc == location.id},
             )
         if self.overworld.has_map:
             world_map = _fog_map(
@@ -751,6 +895,12 @@ class Game:
                 commands={to: Travel(to) for to in location.roads} if at_gate else {},
                 names_on_discovery=True,  # signposts name the places a road leads
                 kinds={loc.id: loc.kind for loc in self.overworld.locations.values()},
+                quests=quest_places,
+                charted={
+                    loc.id
+                    for loc in self.overworld.locations.values()
+                    if len(explorer.rooms_visited.get(loc.id, ())) >= len(loc.rooms)
+                },
             )
         return GameView(
             location=location.name,
@@ -778,6 +928,7 @@ class Game:
             max_hp=self.max_hp(),
             combat=self._combat_view(),
             in_town=location.kind == fight.TOWN,
+            board=self._board(),
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -830,6 +981,7 @@ class Game:
                             f"You make your way to {name}." if first else f"You return to {name}."
                         )
                     self._mention_items(location_id, room_id)
+                    self._mention_board()
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
                     s.text
@@ -878,6 +1030,19 @@ class Game:
             case Respawned(location=location_id):
                 town = self.overworld.location(location_id).name
                 self._say(f"You come to at the edge of {town}, bruised but alive.")
+            case QuestAccepted(title=title):
+                self._say(f"You take down the notice: {title}.")
+            case QuestFound(title=title, clue=clue):
+                self._say(clue)
+                self._say(f"New quest: {title}.")
+            case QuestItemFound(name=name, description=description):
+                self._say(f"You find the {name}. {description}")
+            case QuestProgress(title=title, progress=done, needed=needed):
+                self._say(f"{title}: {done} of {needed}.")
+            case QuestReady(title=title):
+                self._say(f"Quest ready to turn in: {title}. Any town's notice board will do.")
+            case QuestCompleted(title=title, reward=reward):
+                self._say(f"Quest done: {title}. Your reward: the {reward}.")
             case AmbientNoticed(text=text):
                 self._say(text)
             case ActionRejected(reason=reason):
@@ -889,6 +1054,19 @@ class Game:
             self._say(f"A {names[0]} lies here.")
         elif names:
             self._say(f"Lying here: {_and(names)}.")
+
+    def _mention_board(self) -> None:
+        board = self._board()
+        if not board:
+            return
+        posted = sum(q.state == "posted" for q in board)
+        ready = len(board) - posted
+        if posted:
+            self._say(
+                f"A notice board by the gate has {posted} notice{'s' * (posted != 1)} pinned to it."
+            )
+        if ready:
+            self._say(f"You can turn in {ready} finished quest{'s' * (ready != 1)} here.")
 
     def _say(self, line: str) -> None:
         self.log.append(line)
@@ -914,6 +1092,9 @@ def _fog_map(
     names_on_discovery: bool,
     gates: set[str] = frozenset(),  # type: ignore[assignment]
     kinds: dict[str, str] | None = None,
+    items: set[str] = frozenset(),  # type: ignore[assignment]
+    quests: set[str] = frozenset(),  # type: ignore[assignment]
+    charted: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -932,6 +1113,9 @@ def _fog_map(
                 command=commands.get(node_id),
                 gate=node_id in gates,
                 kind=(kinds or {}).get(node_id),
+                items=node_id in items,
+                quest=node_id in quests,
+                charted=node_id in charted,
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

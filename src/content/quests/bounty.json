@@ -1,0 +1,19 @@
+{
+  "id": "quest.bounty",
+  "type": "bounty",
+  "titles": ["Bounty: the {target}", "Wanted: the {target}"],
+  "summaries": [
+    "A {target} has been troubling anyone who goes near {location}. Put an end to it.",
+    "The harbour pays well for the {target} that haunts {location}. Bring word it's done."
+  ],
+  "clues": [
+    "A sodden bounty notice lies weighted under a stone, the ink run but still readable.",
+    "Scratched into a wall with a knife point: a warning, a name, and a promise of payment."
+  ],
+  "epithets": {
+    "beast": ["Scarred", "One-Eyed", "Grizzled", "Black-Toothed", "Huge"],
+    "person": ["Notorious", "Branded", "Ruthless", "Silver-Tongued"],
+    "spirit": ["Restless", "Howling", "Ancient", "Bitter"]
+  },
+  "strength": 1.5
+}

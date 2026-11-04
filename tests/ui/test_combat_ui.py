@@ -115,7 +115,7 @@ def test_gear_actions_mid_fight_explain_themselves(tmp_path):
 
 def test_codex_sections_collapse_at_every_level_and_remember(tmp_path):
     session, shell, _ = _shell_in_a_fight(tmp_path)
-    shell.select(2)
+    shell.select(3)
     [foes] = shell.codex.sections.controls
     assert isinstance(foes, ft.ExpansionTile) and foes.expanded
     assert foes.title.value == "Foes (1)"

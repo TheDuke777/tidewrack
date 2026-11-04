@@ -169,6 +169,7 @@ class EnemyKilled(Event):
     name: str
     category: str
     loot: tuple[str, ...]  # names of what it dropped
+    bounty: str | None = None  # the quest it was wanted for
 
 
 @dataclass(frozen=True)
@@ -185,6 +186,50 @@ class Respawned(Event):
 @dataclass(frozen=True)
 class Rested(Event):
     location: str
+
+
+# --- quests ------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class QuestAccepted(Event):
+    quest_id: str
+    title: str
+
+
+@dataclass(frozen=True)
+class QuestFound(Event):
+    quest_id: str
+    title: str
+    clue: str
+
+
+@dataclass(frozen=True)
+class QuestItemFound(Event):
+    quest_id: str
+    name: str
+    description: str
+
+
+@dataclass(frozen=True)
+class QuestProgress(Event):
+    quest_id: str
+    title: str
+    progress: int
+    needed: int
+
+
+@dataclass(frozen=True)
+class QuestReady(Event):
+    quest_id: str
+    title: str
+
+
+@dataclass(frozen=True)
+class QuestCompleted(Event):
+    quest_id: str
+    title: str
+    reward: str  # the reward's name
 
 
 @dataclass(frozen=True)

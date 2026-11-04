@@ -25,6 +25,7 @@ from tidewrack.core.data.schemas import (
     EnemySchema,
     GearSchema,
     GearSetSchema,
+    QuestTemplateSchema,
     RoomsetSchema,
     WorldRecipeSchema,
 )
@@ -37,6 +38,7 @@ KINDS = {
     "enemies": (EnemySchema, "enemy"),
     "gear": (GearSchema, "gear"),
     "gearsets": (GearSetSchema, "gearset"),
+    "quests": (QuestTemplateSchema, "quest"),
     "roomsets": (RoomsetSchema, "roomset"),
     "worlds": (WorldRecipeSchema, "world"),
 }
@@ -57,6 +59,7 @@ class Content:
     affixes: dict[str, AffixSchema]
     gearsets: dict[str, GearSetSchema]
     enemies: dict[str, EnemySchema]
+    quests: dict[str, QuestTemplateSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -111,6 +114,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         affixes=loaded["affixes"],
         gearsets=loaded["gearsets"],
         enemies=loaded["enemies"],
+        quests=loaded["quests"],
         content_hash=content_hash(files),
     )
 
@@ -148,6 +152,14 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
     for gear in loaded["gear"].values():
         if gear.set is not None:
             check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")
+    types: dict[str, str] = {}
+    for quest in loaded["quests"].values():
+        if quest.type in types:
+            problems.append(
+                f"{_path('quests', quest.id)}: another file ({types[quest.type]}) already "
+                f"defines {quest.type} quests"
+            )
+        types.setdefault(quest.type, _path("quests", quest.id))
     return problems
 
 

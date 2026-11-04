@@ -23,7 +23,7 @@ from dataclasses import dataclass
 import flet as ft
 import flet.canvas as cv
 
-from tidewrack.core.engine.game import Command, MapView
+from tidewrack.core.engine.game import Command, MapNode, MapView
 
 MAP_HEIGHT = 260
 BACKGROUND = ft.Colors.SURFACE_CONTAINER_HIGHEST
@@ -257,13 +257,19 @@ class MapCanvas:
                 ]
             if node.command is not None:
                 shapes.append(mark(x, y, r + 5, _ring(ft.Colors.TERTIARY, 1.5)))
+            if not self.labels:  # area maps: badges (world maps say it in the labels)
+                shapes += _badges(node, x, y, r)
         if self.labels:
             shapes += self._labels(r)
         self.canvas.shapes = shapes
 
     def _labels(self, r: float) -> list[cv.Shape]:
         assert self.view is not None
-        names = {n.id: label(n.name, n.kind) for n in self.view.nodes if n.name}
+        names = {
+            n.id: label(n.name, n.kind, quest=n.quest, charted=n.charted)
+            for n in self.view.nodes
+            if n.name
+        }
         spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
         return [
             cv.Text(
@@ -280,9 +286,36 @@ class MapCanvas:
         ]
 
 
-def label(name: str, kind: str | None) -> str:
-    """A node's label: world-map places start with their kind's glyph."""
-    return name if kind is None else f"{KIND_GLYPHS.get(kind, DEFAULT_GLYPH)} {name}"
+QUEST_MARK, CHARTED_MARK, ITEMS_MARK = "◆", "✓", "✦"
+
+
+def label(name: str, kind: str | None, quest: bool = False, charted: bool = False) -> str:
+    """A node's label: world-map places start with their kind's glyph, and end with
+    ✓ once every room is visited and ◆ while an active quest leads there."""
+    text = name if kind is None else f"{KIND_GLYPHS.get(kind, DEFAULT_GLYPH)} {name}"
+    return text + (f" {CHARTED_MARK}" if charted else "") + (f" {QUEST_MARK}" if quest else "")
+
+
+def badges(node: MapNode) -> str:
+    """Area-map marks beside a room: items left lying there, a quest target."""
+    return (ITEMS_MARK if node.items else "") + (QUEST_MARK if node.quest else "")
+
+
+def _badges(node: MapNode, x: float, y: float, r: float) -> list[cv.Shape]:
+    text = badges(node)
+    if not text:
+        return []
+    return [
+        cv.Text(
+            x + r * 1.1,
+            y - r * 1.1,
+            text,
+            style=ft.TextStyle(
+                size=LABEL_SIZE, color=ft.Colors.TERTIARY, weight=ft.FontWeight.BOLD
+            ),
+            alignment=ft.Alignment.BOTTOM_LEFT,
+        )
+    ]
 
 
 def kinds_legend(view: MapView) -> str:

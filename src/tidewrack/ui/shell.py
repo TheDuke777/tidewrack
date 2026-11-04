@@ -21,6 +21,7 @@ from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.screens.codex import CodexScreen
 from tidewrack.ui.screens.game import GameScreen
 from tidewrack.ui.screens.inventory import Confirm, InventoryScreen
+from tidewrack.ui.screens.quests import QuestsScreen
 
 
 class WorldShell:
@@ -32,12 +33,14 @@ class WorldShell:
         confirm: Confirm,
         notify: Callable[[str], None],
     ) -> None:
-        self.explore = GameScreen(session, settings, on_back=on_back)
+        self.explore = GameScreen(session, settings, on_back=on_back, notify=notify)
         self.inventory = InventoryScreen(session, confirm=confirm, notify=notify)
+        self.quests = QuestsScreen(session)
         self.codex = CodexScreen(session)
         self.tabs = [
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),
             (self.inventory, "Inventory", ft.Icons.BACKPACK_OUTLINED, ft.Icons.BACKPACK),
+            (self.quests, "Quests", ft.Icons.ASSIGNMENT_OUTLINED, ft.Icons.ASSIGNMENT),
             (self.codex, "Codex", ft.Icons.MENU_BOOK_OUTLINED, ft.Icons.MENU_BOOK),
         ]
         self.body = ft.Column(

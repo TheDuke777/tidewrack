@@ -10,9 +10,11 @@ when the same seed would produce different results (RNG or generation changes).
 # 4: gear (player Stats; Item, Carried and Equipped components)
 # 5: combat (Health, Codex, Respawn on the player; Enemy, Fighting, Spawner;
 #    combat/encounter RNG streams and the world's Rules in GameState)
-SCHEMA_VERSION = 5
+# 6: quests (Quest, QuestItem, Clue components; Bounty on wanted enemies)
+SCHEMA_VERSION = 6
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
 # 5: generated items record their set's chip colour
-GENERATOR_VERSION = 5
+# 6: new worlds also get quests: notice boards, clues, bounties (procgen/quest_gen.py)
+GENERATOR_VERSION = 6

@@ -95,12 +95,19 @@ def _v4_to_v5(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v5_to_v6(envelope: Envelope) -> Envelope:
+    # v6 adds quests as new components only (Quest, QuestItem, Clue, Bounty), so
+    # older worlds load as they are: they just have no notice-board quests.
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
     2: _v2_to_v3,
     3: _v3_to_v4,
     4: _v4_to_v5,
+    5: _v5_to_v6,
 }
 
 

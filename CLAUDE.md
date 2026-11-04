@@ -48,7 +48,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | Concern | Choice | Notes |
 |---|---|---|
 | UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
-| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there. Gate rooms are rounded squares; world-map labels start with a kind glyph (`KIND_GLYPHS`; add one per new roomset name). Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
+| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there. Gate rooms are rounded squares; world-map labels start with a kind glyph (`KIND_GLYPHS`; add one per new roomset name) and end with ✓ (every room visited) and ◆ (an active quest leads there); area-map rooms get badges for items left lying (✦) and a seen bounty (◆). Marks only ever show what the player has seen. Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
 | World structure | Hand-rolled (`core/procgen/grid.py`, `location_gen.py`, `world_gen.py`) | One grid-based spanning tree + loops layout for both rooms and the overworld; gives map positions directly and stays deterministic. Chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 nodes) |
 | Overworld regions | *Later, if they add something:* `scipy.spatial.Voronoi` | Not needed for the grid overworld; heavy compiled dependency (check pypi.flet.dev, and Pyodide if web is pursued) |
 | Biomes | *Later:* `opensimplex` | Coherent noise → biome per region |
@@ -138,7 +138,8 @@ tidewrack/
 │   ├── shops/                       # shop archetypes, stock rules
 │   ├── pets/
 │   ├── factions/
-│   ├── quests/
+│   ├── quests/                      # one template per quest type (bounty, cull, explore,
+│   │                                #   recover): titles, summaries, clues, epithets, items
 │   ├── events/
 │   ├── modifiers/                   # run/world modifiers
 │   ├── achievements/
@@ -158,12 +159,14 @@ tidewrack/
 │   │   │                            #   overworld.py (locations + roads)
 │   │   ├── procgen/                 # grid.py (shared layout), location_gen.py,
 │   │   │                            #   world_gen.py (+ world_hash), gear_gen.py (kit +
-│   │   │                            #   finds), enemy_gen.py (placed + wanderer queues);
-│   │   │                            #   later: biomes, names, quests, factions, pets, lore
+│   │   │                            #   finds), enemy_gen.py (placed + wanderer queues),
+│   │   │                            #   quest_gen.py (boards, clues, bounties, rewards);
+│   │   │                            #   later: biomes, names, factions, pets, lore
 │   │   ├── gear/                    # stats.py (STATS), item.py (Item snapshot, SLOTS),
 │   │   │                            #   stat_pipeline.py, compare.py
 │   │   ├── combat/                  # rules.py (Rules snapshot, damage), fight.py (rounds,
 │   │   │                            #   encounters, defeat, regen)
+│   │   ├── quests/                  # quests.py (accept, turn in, progress subscribers)
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
 │   │   ├── codex/                   # foes.py (Foes section: reveal by kills); later
@@ -187,7 +190,7 @@ tidewrack/
 │   └── ui/
 │       ├── app.py                   # slot picker ⇄ open world; confirm dialogs
 │       ├── shell.py                 # open world: Material 3 navigation bar over tabs
-│       │                            #   (Explore, Inventory, Codex); add tabs here
+│       │                            #   (Explore, Inventory, Quests, Codex); add tabs here
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
 │       ├── components/              # gear_compare_card, stat_delta, tier_progress, toast, …
 │       ├── map_canvas.py            # point-crawl renderer + fog of war + tap-to-move
@@ -291,6 +294,14 @@ Two distinct operations (don't conflate them):
 - **Codex → Foes** (`core/codex/foes.py`): an entry on first meeting; stats after 1 defeat, drops after 3; grouped by category. Every Codex level collapses (section → group).
 - **Gear set chips:** each `gearsets/*.json` has a `color` (one of `SET_COLORS`), snapshotted into `GearSet.color`; `ui/components/set_chip.py` draws it beside the verdict chip (name always written; older items without a colour use `LEGACY_COLORS` — Drowned Watch → teal — else a colour picked from the set id).
 
+### 8.4c Quests (built in step 6b)
+- **Templates, not quests, are content:** `quests/<type>.json` (`quest.<type>`, one per type) holds titles, summaries and clue texts with placeholders (`QUEST_PLACEHOLDERS` per type), bounty `epithets` per enemy category and `strength`, cull `counts`, recover `items`. The world recipe's `quests` sets `per_board`, `found` and `reward_affix_chance`.
+- **Generated at world creation** (`procgen/quest_gen.py`, its own `quests` substream: one sub-substream per board, one for found quests). Each town's **gate room** is its notice board (no extra room, so `world_hash` is untouched); found quests are a `Clue` in a non-gate room outside towns. Bounties (`Enemy` + `Bounty`, stats × `strength`, named "<epithet> <kind>") and recover items (`QuestItem`) go in free non-gate rooms (no other enemy). Culls only target kinds with a world supply (placed + wanderer queues) of at least 2×N. Rewards come from the target location's `finds` pool at the **highest roll**, with an affix at `reward_affix_chance`.
+- **Rules** (`core/quests/quests.py`): `Quest` snapshots on their own entities; states posted/hidden → active → ready → done. Accept at that quest's own board; turn in at **any** town's board (both free actions; rejected mid-fight). A bounty beaten or an item recovered counts even before accepting; culls count kills only after accepting; explore is checked against `Explorer.rooms_visited`. Accepting (or finding) a quest discovers its target location on the world map. No abandon and no cap on active quests yet.
+- **Codex:** a bounty's `Bounty.kind_name`/`kind_stats` are what the Foes codex records, so a named enemy never replaces its kind's entry.
+- **UI:** a Notice board section on Explore at a town gate (compact reward line + verdict, Accept / Turn in, a toast naming the reward); a Quests tab (Ready, Active, Done; collapsible; full reward comparison cards).
+- **Later:** gold rewards (step 7), NPC/faction quest givers (step 13), abandoning, quest chains.
+
 ### 8.5 Codex, help, and onboarding
 - **Codex tabs:** Bestiary, Quest Log, Lore, Items & Recipes, Pets, Factions & Regions, Modifiers, Achievements. Every content definition has a stable ID; entries show as ??? until discovered, then **fill in progressively** (e.g. kill count reveals drop table/weaknesses).
 - **Codex is generated from the same content data the game runs on**, so docs can't drift from reality. Formula text and stat definitions are pulled from actual constants.
@@ -336,7 +347,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Enemies come from the separate `enemies` substream (`enemies_hash`). Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit, finds and enemies together.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Enemies come from the separate `enemies` substream (`enemies_hash`), and quests from the separate `quests` substream (`quests_hash`). Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit, finds, enemies and quests together.
 - Every location is generated **at world creation**, never lazily on first visit, so an update can't change places a player hasn't reached yet.
 - `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
@@ -446,7 +457,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 5. ✅ **Done (v0.4.0).** **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip. ATK/DEF/HP, six slots, starting kit + seeded finds, take/drop/equip/unequip, inventory tab with pack filters, bulk drop and drop confirmation, save schema v4 with migration, generator v3. Also: Material 3 navigation bar (`ui/shell.py`), gate and kind markers on the maps.
 6. **Combat + quests + codex discovery**, in two parts:
    - ✅ **Done (v0.5.0).** **6a. Combat + Foes codex:** round-by-round fights, placed + wandering enemies (beasts, people, spirits), loot, health/regen/rest, defeat → last town, `Rules` snapshot for future difficulty, Codex tab. Save schema v5, generator v5 (items record their set's chip colour). The explore screen's bottom row now shows only turn/rooms/places; a fight hides the map; gear actions refused mid-fight toast their reason; Codex sections and groups are collapsible (`ExpansionTile`, state kept per world while open). Pack sorting (name/ATK/DEF/HP/verdict, either direction; `inventory.sort_pack`) applies after the filters.
-   - **6b. Quests + quest log.**
+   - 🚧 **In progress (unreleased).** **6b. Quests + quest log:** notice boards at town gates, found clues, bounty/cull/explore/recover, gear rewards, Quests tab; world-map ✓/◆ and area-map ✦/◆ marks. Save schema v6 (new components only; old worlds have no quests), generator v6.
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.
 9. **Pets** (rarity, soft pity, persistence).

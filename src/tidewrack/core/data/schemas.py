@@ -7,6 +7,7 @@ Unknown keys are rejected so typos in content fail loudly instead of being ignor
 
 from __future__ import annotations
 
+from string import Formatter
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -123,9 +124,14 @@ class EnemySchema(Schema):
     name: Text
     category: Literal[ENEMY_CATEGORIES]  # type: ignore[valid-type]
     description: Text
+    plural: Text | None = None  # for quests ("Cull 4 …"); defaults to name + "s"
     stats: StatBlock
     rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
     loot: LootSchema = LootSchema()
+
+    @property
+    def plural_name(self) -> str:
+        return self.plural or f"{self.name}s"
 
     @model_validator(mode="after")
     def _check(self) -> EnemySchema:
@@ -200,6 +206,68 @@ class RoomsetSchema(Schema):
         return self
 
 
+# --- quests --------------------------------------------------------------------------
+
+QUEST_TYPES = ("bounty", "cull", "explore", "recover")
+# The placeholders each type's texts may use (core/procgen/quest_gen.py fills them).
+QUEST_PLACEHOLDERS = {
+    "bounty": {"target", "location"},
+    "cull": {"count", "enemies", "location"},
+    "explore": {"location"},
+    "recover": {"item", "location"},
+}
+
+
+class QuestItemSchema(Schema):
+    """Something a Recover quest sends you to find (not gear: it's for the quest)."""
+
+    name: Text
+    description: Text
+
+
+class QuestTemplateSchema(Schema):
+    """How one type of quest is written; worlds draw their quests from these."""
+
+    id: content_id("quest")
+    type: Literal[QUEST_TYPES]  # type: ignore[valid-type]
+    titles: list[Text] = Field(min_length=1)
+    summaries: list[Text] = Field(min_length=1)
+    clues: list[Text] = Field(min_length=1)  # what you find when it's a found quest
+    epithets: dict[Literal[ENEMY_CATEGORIES], list[Text]] = {}  # type: ignore[valid-type]
+    strength: float = Field(default=1.5, ge=1.0, le=5.0)  # bounty stats multiplier
+    counts: tuple[int, int] = (3, 5)  # cull: how many to defeat
+    items: list[QuestItemSchema] = []  # recover: what's lost
+
+    @model_validator(mode="after")
+    def _check(self) -> QuestTemplateSchema:
+        allowed = QUEST_PLACEHOLDERS[self.type]
+        for text in [*self.titles, *self.summaries, *self.clues]:
+            used = {field for _, field, _, _ in Formatter().parse(text) if field is not None}
+            if used - allowed:
+                raise ValueError(
+                    f"{text!r} uses {sorted(used - allowed)}; {self.type} quests may use "
+                    f"{sorted(allowed)}"
+                )
+        if self.type == "bounty" and set(self.epithets) != set(ENEMY_CATEGORIES):
+            raise ValueError(f"bounty epithets are needed for {list(ENEMY_CATEGORIES)}")
+        if any(not names for names in self.epithets.values()):
+            raise ValueError("every epithets list needs at least one name")
+        if self.type == "recover" and not self.items:
+            raise ValueError("recover quests need at least one item")
+        low, high = self.counts
+        if not 1 <= low <= high <= 20:
+            raise ValueError(f"counts must satisfy 1 <= min <= max <= 20, not {list(self.counts)}")
+        return self
+
+
+class QuestsRecipeSchema(Schema):
+    """How many quests a new world gets."""
+
+    per_board: int = Field(default=0, ge=0, le=10)  # posted on each town's notice board
+    found: int = Field(default=0, ge=0, le=10)  # left as clues out in the world
+    reward_affix_chance: Unit = 1.0
+
+
 # --- world recipes -------------------------------------------------------------------
 
 
@@ -213,6 +281,7 @@ class WorldRecipeSchema(Schema):
     roomsets: dict[content_id("roomset"), Annotated[float, Field(gt=0)]] = Field(min_length=1)
     player: StatBlock = dict(DEFAULT_PLAYER_BASE)  # the player's starting stats
     kit: list[content_id("gear")] = []  # starting gear, equipped
+    quests: QuestsRecipeSchema = QuestsRecipeSchema()
 
 
 # --- locations -----------------------------------------------------------------------

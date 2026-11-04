@@ -234,3 +234,18 @@ def test_v5_fixture_resumes_mid_fight(tmp_path):
     assert view.combat is not None and view.combat.name == "Conger Eel"
     assert [f.name for f in session.game.foes().foes] == ["Conger Eel"]
     assert session.perform(Attack()).took_turn
+
+
+def test_v5_saves_load_with_no_quests(tmp_path):
+    envelope = json.loads((FIXTURES / "v5_combat.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    log = session.game.quests()
+    assert log.active == log.ready == log.done == ()
+
+
+def test_v6_fixture_keeps_its_quests(tmp_path):
+    envelope = json.loads((FIXTURES / "v6_quests.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    log = session.game.quests()
+    assert sorted(q.kind for q in log.active) == ["Bounty", "Cull", "Recover"]
+    assert session.game.view().board == ()  # all taken

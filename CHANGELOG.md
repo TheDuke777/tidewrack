@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Quests. Each town's gate has a notice board with a few quests to accept:
+  - **Bounty:** hunt down a named, tougher enemy.
+  - **Cull:** defeat a number of one kind of enemy.
+  - **Explore:** visit every room of a place.
+  - **Recover:** find a lost item and bring it back.
+- Some quests aren't on any board. Find a torn notice or an unsent letter out in
+  the world and the quest starts on the spot.
+- Finished quests are turned in at any town's notice board for a reward: a
+  piece of gear better than an ordinary find. Its comparison card shows before
+  you accept.
+- A Quests tab lists what's ready to turn in, what's active and what's done.
+- World map: places you've fully explored show ✓, and places an active quest
+  sends you to show ◆.
+- Area map: rooms where you've left items lying show ✦, and a bounty you've
+  seen but not yet beaten shows ◆.
+
+### Note
+- Worlds made before this version have no quests. Start a new world to get
+  them.
+
 ## [0.5.0] - 2026-11-04
 
 ### Fixed

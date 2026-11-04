@@ -1,0 +1,13 @@
+{
+  "id": "quest.cull",
+  "type": "cull",
+  "titles": ["Thin out the {enemies}", "Too many {enemies}"],
+  "summaries": [
+    "There are too many {enemies} about, worst of all around {location}. Defeat {count} of them, wherever you find them.",
+    "Fishers won't go out while {enemies} are this bold. Defeat {count}; {location} is thick with them."
+  ],
+  "clues": [
+    "A trapper's tally stick, notched and abandoned, with a note: \"{count} more {enemies} and I'm paid.\""
+  ],
+  "counts": [3, 5]
+}

@@ -97,11 +97,16 @@ def test_shell_switches_tabs(tmp_path):
     session, shell, _ = _shell(tmp_path)
     status = shell.explore.status.value
     assert status.startswith("Turn 0 · Rooms 1/") and status.endswith("· Places 1/8")
-    assert [d.label for d in shell.navigation_bar.destinations] == ["Explore", "Inventory", "Codex"]
+    assert [d.label for d in shell.navigation_bar.destinations] == [
+        "Explore",
+        "Inventory",
+        "Quests",
+        "Codex",
+    ]
     assert shell.explore.control.visible and not shell.inventory.control.visible
     shell.select(1)
     # Both tabs stay mounted; only visibility changes (see shell.py).
-    tabs = [shell.explore.control, shell.inventory.control, shell.codex.control]
+    tabs = [s.control for s in (shell.explore, shell.inventory, shell.quests, shell.codex)]
     assert shell.body.controls == tabs
     assert shell.inventory.control.visible and not shell.explore.control.visible
     assert shell.current == 1

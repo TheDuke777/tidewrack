@@ -204,3 +204,33 @@ def test_enemy_references_must_exist():
     assert _edited(
         "roomsets/old_mine.json", lambda d: d["enemies"]["pool"].update({"enemy.dragon": 1})
     ) == ["roomsets/old_mine.json: unknown enemy 'enemy.dragon'"]
+
+
+# --- quests ------------------------------------------------------------------------
+
+
+def test_bundled_quests_cover_every_type():
+    content = load_content(BUNDLED)
+    assert {q.type for q in content.quests.values()} == {"bounty", "cull", "explore", "recover"}
+    assert load_content(BUNDLED).worlds["world.standard"].quests.per_board == 3
+
+
+def test_quests_reject_bad_templates():
+    problems = _edited("quests/cull.json", lambda d: d["titles"].append("Slay the {dragon}"))
+    assert any("uses ['dragon']; cull quests may use" in p for p in problems)
+    problems = _edited("quests/bounty.json", lambda d: d["epithets"].pop("spirit"))
+    assert any("bounty epithets are needed" in p for p in problems)
+    problems = _edited("quests/recover.json", lambda d: d.update(items=[]))
+    assert any("recover quests need at least one item" in p for p in problems)
+    problems = _edited("quests/cull.json", lambda d: d.update(counts=[5, 2]))
+    assert any("counts must satisfy" in p for p in problems)
+
+
+def test_each_quest_type_has_one_template():
+    data = json.loads(BUNDLED["quests/explore.json"])
+    data["id"] = "quest.explore_again"
+    problems = _problems(dict(BUNDLED, **{"quests/explore_again.json": json.dumps(data)}))
+    assert problems == [
+        "quests/explore_again.json: another file (quests/explore.json) already defines "
+        "explore quests"
+    ]
