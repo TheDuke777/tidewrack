@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1-beta.1] - 2026-11-04
+
 ### Changed
 - Release notifications now come from a self-hosted ntfy server instead of
   Pushover. Tapping a release notification opens Tidewrack in Komi Store, with
