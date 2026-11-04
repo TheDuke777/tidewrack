@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0-beta.4] - 2026-11-04
+
 ### Added
 - Sort your pack by name, ATK, DEF, HP or verdict, best first or worst first
   (A to Z or Z to A for names). Sorting works on whatever your filters show.
