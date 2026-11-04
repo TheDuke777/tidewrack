@@ -177,3 +177,30 @@ def test_kit_cant_fill_a_slot_twice():
 def test_roomset_names_must_be_unique():
     problems = _edited("roomsets/old_mine.json", lambda d: d.update(name="Town"))
     assert problems == ["roomsets/old_mine.json: name 'Town' is also used by roomset.harbour_town"]
+
+
+# --- enemies -----------------------------------------------------------------------
+
+
+def test_bundled_enemies_include_people():
+    content = load_content(BUNDLED)
+    categories = {e.category for e in content.enemies.values()}
+    assert {"beast", "person", "spirit"} <= categories
+
+
+def test_enemies_reject_bad_definitions():
+    problems = _edited("enemies/shore_crab.json", lambda d: d.update(category="monster"))
+    assert any("enemies/shore_crab.json: category:" in p for p in problems)
+    problems = _edited("enemies/shore_crab.json", lambda d: d["stats"].update(hp=0))
+    assert any("at least 1 hp" in p for p in problems)
+    problems = _edited("enemies/shore_crab.json", lambda d: d["stats"].update(luck=2))
+    assert any("unknown stats ['luck']" in p for p in problems)
+
+
+def test_enemy_references_must_exist():
+    assert _edited(
+        "enemies/shore_crab.json", lambda d: d["loot"]["gear"].update({"gear.anchor": 1})
+    ) == ["enemies/shore_crab.json: unknown gear 'gear.anchor'"]
+    assert _edited(
+        "roomsets/old_mine.json", lambda d: d["enemies"]["pool"].update({"enemy.dragon": 1})
+    ) == ["roomsets/old_mine.json: unknown enemy 'enemy.dragon'"]

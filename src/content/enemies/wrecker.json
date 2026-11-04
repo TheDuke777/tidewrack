@@ -1,0 +1,25 @@
+{
+  "id": "enemy.wrecker",
+  "name": "Wrecker",
+  "category": "person",
+  "description": "One of the gangs who lure ships onto the rocks with false lights. He wants your boots, and your purse, and you.",
+  "stats": {
+    "atk": 4,
+    "def": 2,
+    "hp": 12
+  },
+  "rolls": {
+    "atk": [
+      0,
+      1
+    ]
+  },
+  "loot": {
+    "chance": 0.5,
+    "gear": {
+      "gear.cutlass": 1,
+      "gear.boathook": 1,
+      "gear.buckler": 1
+    }
+  }
+}

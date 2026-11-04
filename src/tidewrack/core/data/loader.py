@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from tidewrack.core.data.schemas import (
     AffixSchema,
     DungeonSchema,
+    EnemySchema,
     GearSchema,
     GearSetSchema,
     RoomsetSchema,
@@ -33,6 +34,7 @@ from tidewrack.core.world.location import Location
 KINDS = {
     "affixes": (AffixSchema, "affix"),
     "dungeons": (DungeonSchema, "dungeon"),
+    "enemies": (EnemySchema, "enemy"),
     "gear": (GearSchema, "gear"),
     "gearsets": (GearSetSchema, "gearset"),
     "roomsets": (RoomsetSchema, "roomset"),
@@ -54,6 +56,7 @@ class Content:
     gear: dict[str, GearSchema]
     affixes: dict[str, AffixSchema]
     gearsets: dict[str, GearSetSchema]
+    enemies: dict[str, EnemySchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -107,6 +110,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         gear=loaded["gear"],
         affixes=loaded["affixes"],
         gearsets=loaded["gearsets"],
+        enemies=loaded["enemies"],
         content_hash=content_hash(files),
     )
 
@@ -131,10 +135,16 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         check(path, roomset.finds.gear, "gear", "gear")
         if roomset.finds.chance and not roomset.finds.gear:
             problems.append(f"{path}: finds.chance is set but finds.gear is empty")
+        check(path, roomset.enemies.pool, "enemies", "enemy")
+        encounters = roomset.enemies
+        if (encounters.placed_chance or encounters.wandering_chance) and not encounters.pool:
+            problems.append(f"{path}: enemies has chances set but an empty pool")
         # Finds map a location's kind (the roomset's name) back to its roomset.
         if roomset.name in names:
             problems.append(f"{path}: name {roomset.name!r} is also used by {names[roomset.name]}")
         names.setdefault(roomset.name, roomset.id)
+    for enemy in loaded["enemies"].values():
+        check(_path("enemies", enemy.id), enemy.loot.gear, "gear", "gear")
     for gear in loaded["gear"].values():
         if gear.set is not None:
             check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")

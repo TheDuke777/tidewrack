@@ -1,0 +1,18 @@
+{
+  "id": "enemy.wailing_wisp",
+  "name": "Wailing Wisp",
+  "category": "spirit",
+  "description": "A cold light that drifts between the trees, keening. Where it touches, frost forms.",
+  "stats": {
+    "atk": 3,
+    "def": 0,
+    "hp": 6
+  },
+  "loot": {
+    "chance": 0.3,
+    "gear": {
+      "gear.storm_lantern": 1,
+      "gear.whalebone_charm": 1
+    }
+  }
+}

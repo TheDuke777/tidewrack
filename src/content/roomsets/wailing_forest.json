@@ -81,5 +81,10 @@
   "finds": {
     "chance": 0.2,
     "gear": { "gear.cutlass": 1, "gear.harpoon": 1, "gear.storm_lantern": 1, "gear.sealskin_boots": 1, "gear.oilskin_hood": 1, "gear.whalebone_charm": 1 }
+  },
+  "enemies": {
+    "placed_chance": 0.2,
+    "wandering_chance": 0.12,
+    "pool": { "enemy.wild_boar": 3, "enemy.wailing_wisp": 2, "enemy.wrecker": 2 }
   }
 }

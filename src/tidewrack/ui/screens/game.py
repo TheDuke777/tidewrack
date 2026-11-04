@@ -27,12 +27,11 @@ from tidewrack.core.engine.game import (
     Travel,
     Wait,
 )
-from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import Settings, SettingsStore
+from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
-from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
 
@@ -89,7 +88,6 @@ class GameScreen:
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
-        self.version = version_label(get_build_info())
 
         self.where = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
         self.room = ft.Text(size=26, weight=ft.FontWeight.BOLD)
@@ -112,22 +110,32 @@ class GameScreen:
             on_change=lambda _: self.refresh(),
         )
 
-        actions = ft.Row(
+        self.wait_button = ft.OutlinedButton(
+            content="Wait", icon=ft.Icons.HOURGLASS_EMPTY, on_click=self._wait
+        )
+        self.actions = ft.Row(
             spacing=8,
             controls=[
                 ft.OutlinedButton(
                     content="Look around", icon=ft.Icons.VISIBILITY, on_click=self._look
                 ),
-                ft.OutlinedButton(
-                    content="Wait", icon=ft.Icons.HOURGLASS_EMPTY, on_click=self._wait
-                ),
+                self.wait_button,
             ],
         )
+        self.combat = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         # The room text and buttons scroll on their own, under a fixed map, and the
         # log below scrolls separately (it follows the newest line).
         self.details = ft.ListView(
             spacing=12,
-            controls=[self.room, self.description, self.here, self.exits, self.roads, actions],
+            controls=[
+                self.room,
+                self.description,
+                self.combat,
+                self.here,
+                self.exits,
+                self.roads,
+                self.actions,
+            ],
         )
         self.log_hint = ft.Text(
             size=12,
@@ -269,6 +277,14 @@ class GameScreen:
         self.here.controls = [
             gear_compare_card(item, self._take_buttons(item)) for item in view.items_here
         ]
+        # During a fight, the fight panel replaces everything you can't do anyway.
+        fighting = view.combat is not None
+        self.combat.controls = [combat_panel(view, self.act)] if fighting else []
+        for section in (self.here, self.exits, self.roads, self.actions):
+            section.visible = not fighting
+        resting = view.in_town and view.hp < view.max_hp
+        self.wait_button.content = "Rest" if resting else "Wait"
+        self.wait_button.icon = ft.Icons.BED_OUTLINED if resting else ft.Icons.HOURGLASS_EMPTY
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
         self.log_hint.value = view.log[-1] if view.log else ""
         self._apply_split()
@@ -290,12 +306,11 @@ class GameScreen:
                 labels=on_world,
             )
 
+        # Progress only: stats live in the inventory, and seed and version will go to
+        # Settings → About. Settings will also get a toggle to hide this row.
         self.status.value = (
-            ""
-            + " ".join(f"{STAT_LABELS[s]} {view.stats[s]}" for s in STATS)
-            + f" · Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
-            f"Places {view.locations_visited}/{view.total_locations} · "
-            f"Seed {view.seed:x} · {self.version}"
+            f"Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
+            f"Places {view.locations_visited}/{view.total_locations}"
         )
 
     def _scroll_details_to_top(self) -> None:

@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Combat. Enemies wait in the rooms of caves, forests and mines, and others
+  wander and may come upon you. Fights go round by round: Attack, Defend (take
+  less damage from the next blow) or Flee (back the way you came; it doesn't
+  always work).
+- Not every enemy is a beast: wreckers prowl the forests and smugglers hide in
+  the sea caves, alongside crabs, eels, boars, wisps, rats, spiders and the
+  drowned.
+- Beaten enemies sometimes drop gear.
+- Health. You slowly recover outside fights, and Rest in a town to heal fully.
+  If you're beaten, you wake at the edge of the last town you visited.
+- A Codex tab with Foes: everyone and everything you've fought, grouped as
+  beasts, people and spirits. Beat them to learn their strength, then what they
+  drop.
+
+### Changed
+- The line under the Explore screen now shows only your progress (turn, rooms,
+  places). Your stats are on the Inventory tab.
+- Worlds made with earlier versions open at full health, but have no enemies.
+  Start a new world to fight.
+
 ## [0.4.0] - 2026-11-04
 
 ### Added

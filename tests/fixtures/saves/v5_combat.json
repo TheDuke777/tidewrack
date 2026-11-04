@@ -1,0 +1,2294 @@
+{
+ "content_version": "fa6dadb61652da44ebe65a5be8fada10eeae137fec9d9454cff44436e71218a7",
+ "format": "tidewrack.slot",
+ "game": {
+  "ambient_rng": {
+   "s": [
+    12986521691581465227,
+    1746367831217925876,
+    14905898245497204903,
+    1631336540044765615
+   ],
+   "seed": 12690323203442354585
+  },
+  "combat_rng": {
+   "s": [
+    16898311471524219866,
+    17206575763414007638,
+    1274351271679378021,
+    13624250295382629709
+   ],
+   "seed": 8416944485135881261
+  },
+  "encounter_rng": {
+   "s": [
+    5648795544074644228,
+    4421055685171963228,
+    7919469243488212873,
+    15670311424668146137
+   ],
+   "seed": 7730096598539063499
+  },
+  "entities": [
+   {
+    "components": {
+     "Codex": {
+      "foes": {
+       "enemy.conger_eel": {
+        "category": "beast",
+        "description": "A grey eel as thick as your arm, all teeth, lunging from a flooded crack.",
+        "drops": [
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.conger_eel",
+        "name": "Conger Eel",
+        "stats": {
+         "atk": 6,
+         "def": 1,
+         "hp": 9
+        }
+       }
+      },
+      "kills": {}
+     },
+     "Explorer": {
+      "locations_discovered": [
+       "loc_00",
+       "loc_01",
+       "loc_02"
+      ],
+      "locations_visited": [
+       "loc_00",
+       "loc_01"
+      ],
+      "rooms_discovered": {
+       "loc_00": [
+        "room_00",
+        "room_01",
+        "room_04"
+       ],
+       "loc_01": [
+        "room_00",
+        "room_01",
+        "room_02",
+        "room_03",
+        "room_08"
+       ]
+      },
+      "rooms_visited": {
+       "loc_00": [
+        "room_00"
+       ],
+       "loc_01": [
+        "room_00",
+        "room_01"
+       ]
+      }
+     },
+     "Fighting": {
+      "enemy": 27,
+      "enemy_damage": 0,
+      "enemy_stats": {
+       "atk": 6,
+       "def": 1,
+       "hp": 9
+      },
+      "retreat_room": "room_00"
+     },
+     "Health": {
+      "damage": 2
+     },
+     "Name": {
+      "text": "You"
+     },
+     "Player": {},
+     "Position": {
+      "location": "loc_01",
+      "room": "room_01"
+     },
+     "Respawn": {
+      "location": "loc_00"
+     },
+     "Stats": {
+      "base": {
+       "atk": 2,
+       "def": 1,
+       "hp": 20
+      }
+     }
+    },
+    "id": 1
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A gatekeeper's stool, empty, with a half-mended net draped over it."
+     }
+    },
+    "id": 2
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_03"
+     },
+     "Scenery": {
+      "text": "Votive boats, folded from paper, crowd the altar rail."
+     }
+    },
+    "id": 3
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_04"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 4
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_05"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 5
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_07"
+     },
+     "Scenery": {
+      "text": "A bollard worn into a waist by centuries of rope."
+     }
+    },
+    "id": 6
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A rusted mooring ring, worn bright on one side by a rope long gone."
+     }
+    },
+    "id": 7
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_02"
+     },
+     "Scenery": {
+      "text": "A ring of pebbles, carefully arranged, around nothing at all."
+     }
+    },
+    "id": 8
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_05"
+     },
+     "Scenery": {
+      "text": "Tide-lines on the pillars, far above your head."
+     }
+    },
+    "id": 9
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_06"
+     },
+     "Scenery": {
+      "text": "Pale anemones close as your shadow passes over them."
+     }
+    },
+    "id": 10
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_08"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 11
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_10"
+     },
+     "Scenery": {
+      "text": "A ring of pebbles, carefully arranged, around nothing at all."
+     }
+    },
+    "id": 12
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_04"
+     },
+     "Scenery": {
+      "text": "Coins pressed into the bark of the oldest tree, green with age."
+     }
+    },
+    "id": 13
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_05"
+     },
+     "Scenery": {
+      "text": "A ring of toadstools, perfectly round."
+     }
+    },
+    "id": 14
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_08"
+     },
+     "Scenery": {
+      "text": "Coins pressed into the bark of the oldest tree, green with age."
+     }
+    },
+    "id": 15
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_13"
+     },
+     "Scenery": {
+      "text": "A ring of toadstools, perfectly round."
+     }
+    },
+    "id": 16
+   },
+   {
+    "components": {
+     "Carried": {
+      "by": 1
+     },
+     "Equipped": {
+      "slot": "main_hand"
+     },
+     "Item": {
+      "affixes": [],
+      "base": {
+       "atk": 2
+      },
+      "effects": [],
+      "gear_id": "gear.driftwood_club",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Driftwood Club",
+      "roll": {},
+      "slot": "main_hand",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     }
+    },
+    "id": 17
+   },
+   {
+    "components": {
+     "Carried": {
+      "by": 1
+     },
+     "Equipped": {
+      "slot": "body"
+     },
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.patched_coat",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Patched Coat",
+      "roll": {},
+      "slot": "body",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     }
+    },
+    "id": 18
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "hp": 4
+      },
+      "effects": [],
+      "gear_id": "gear.whalebone_charm",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Whalebone Charm",
+      "roll": {
+       "hp": 1
+      },
+      "slot": "trinket",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_00",
+      "room": "room_01"
+     }
+    },
+    "id": 19
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [
+       {
+        "effects": [],
+        "id": "affix.keen",
+        "name": "Keen",
+        "prefix": true,
+        "stats": {
+         "atk": 1
+        }
+       }
+      ],
+      "base": {
+       "atk": 4
+      },
+      "effects": [],
+      "gear_id": "gear.cutlass",
+      "gear_set": null,
+      "max_upgrade": 3,
+      "name": "Cutlass",
+      "roll": {
+       "atk": 2
+      },
+      "slot": "main_hand",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {
+       "atk": 1
+      }
+     },
+     "Position": {
+      "location": "loc_00",
+      "room": "room_03"
+     }
+    },
+    "id": 20
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [
+       {
+        "effects": [],
+        "id": "affix.of_the_gull",
+        "name": "of the Gull",
+        "prefix": false,
+        "stats": {
+         "hp": 3
+        }
+       }
+      ],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.oilskin_hood",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Oilskin Hood",
+      "roll": {},
+      "slot": "head",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_05"
+     }
+    },
+    "id": 21
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 2,
+       "hp": 2
+      },
+      "effects": [],
+      "gear_id": "gear.watchmans_coat",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Watchman's Coat",
+      "roll": {},
+      "slot": "body",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_06"
+     }
+    },
+    "id": 22
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [
+       {
+        "effects": [],
+        "id": "affix.salted",
+        "name": "Salted",
+        "prefix": true,
+        "stats": {
+         "def": 1
+        }
+       }
+      ],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.sealskin_boots",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Sealskin Boots",
+      "roll": {
+       "def": 1
+      },
+      "slot": "feet",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_09"
+     }
+    },
+    "id": 23
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "hp": 3
+      },
+      "effects": [],
+      "gear_id": "gear.storm_lantern",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Storm Lantern",
+      "roll": {
+       "hp": 2
+      },
+      "slot": "off_hand",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_01"
+     }
+    },
+    "id": 24
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.sealskin_boots",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Sealskin Boots",
+      "roll": {
+       "def": 1
+      },
+      "slot": "feet",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_10"
+     }
+    },
+    "id": 25
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.sealskin_boots",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Sealskin Boots",
+      "roll": {
+       "def": 1
+      },
+      "slot": "feet",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_11"
+     }
+    },
+    "id": 26
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "beast",
+      "description": "A grey eel as thick as your arm, all teeth, lunging from a flooded crack.",
+      "drops": [
+       "Whalebone Charm"
+      ],
+      "enemy_id": "enemy.conger_eel",
+      "loot": [],
+      "name": "Conger Eel",
+      "stats": {
+       "atk": 6,
+       "def": 1,
+       "hp": 9
+      }
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_01"
+     }
+    },
+    "id": 27
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "person",
+      "description": "A lean woman in an oilskin coat, knife already drawn. Whatever she's hiding down here, she isn't sharing.",
+      "drops": [
+       "Cutlass",
+       "Oilskin Hood",
+       "Watchman's Coat"
+      ],
+      "enemy_id": "enemy.smuggler",
+      "loot": [
+       {
+        "affixes": [
+         {
+          "effects": [],
+          "id": "affix.barnacled",
+          "name": "Barnacled",
+          "prefix": true,
+          "stats": {
+           "atk": -1,
+           "def": 2
+          }
+         }
+        ],
+        "base": {
+         "atk": 4
+        },
+        "effects": [],
+        "gear_id": "gear.cutlass",
+        "gear_set": null,
+        "max_upgrade": 3,
+        "name": "Cutlass",
+        "roll": {
+         "atk": 2
+        },
+        "slot": "main_hand",
+        "two_handed": false,
+        "upgrade": 0,
+        "upgrade_step": {
+         "atk": 1
+        }
+       }
+      ],
+      "name": "Smuggler",
+      "stats": {
+       "atk": 5,
+       "def": 3,
+       "hp": 15
+      }
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_02"
+     }
+    },
+    "id": 28
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "beast",
+      "description": "A crab the size of a cartwheel, shell scabbed with barnacles. It sidles toward you, claws raised.",
+      "drops": [
+       "Sealskin Boots",
+       "Whalebone Charm"
+      ],
+      "enemy_id": "enemy.shore_crab",
+      "loot": [],
+      "name": "Shore Crab",
+      "stats": {
+       "atk": 3,
+       "def": 2,
+       "hp": 8
+      }
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_08"
+     }
+    },
+    "id": 29
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "person",
+      "description": "A lean woman in an oilskin coat, knife already drawn. Whatever she's hiding down here, she isn't sharing.",
+      "drops": [
+       "Cutlass",
+       "Oilskin Hood",
+       "Watchman's Coat"
+      ],
+      "enemy_id": "enemy.smuggler",
+      "loot": [
+       {
+        "affixes": [
+         {
+          "effects": [],
+          "id": "affix.keen",
+          "name": "Keen",
+          "prefix": true,
+          "stats": {
+           "atk": 1
+          }
+         }
+        ],
+        "base": {
+         "atk": 4
+        },
+        "effects": [],
+        "gear_id": "gear.cutlass",
+        "gear_set": null,
+        "max_upgrade": 3,
+        "name": "Cutlass",
+        "roll": {
+         "atk": 1
+        },
+        "slot": "main_hand",
+        "two_handed": false,
+        "upgrade": 0,
+        "upgrade_step": {
+         "atk": 1
+        }
+       }
+      ],
+      "name": "Smuggler",
+      "stats": {
+       "atk": 5,
+       "def": 3,
+       "hp": 14
+      }
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_10"
+     }
+    },
+    "id": 30
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "spirit",
+      "description": "A cold light that drifts between the trees, keening. Where it touches, frost forms.",
+      "drops": [
+       "Storm Lantern",
+       "Whalebone Charm"
+      ],
+      "enemy_id": "enemy.wailing_wisp",
+      "loot": [
+       {
+        "affixes": [],
+        "base": {
+         "hp": 4
+        },
+        "effects": [],
+        "gear_id": "gear.whalebone_charm",
+        "gear_set": null,
+        "max_upgrade": 0,
+        "name": "Whalebone Charm",
+        "roll": {
+         "hp": 2
+        },
+        "slot": "trinket",
+        "two_handed": false,
+        "upgrade": 0,
+        "upgrade_step": {}
+       }
+      ],
+      "name": "Wailing Wisp",
+      "stats": {
+       "atk": 3,
+       "def": 0,
+       "hp": 6
+      }
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_01"
+     }
+    },
+    "id": 31
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "beast",
+      "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+      "drops": [],
+      "enemy_id": "enemy.wild_boar",
+      "loot": [],
+      "name": "Wild Boar",
+      "stats": {
+       "atk": 4,
+       "def": 1,
+       "hp": 10
+      }
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_04"
+     }
+    },
+    "id": 32
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "beast",
+      "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+      "drops": [],
+      "enemy_id": "enemy.wild_boar",
+      "loot": [],
+      "name": "Wild Boar",
+      "stats": {
+       "atk": 4,
+       "def": 1,
+       "hp": 11
+      }
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_05"
+     }
+    },
+    "id": 33
+   },
+   {
+    "components": {
+     "Enemy": {
+      "category": "spirit",
+      "description": "A cold light that drifts between the trees, keening. Where it touches, frost forms.",
+      "drops": [
+       "Storm Lantern",
+       "Whalebone Charm"
+      ],
+      "enemy_id": "enemy.wailing_wisp",
+      "loot": [],
+      "name": "Wailing Wisp",
+      "stats": {
+       "atk": 3,
+       "def": 0,
+       "hp": 6
+      }
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_08"
+     }
+    },
+    "id": 34
+   },
+   {
+    "components": {
+     "Spawner": {
+      "chance": 0.12,
+      "location": "loc_01",
+      "queue": [
+       {
+        "category": "spirit",
+        "description": "Water runs from his sleeves and his eyes are full of sand. He still wears the coat of the night watch.",
+        "drops": [
+         "Oilskin Hood",
+         "Sealskin Boots",
+         "Watchman's Coat"
+        ],
+        "enemy_id": "enemy.drowned_sailor",
+        "loot": [],
+        "name": "Drowned Sailor",
+        "stats": {
+         "atk": 4,
+         "def": 2,
+         "hp": 12
+        }
+       },
+       {
+        "category": "beast",
+        "description": "A crab the size of a cartwheel, shell scabbed with barnacles. It sidles toward you, claws raised.",
+        "drops": [
+         "Sealskin Boots",
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.shore_crab",
+        "loot": [],
+        "name": "Shore Crab",
+        "stats": {
+         "atk": 3,
+         "def": 2,
+         "hp": 9
+        }
+       },
+       {
+        "category": "person",
+        "description": "A lean woman in an oilskin coat, knife already drawn. Whatever she's hiding down here, she isn't sharing.",
+        "drops": [
+         "Cutlass",
+         "Oilskin Hood",
+         "Watchman's Coat"
+        ],
+        "enemy_id": "enemy.smuggler",
+        "loot": [
+         {
+          "affixes": [],
+          "base": {
+           "def": 1
+          },
+          "effects": [],
+          "gear_id": "gear.oilskin_hood",
+          "gear_set": {
+           "bonuses": [
+            {
+             "effects": [],
+             "pieces": 2,
+             "stats": {
+              "def": 2
+             }
+            },
+            {
+             "effects": [],
+             "pieces": 3,
+             "stats": {
+              "hp": 5
+             }
+            }
+           ],
+           "id": "gearset.drowned_watch",
+           "name": "Drowned Watch"
+          },
+          "max_upgrade": 0,
+          "name": "Oilskin Hood",
+          "roll": {},
+          "slot": "head",
+          "two_handed": false,
+          "upgrade": 0,
+          "upgrade_step": {}
+         }
+        ],
+        "name": "Smuggler",
+        "stats": {
+         "atk": 5,
+         "def": 3,
+         "hp": 17
+        }
+       },
+       {
+        "category": "beast",
+        "description": "A grey eel as thick as your arm, all teeth, lunging from a flooded crack.",
+        "drops": [
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.conger_eel",
+        "loot": [],
+        "name": "Conger Eel",
+        "stats": {
+         "atk": 5,
+         "def": 1,
+         "hp": 9
+        }
+       },
+       {
+        "category": "beast",
+        "description": "A crab the size of a cartwheel, shell scabbed with barnacles. It sidles toward you, claws raised.",
+        "drops": [
+         "Sealskin Boots",
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.shore_crab",
+        "loot": [
+         {
+          "affixes": [
+           {
+            "effects": [],
+            "id": "affix.of_the_gull",
+            "name": "of the Gull",
+            "prefix": false,
+            "stats": {
+             "hp": 3
+            }
+           }
+          ],
+          "base": {
+           "def": 1
+          },
+          "effects": [],
+          "gear_id": "gear.sealskin_boots",
+          "gear_set": {
+           "bonuses": [
+            {
+             "effects": [],
+             "pieces": 2,
+             "stats": {
+              "def": 2
+             }
+            },
+            {
+             "effects": [],
+             "pieces": 3,
+             "stats": {
+              "hp": 5
+             }
+            }
+           ],
+           "id": "gearset.drowned_watch",
+           "name": "Drowned Watch"
+          },
+          "max_upgrade": 0,
+          "name": "Sealskin Boots",
+          "roll": {},
+          "slot": "feet",
+          "two_handed": false,
+          "upgrade": 0,
+          "upgrade_step": {}
+         }
+        ],
+        "name": "Shore Crab",
+        "stats": {
+         "atk": 3,
+         "def": 2,
+         "hp": 10
+        }
+       },
+       {
+        "category": "beast",
+        "description": "A grey eel as thick as your arm, all teeth, lunging from a flooded crack.",
+        "drops": [
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.conger_eel",
+        "loot": [],
+        "name": "Conger Eel",
+        "stats": {
+         "atk": 5,
+         "def": 1,
+         "hp": 9
+        }
+       }
+      ]
+     }
+    },
+    "id": 35
+   },
+   {
+    "components": {
+     "Spawner": {
+      "chance": 0.12,
+      "location": "loc_02",
+      "queue": [
+       {
+        "category": "spirit",
+        "description": "A cold light that drifts between the trees, keening. Where it touches, frost forms.",
+        "drops": [
+         "Storm Lantern",
+         "Whalebone Charm"
+        ],
+        "enemy_id": "enemy.wailing_wisp",
+        "loot": [
+         {
+          "affixes": [],
+          "base": {
+           "hp": 3
+          },
+          "effects": [],
+          "gear_id": "gear.storm_lantern",
+          "gear_set": null,
+          "max_upgrade": 0,
+          "name": "Storm Lantern",
+          "roll": {
+           "hp": 1
+          },
+          "slot": "off_hand",
+          "two_handed": false,
+          "upgrade": 0,
+          "upgrade_step": {}
+         }
+        ],
+        "name": "Wailing Wisp",
+        "stats": {
+         "atk": 3,
+         "def": 0,
+         "hp": 6
+        }
+       },
+       {
+        "category": "beast",
+        "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+        "drops": [],
+        "enemy_id": "enemy.wild_boar",
+        "loot": [],
+        "name": "Wild Boar",
+        "stats": {
+         "atk": 4,
+         "def": 1,
+         "hp": 11
+        }
+       },
+       {
+        "category": "beast",
+        "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+        "drops": [],
+        "enemy_id": "enemy.wild_boar",
+        "loot": [],
+        "name": "Wild Boar",
+        "stats": {
+         "atk": 4,
+         "def": 1,
+         "hp": 12
+        }
+       },
+       {
+        "category": "person",
+        "description": "One of the gangs who lure ships onto the rocks with false lights. He wants your boots, and your purse, and you.",
+        "drops": [
+         "Boathook",
+         "Buckler",
+         "Cutlass"
+        ],
+        "enemy_id": "enemy.wrecker",
+        "loot": [
+         {
+          "affixes": [],
+          "base": {
+           "def": 2
+          },
+          "effects": [],
+          "gear_id": "gear.buckler",
+          "gear_set": null,
+          "max_upgrade": 2,
+          "name": "Buckler",
+          "roll": {},
+          "slot": "off_hand",
+          "two_handed": false,
+          "upgrade": 0,
+          "upgrade_step": {
+           "def": 1
+          }
+         }
+        ],
+        "name": "Wrecker",
+        "stats": {
+         "atk": 5,
+         "def": 2,
+         "hp": 12
+        }
+       },
+       {
+        "category": "beast",
+        "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+        "drops": [],
+        "enemy_id": "enemy.wild_boar",
+        "loot": [],
+        "name": "Wild Boar",
+        "stats": {
+         "atk": 4,
+         "def": 1,
+         "hp": 12
+        }
+       },
+       {
+        "category": "beast",
+        "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+        "drops": [],
+        "enemy_id": "enemy.wild_boar",
+        "loot": [],
+        "name": "Wild Boar",
+        "stats": {
+         "atk": 4,
+         "def": 1,
+         "hp": 10
+        }
+       }
+      ]
+     }
+    },
+    "id": 36
+   }
+  ],
+  "log": [
+   "\u2014 Kelpford \u00b7 Town \u2014",
+   "You stand at The Town Gate.",
+   "You take the road to The Saltgrave.",
+   "\u2014 The Saltgrave \u00b7 Sea Caves \u2014",
+   "You stand at The Cave Mouth.",
+   "You make your way to Silent Tidal Pool.",
+   "A Conger Eel blocks your way!",
+   "The Conger Eel hits you for 2. You take some of it on your guard."
+  ],
+  "next_entity_id": 37,
+  "rng": {
+   "s": [
+    10905525725756348110,
+    13819372491320860226,
+    10987583248141275951,
+    14119491246550939236
+   ],
+   "seed": 2
+  },
+  "rules": {
+   "defend_factor": 0.5,
+   "enemy_strength": 1.0,
+   "flee_chance": 0.6,
+   "regen_amount": 1,
+   "regen_every": 3,
+   "respawn_hp": 0.5
+  },
+  "seed": 2,
+  "turn": 3,
+  "world": {
+   "locations": [
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_00",
+     "kind": "Town",
+     "name": "Kelpford",
+     "pos": [
+      0.4408,
+      0.8742
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "A cart rattles past and away down the road.",
+        "Someone calls a greeting from a window, then thinks better of it."
+       ],
+       "description": "A gate of grey driftwood, bound with iron and left open. Roads leave from here along the coast and inland.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_01"
+        },
+        {
+         "label": "Go west",
+         "to": "room_04"
+        }
+       ],
+       "features": [
+        "A gatekeeper's stool, empty, with a half-mended net draped over it."
+       ],
+       "id": "room_00",
+       "name": "The Town Gate",
+       "pos": [
+        0.8934,
+        0.8982
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go south",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Crooked Street",
+       "pos": [
+        0.8657,
+        0.5835
+       ]
+      },
+      {
+       "ambient": [
+        "A boat creaks against its fenders.",
+        "The tide slaps at the steps."
+       ],
+       "description": "A long quay of black stone, slick with weed below the high-water line.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_03"
+        },
+        {
+         "label": "Go south",
+         "to": "room_01"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Fish-Smelling Quay",
+       "pos": [
+        0.915,
+        0.3991
+       ]
+      },
+      {
+       "ambient": [
+        "A candle gutters, though the air is still."
+       ],
+       "description": "A small chapel whose windows are bottle-glass, green and brown and blue.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_02"
+        },
+        {
+         "label": "Go west",
+         "to": "room_07"
+        }
+       ],
+       "features": [
+        "Votive boats, folded from paper, crowd the altar rail."
+       ],
+       "id": "room_03",
+       "name": "Shuttered Chapel",
+       "pos": [
+        0.836,
+        0.131
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_00"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_04",
+       "name": "Quiet Street",
+       "pos": [
+        0.6583,
+        0.8467
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        },
+        {
+         "label": "Go east",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_05",
+       "name": "Fish-Smelling Street",
+       "pos": [
+        0.5931,
+        0.6173
+       ]
+      },
+      {
+       "ambient": [
+        "A candle gutters, though the air is still."
+       ],
+       "description": "A small chapel whose windows are bottle-glass, green and brown and blue.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_07"
+        },
+        {
+         "label": "Go south",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_06",
+       "name": "Windy Chapel",
+       "pos": [
+        0.5867,
+        0.4009
+       ]
+      },
+      {
+       "ambient": [
+        "A boat creaks against its fenders.",
+        "The tide slaps at the steps."
+       ],
+       "description": "A long quay of black stone, slick with weed below the high-water line.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_03"
+        },
+        {
+         "label": "Go south",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "A bollard worn into a waist by centuries of rope."
+       ],
+       "id": "room_07",
+       "name": "Cobbled Quay",
+       "pos": [
+        0.5753,
+        0.0892
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_01",
+     "kind": "Sea Caves",
+     "name": "The Saltgrave",
+     "pos": [
+      0.4278,
+      0.4976
+     ],
+     "roads": [
+      "loc_00",
+      "loc_02"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "Surf booms behind you.",
+        "Gulls wheel overhead and will not follow you in."
+       ],
+       "description": "A ragged opening in the cliff, half-drowned at high tide. Cold air breathes out of it, smelling of salt and old stone.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go east",
+         "to": "room_03"
+        },
+        {
+         "label": "Go west",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A rusted mooring ring, worn bright on one side by a rope long gone."
+       ],
+       "id": "room_00",
+       "name": "The Cave Mouth",
+       "pos": [
+        0.2612,
+        0.8726
+       ]
+      },
+      {
+       "ambient": [
+        "The pool shivers, though nothing touched it."
+       ],
+       "description": "The floor dips into a pool that rises and falls with a tide you cannot hear.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go east",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Silent Tidal Pool",
+       "pos": [
+        0.135,
+        0.9042
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A ring of pebbles, carefully arranged, around nothing at all."
+       ],
+       "id": "room_02",
+       "name": "Bone-White Grotto",
+       "pos": [
+        0.0707,
+        0.6866
+       ]
+      },
+      {
+       "ambient": [
+        "The pool shivers, though nothing touched it."
+       ],
+       "description": "A still pool fills most of the chamber, its surface flat as glass.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_04"
+        },
+        {
+         "label": "Go west",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_03",
+       "name": "Flooded Tidal Pool",
+       "pos": [
+        0.5021,
+        0.8858
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_05"
+        },
+        {
+         "label": "Go west",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_04",
+       "name": "Brackish Passage",
+       "pos": [
+        0.6892,
+        0.939
+       ]
+      },
+      {
+       "ambient": [
+        "Wind sighs between the pillars."
+       ],
+       "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_06"
+        },
+        {
+         "label": "Go south",
+         "to": "room_04"
+        }
+       ],
+       "features": [
+        "Tide-lines on the pillars, far above your head."
+       ],
+       "id": "room_05",
+       "name": "Crooked Gallery",
+       "pos": [
+        0.6583,
+        0.7128
+       ]
+      },
+      {
+       "ambient": [
+        "The pool shivers, though nothing touched it."
+       ],
+       "description": "The floor dips into a pool that rises and falls with a tide you cannot hear.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_07"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [
+        "Pale anemones close as your shadow passes over them."
+       ],
+       "id": "room_06",
+       "name": "Dripping Tidal Pool",
+       "pos": [
+        0.9328,
+        0.7134
+       ]
+      },
+      {
+       "ambient": [
+        "Wind sighs between the pillars."
+       ],
+       "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_07",
+       "name": "Echoing Gallery",
+       "pos": [
+        0.9367,
+        0.9346
+       ]
+      },
+      {
+       "ambient": [
+        "The kelp stirs in a draught you cannot feel."
+       ],
+       "description": "A tall chamber festooned with kelp, as if the sea once filled it to the roof.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go south",
+         "to": "room_00"
+        }
+       ],
+       "features": [
+        "Something has knotted the kelp into crude, careful shapes."
+       ],
+       "id": "room_08",
+       "name": "Flooded Kelp Hall",
+       "pos": [
+        0.3428,
+        0.6885
+       ]
+      },
+      {
+       "ambient": [
+        "A bubble rises from the black water and breaks."
+       ],
+       "description": "The floor slopes down to black water. The air is thick and still.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_10"
+        },
+        {
+         "label": "Go west",
+         "to": "room_08"
+        }
+       ],
+       "features": [],
+       "id": "room_09",
+       "name": "Echoing Sump",
+       "pos": [
+        0.5101,
+        0.7155
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_11"
+        },
+        {
+         "label": "Go south",
+         "to": "room_09"
+        }
+       ],
+       "features": [
+        "A ring of pebbles, carefully arranged, around nothing at all."
+       ],
+       "id": "room_10",
+       "name": "Moonlit Grotto",
+       "pos": [
+        0.4671,
+        0.5081
+       ]
+      },
+      {
+       "ambient": [
+        "A bubble rises from the black water and breaks."
+       ],
+       "description": "A chamber where seawater collects and slowly sours.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_10"
+        }
+       ],
+       "features": [],
+       "id": "room_11",
+       "name": "Silent Sump",
+       "pos": [
+        0.4932,
+        0.2921
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_02",
+     "kind": "Forest",
+     "name": "The Saltbriar",
+     "pos": [
+      0.147,
+      0.5591
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "The wind moans through the pines behind you.",
+        "A crow watches from a stump."
+       ],
+       "description": "Where the heath gives out, the pines begin: a dark wall leaning away from the sea wind.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_01"
+        },
+        {
+         "label": "Go east",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_00",
+       "name": "The Forest Edge",
+       "pos": [
+        0.1079,
+        0.9089
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "A deer path winds between the trunks, soft with needles.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go east",
+         "to": "room_04"
+        },
+        {
+         "label": "Go south",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Leaf-Dark Path",
+       "pos": [
+        0.0706,
+        0.7765
+       ]
+      },
+      {
+       "ambient": [
+        "The mist curls around your ankles."
+       ],
+       "description": "The ground drops into a hollow full of mist that does not lift.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_03"
+        },
+        {
+         "label": "Go east",
+         "to": "room_12"
+        },
+        {
+         "label": "Go south",
+         "to": "room_01"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Root-Bound Hollow",
+       "pos": [
+        0.0866,
+        0.6175
+       ]
+      },
+      {
+       "ambient": [
+        "The branches knock together, almost like speech."
+       ],
+       "description": "A grove of ancient yews, their trunks split and twisted like rope.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_11"
+        },
+        {
+         "label": "Go south",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_03",
+       "name": "Wind-Bent Grove",
+       "pos": [
+        0.0755,
+        0.4022
+       ]
+      },
+      {
+       "ambient": [
+        "The branches knock together, almost like speech."
+       ],
+       "description": "A grove of ancient yews, their trunks split and twisted like rope.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_05"
+        },
+        {
+         "label": "Go west",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "Coins pressed into the bark of the oldest tree, green with age."
+       ],
+       "id": "room_04",
+       "name": "Still Grove",
+       "pos": [
+        0.2324,
+        0.7482
+       ]
+      },
+      {
+       "ambient": [
+        "A bird starts to sing, then stops."
+       ],
+       "description": "A clearing of soft grass, ringed by pines that all lean the same way.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_04"
+        },
+        {
+         "label": "Go east",
+         "to": "room_06"
+        },
+        {
+         "label": "Go west",
+         "to": "room_00"
+        }
+       ],
+       "features": [
+        "A ring of toadstools, perfectly round."
+       ],
+       "id": "room_05",
+       "name": "Root-Bound Glade",
+       "pos": [
+        0.2852,
+        0.9208
+       ]
+      },
+      {
+       "ambient": [
+        "A bird starts to sing, then stops."
+       ],
+       "description": "A clearing of soft grass, ringed by pines that all lean the same way.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go east",
+         "to": "room_07"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_06",
+       "name": "Wind-Bent Glade",
+       "pos": [
+        0.4135,
+        0.8888
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "The path narrows between banks of fern taller than you are.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_15"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_07",
+       "name": "Tangled Path",
+       "pos": [
+        0.616,
+        0.8855
+       ]
+      },
+      {
+       "ambient": [
+        "The branches knock together, almost like speech."
+       ],
+       "description": "Old oaks stand here among the pines, grey with lichen.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_09"
+        },
+        {
+         "label": "Go east",
+         "to": "room_14"
+        },
+        {
+         "label": "Go south",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "Coins pressed into the bark of the oldest tree, green with age."
+       ],
+       "id": "room_08",
+       "name": "Dripping Grove",
+       "pos": [
+        0.4526,
+        0.7452
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "A deer path winds between the trunks, soft with needles.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_10"
+        },
+        {
+         "label": "Go east",
+         "to": "room_13"
+        },
+        {
+         "label": "Go south",
+         "to": "room_08"
+        },
+        {
+         "label": "Go west",
+         "to": "room_12"
+        }
+       ],
+       "features": [],
+       "id": "room_09",
+       "name": "Still Path",
+       "pos": [
+        0.4187,
+        0.5478
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "A deer path winds between the trunks, soft with needles.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_09"
+        }
+       ],
+       "features": [],
+       "id": "room_10",
+       "name": "Thorny Path",
+       "pos": [
+        0.4347,
+        0.4525
+       ]
+      },
+      {
+       "ambient": [
+        "The mist curls around your ankles."
+       ],
+       "description": "The ground drops into a hollow full of mist that does not lift.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_12"
+        },
+        {
+         "label": "Go west",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_11",
+       "name": "Mossy Hollow",
+       "pos": [
+        0.2241,
+        0.3927
+       ]
+      },
+      {
+       "ambient": [
+        "A bird starts to sing, then stops."
+       ],
+       "description": "A sunlit glade, strangely quiet, as if the forest is holding its breath.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_11"
+        },
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go west",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_12",
+       "name": "Still Glade",
+       "pos": [
+        0.247,
+        0.6053
+       ]
+      },
+      {
+       "ambient": [
+        "A bird starts to sing, then stops."
+       ],
+       "description": "A clearing of soft grass, ringed by pines that all lean the same way.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_14"
+        },
+        {
+         "label": "Go west",
+         "to": "room_09"
+        }
+       ],
+       "features": [
+        "A ring of toadstools, perfectly round."
+       ],
+       "id": "room_13",
+       "name": "Whispering Glade",
+       "pos": [
+        0.5931,
+        0.6129
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "The path narrows between banks of fern taller than you are.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_13"
+        },
+        {
+         "label": "Go west",
+         "to": "room_08"
+        }
+       ],
+       "features": [],
+       "id": "room_14",
+       "name": "Whispering Path",
+       "pos": [
+        0.5766,
+        0.7458
+       ]
+      },
+      {
+       "ambient": [
+        "Something moves in the bracken and is still.",
+        "Needles patter down."
+       ],
+       "description": "A deer path winds between the trunks, soft with needles.",
+       "exits": [
+        {
+         "label": "Go west",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_15",
+       "name": "Dim Path",
+       "pos": [
+        0.7372,
+        0.8836
+       ]
+      }
+     ],
+     "start": "room_00"
+    }
+   ],
+   "start": "loc_00"
+  }
+ },
+ "generator_version": 4,
+ "meta": {
+  "created_at": "2026-11-04T20:00:00+00:00",
+  "name": "World 5",
+  "revision": 4,
+  "slot_id": "00000000000000000000000000000005",
+  "summary": {
+   "location": "The Saltgrave",
+   "locations_visited": 2,
+   "room": "Silent Tidal Pool",
+   "total_locations": 3,
+   "turn": 3
+  },
+  "updated_at": "2026-11-04T20:04:00+00:00"
+ },
+ "schema_version": 5
+}

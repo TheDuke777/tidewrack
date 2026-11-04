@@ -14,6 +14,7 @@ from typing import Any
 
 from pydantic import Field, TypeAdapter
 
+from tidewrack.core.combat.rules import STANDARD
 from tidewrack.core.data.schemas import OverworldSchema, Schema
 from tidewrack.core.engine.components import COMPONENTS
 
@@ -21,6 +22,17 @@ from tidewrack.core.engine.components import COMPONENTS
 class RngState(Schema):
     seed: int = Field(ge=0)
     s: list[int] = Field(min_length=4, max_length=4)
+
+
+class RulesState(Schema):
+    """The world's combat and recovery rules (core.combat.rules.Rules)."""
+
+    flee_chance: float = Field(default=STANDARD.flee_chance, ge=0, le=1)
+    regen_every: int = Field(default=STANDARD.regen_every, ge=1)
+    regen_amount: int = Field(default=STANDARD.regen_amount, ge=0)
+    respawn_hp: float = Field(default=STANDARD.respawn_hp, gt=0, le=1)
+    enemy_strength: float = Field(default=STANDARD.enemy_strength, gt=0)
+    defend_factor: float = Field(default=STANDARD.defend_factor, ge=0, le=1)
 
 
 class EntityState(Schema):
@@ -35,6 +47,9 @@ class GameState(Schema):
     world: OverworldSchema
     rng: RngState
     ambient_rng: RngState
+    combat_rng: RngState | None = None  # None in saves before combat: derived from seed
+    encounter_rng: RngState | None = None
+    rules: RulesState = RulesState()
     next_entity_id: int = Field(ge=1)
     entities: list[EntityState]
 

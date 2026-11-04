@@ -72,5 +72,10 @@
   "finds": {
     "chance": 0.25,
     "gear": { "gear.pick": 2, "gear.miners_helm": 2, "gear.storm_lantern": 1, "gear.buckler": 1 }
+  },
+  "enemies": {
+    "placed_chance": 0.25,
+    "wandering_chance": 0.1,
+    "pool": { "enemy.cave_rat": 3, "enemy.tunnel_spider": 2, "enemy.drowned_sailor": 1 }
   }
 }

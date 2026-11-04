@@ -1,0 +1,25 @@
+{
+  "id": "enemy.smuggler",
+  "name": "Smuggler",
+  "category": "person",
+  "description": "A lean woman in an oilskin coat, knife already drawn. Whatever she's hiding down here, she isn't sharing.",
+  "stats": {
+    "atk": 5,
+    "def": 3,
+    "hp": 14
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "loot": {
+    "chance": 0.6,
+    "gear": {
+      "gear.cutlass": 2,
+      "gear.oilskin_hood": 1,
+      "gear.watchmans_coat": 1
+    }
+  }
+}

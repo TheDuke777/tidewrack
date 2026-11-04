@@ -19,30 +19,45 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+from tidewrack.core.codex.foes import FoesView, foes_view
+from tidewrack.core.combat import fight
+from tidewrack.core.combat.rules import STANDARD, Rules
 from tidewrack.core.data.save import (
     EntityState,
     GameState,
     RngState,
+    RulesState,
     decode_component,
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
 from tidewrack.core.engine.components import (
     Carried,
+    Codex,
+    Enemy,
     Equipped,
     Explorer,
+    Fighting,
+    Health,
     Name,
     Player,
     Position,
+    Respawn,
     Scenery,
+    Spawner,
     Stats,
 )
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
     ActionRejected,
     AmbientNoticed,
+    Attacked,
+    CombatStarted,
+    EnemyKilled,
     Event,
     EventBus,
+    Fled,
+    FleeFailed,
     GameStarted,
     ItemDropped,
     ItemEquipped,
@@ -51,6 +66,9 @@ from tidewrack.core.engine.events import (
     LocationDiscovered,
     LocationEntered,
     LookedAround,
+    PlayerDefeated,
+    Respawned,
+    Rested,
     RoomDiscovered,
     RoomEntered,
     TurnEnded,
@@ -124,7 +142,24 @@ class Unequip:
     item: int
 
 
-Command = Move | Travel | Look | Wait | Take | Drop | Equip | Unequip
+@dataclass(frozen=True)
+class Attack:
+    """Strike the enemy you're fighting; it strikes back if it's still standing."""
+
+
+@dataclass(frozen=True)
+class Defend:
+    """Brace: the enemy's next blow does less damage."""
+
+
+@dataclass(frozen=True)
+class Flee:
+    """Try to escape back the way you came; if it fails, the enemy gets a free blow."""
+
+
+Command = Move | Travel | Look | Wait | Take | Drop | Equip | Unequip | Attack | Defend | Flee
+COMBAT_COMMANDS = (Attack, Defend, Flee)
+ALLOWED_IN_COMBAT = (Look, *COMBAT_COMMANDS)
 
 
 # --- results and view model --------------------------------------------------------
@@ -202,6 +237,17 @@ class InventoryView:
 
 
 @dataclass(frozen=True)
+class CombatView:
+    enemy: int
+    name: str
+    category: str
+    description: str
+    hp: int
+    max_hp: int
+    stats: StatBlock  # the enemy's, as this world's rules scale them
+
+
+@dataclass(frozen=True)
 class GameView:
     location: str  # the location's name
     kind: str  # "Town", "Sea Caves", …
@@ -222,6 +268,10 @@ class GameView:
     world_map: MapView | None  # locations; None if the world has no map positions
     items_here: tuple[ItemView, ...]  # lying in this room
     stats: StatBlock  # the player's total, gear included
+    hp: int
+    max_hp: int
+    combat: CombatView | None  # set while fighting
+    in_town: bool  # Wait here rests you to full
 
 
 # --- the game ----------------------------------------------------------------------
@@ -235,10 +285,15 @@ class Game:
         player_base: Mapping[str, int] = DEFAULT_PLAYER_BASE,
         kit: Iterable[Item] = (),
         finds: Iterable[tuple[str, str, Item]] = (),
+        enemies: Iterable[tuple[str, str, Enemy]] = (),
+        spawners: Iterable[Spawner] = (),
+        rules: Rules = STANDARD,
     ) -> None:
-        """Start a new run in `world`, wearing `kit`, with `finds` (location id,
-        room id, item) lying where they were placed at world creation."""
+        """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
+        (location id, room id, thing) where they were placed at world creation,
+        each location's wandering enemies in `spawners`, under `rules`."""
         self._setup(seed, world)
+        self.rules = rules
         start = world.location(world.start)
         self.player = self.world.create(
             Player(),
@@ -246,6 +301,9 @@ class Game:
             Position(start.id, start.start),
             Explorer(),
             Stats(stats.full(player_base)),
+            Health(),
+            Codex(),
+            Respawn(start.id),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
@@ -259,6 +317,14 @@ class Game:
             if room_id not in world.location(location_id).rooms:
                 raise ValueError(f"find placed in unknown room {location_id}/{room_id}")
             self.world.create(item, Position(location_id, room_id))
+        for location_id, room_id, enemy in enemies:
+            location = world.location(location_id)
+            if room_id not in location.rooms or room_id in location.gates:
+                raise ValueError(f"enemy placed in a gate or unknown room {location_id}/{room_id}")
+            self.world.create(enemy, Position(location_id, room_id))
+        for spawner in spawners:
+            world.location(spawner.location)  # must exist
+            self.world.create(spawner)
 
         self.bus.emit(GameStarted(seed))
         self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
@@ -275,18 +341,24 @@ class Game:
         self._snapshot = snapshot or OverworldSchema.from_overworld(overworld)
         self.rng = Rng(seed)
         self.ambient_rng = self.rng.derive("ambient")
+        self.combat_rng = self.rng.derive("combat")
+        self.encounter_rng = self.rng.derive("encounters")
+        self.rules = STANDARD
         self.world = World()
         self.bus = EventBus()
         self.turn = 0
         self.log: list[str] = []
 
         # Per-turn systems, run in this order after every turn-taking command.
-        self.systems: list[Callable[[Game], None]] = [ambience_system]
+        self.systems: list[Callable[[Game], None]] = [ambience_system, fight.regen_system]
 
         # Subscription order is delivery order: exploration updates state before
-        # the narrator describes it.
+        # the narrator describes it, and before encounters start (whose events,
+        # like any emitted by a handler, are delivered after this one).
         self.bus.subscribe(LocationEntered, self._explore_location)
+        self.bus.subscribe(LocationEntered, lambda e: fight.note_town(self, e))
         self.bus.subscribe(RoomEntered, self._explore_room)
+        self.bus.subscribe(RoomEntered, lambda e: fight.encounter(self, e))
         self.bus.subscribe(Event, self._narrate)
 
     # --- saving ----------------------------------------------------------------------
@@ -300,6 +372,9 @@ class Game:
             world=self._snapshot,
             rng=RngState(**self.rng.get_state()),
             ambient_rng=RngState(**self.ambient_rng.get_state()),
+            combat_rng=RngState(**self.combat_rng.get_state()),
+            encounter_rng=RngState(**self.encounter_rng.get_state()),
+            rules=RulesState(**self.rules.__dict__),
             next_entity_id=next_id,
             entities=[
                 EntityState(id=e, components=dict(encode_component(c) for c in components))
@@ -314,6 +389,11 @@ class Game:
         game._setup(state.seed, state.world.to_overworld(), state.world)
         game.rng = Rng.from_state(state.rng.model_dump())
         game.ambient_rng = Rng.from_state(state.ambient_rng.model_dump())
+        if state.combat_rng is not None:
+            game.combat_rng = Rng.from_state(state.combat_rng.model_dump())
+        if state.encounter_rng is not None:
+            game.encounter_rng = Rng.from_state(state.encounter_rng.model_dump())
+        game.rules = Rules(**state.rules.model_dump())
         game.turn = state.turn
         game.log = list(state.log)
         game.world = World.restore(
@@ -324,8 +404,11 @@ class Game:
             },
         )
         game.player = game.world.single(Player)[0]
-        if not game.world.has(game.player, Stats):
-            raise ValueError("the player has no Stats")
+        if not game.world.has(game.player, Stats, Health, Codex, Respawn):
+            raise ValueError("the player is missing Stats, Health, Codex or Respawn")
+        fighting = game.world.try_get(game.player, Fighting)
+        if fighting is not None and not game.world.has(fighting.enemy, Enemy, Position):
+            raise ValueError("the player is fighting an enemy that isn't there")
         for entity, (_, carried) in game.world.query(Item, Carried):
             if not game.world.exists(carried.by) or game.world.has(entity, Position):
                 raise ValueError(f"item {entity} is carried by a missing entity or also placed")
@@ -346,6 +429,15 @@ class Game:
         position = self.world.get(self.player, Position)
         location = self.overworld.location(position.location)
         took_turn = False
+        fighting = self.world.try_get(self.player, Fighting)
+
+        if fighting is not None and not isinstance(command, ALLOWED_IN_COMBAT):
+            enemy = self.world.get(fighting.enemy, Enemy)
+            self.bus.emit(ActionRejected(f"You're fighting the {enemy.name}!"))
+            return TurnResult(False, tuple(self.bus.flush()))
+        if fighting is None and isinstance(command, COMBAT_COMMANDS):
+            self.bus.emit(ActionRejected("There's nothing here to fight."))
+            return TurnResult(False, tuple(self.bus.flush()))
 
         match command:
             case Move(exit_label=label):
@@ -400,6 +492,18 @@ class Game:
                 self.bus.emit(LookedAround(location.id, position.room))
             case Wait():
                 self.bus.emit(Waited(location.id, position.room))
+                if location.kind == fight.TOWN and self.world.get(self.player, Health).damage:
+                    self.world.get(self.player, Health).damage = 0
+                    self.bus.emit(Rested(location.id))
+                took_turn = True
+            case Attack():
+                fight.attack(self)
+                took_turn = True
+            case Defend():
+                fight.defend(self)
+                took_turn = True
+            case Flee():
+                fight.flee(self)
                 took_turn = True
             case Take(item=entity):
                 took_turn = self._take(entity, position)
@@ -469,6 +573,7 @@ class Game:
             self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
         self.world.remove(entity, Carried)
         self.world.add(entity, Position(here.location, here.room))
+        self._clamp_health()
         self.bus.emit(ItemDropped(self.player, entity, item.gear_id, item.display_name))
         return True
 
@@ -485,6 +590,7 @@ class Game:
         for other, _ in replaced:
             self.world.remove(other, Equipped)
         self.world.add(entity, Equipped(item.slot))
+        self._clamp_health()
         self.bus.emit(
             ItemEquipped(
                 self.player,
@@ -502,6 +608,7 @@ class Game:
             self.bus.emit(ActionRejected("You don't have that on."))
             return False
         self.world.remove(entity, Equipped)
+        self._clamp_health()
         self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
         return True
 
@@ -526,6 +633,36 @@ class Game:
             gear_set=item.gear_set.name if item.gear_set else None,
             effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
             comparison=compare(item, self._equipped(), base),
+        )
+
+    def _clamp_health(self) -> None:
+        """Taking off HP gear can lower max HP, but never knocks you out."""
+        health = self.world.get(self.player, Health)
+        health.damage = min(health.damage, self.max_hp() - 1)
+
+    def max_hp(self) -> int:
+        return max(1, self.sheet().total["hp"])
+
+    def hp(self) -> int:
+        return max(0, self.max_hp() - self.world.get(self.player, Health).damage)
+
+    def foes(self) -> FoesView:
+        return foes_view(self.world.get(self.player, Codex))
+
+    def _combat_view(self) -> CombatView | None:
+        fighting = self.world.try_get(self.player, Fighting)
+        if fighting is None:
+            return None
+        enemy = self.world.get(fighting.enemy, Enemy)
+        max_hp = fighting.enemy_stats["hp"]
+        return CombatView(
+            enemy=fighting.enemy,
+            name=enemy.name,
+            category=enemy.category,
+            description=enemy.description,
+            hp=max(0, max_hp - fighting.enemy_damage),
+            max_hp=max_hp,
+            stats=stats.full(fighting.enemy_stats),
         )
 
     def sheet(self) -> StatSheet:
@@ -633,6 +770,10 @@ class Game:
                 self._item_view(e, i) for e, i in self._items_at(location.id, room.id)
             ),
             stats=self.sheet().total,
+            hp=self.hp(),
+            max_hp=self.max_hp(),
+            combat=self._combat_view(),
+            in_town=location.kind == fight.TOWN,
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -708,6 +849,31 @@ class Game:
                 self._say(f"You take off the {name}.")
             case Waited():
                 self._say("Time passes.")
+            case Rested():
+                self._say("You rest a while in safety and feel whole again.")
+            case CombatStarted(name=name, wandering=wandering):
+                self._say(
+                    f"A {name} comes upon you!" if wandering else f"A {name} blocks your way!"
+                )
+            case Attacked(attacker=attacker, target_name=target, attacker_name=by, damage=hit):
+                if attacker == self.player:
+                    self._say(f"You hit the {target} for {hit}.")
+                else:
+                    blocked = " You take some of it on your guard." if event.defended else ""
+                    self._say(f"The {by} hits you for {hit}.{blocked}")
+            case Fled(name=name):
+                self._say(f"You break away from the {name} and run.")
+            case FleeFailed(name=name):
+                self._say(f"You try to run, but the {name} cuts you off.")
+            case EnemyKilled(name=name, loot=loot):
+                self._say(f"You defeat the {name}.")
+                if loot:
+                    self._say(f"It drops {_and(f'a {n}' for n in loot)}.")
+            case PlayerDefeated(name=name):
+                self._say(f"The {name} strikes you down. Everything goes dark.")
+            case Respawned(location=location_id):
+                town = self.overworld.location(location_id).name
+                self._say(f"You come to at the edge of {town}, bruised but alive.")
             case AmbientNoticed(text=text):
                 self._say(text)
             case ActionRejected(reason=reason):
@@ -773,6 +939,8 @@ def _fog_map(
 
 def ambience_system(game: Game) -> None:
     """Sometimes play a flavour line for where the player is."""
+    if game.world.has(game.player, Fighting):
+        return  # no birdsong mid-fight
     location, room = game.here()
     if room.ambient and game.ambient_rng.chance(AMBIENT_CHANCE):
         game.bus.emit(AmbientNoticed(location.id, room.id, game.ambient_rng.choice(room.ambient)))

@@ -1,0 +1,19 @@
+{
+  "id": "enemy.drowned_sailor",
+  "name": "Drowned Sailor",
+  "category": "spirit",
+  "description": "Water runs from his sleeves and his eyes are full of sand. He still wears the coat of the night watch.",
+  "stats": {
+    "atk": 4,
+    "def": 2,
+    "hp": 12
+  },
+  "loot": {
+    "chance": 0.45,
+    "gear": {
+      "gear.watchmans_coat": 1,
+      "gear.oilskin_hood": 1,
+      "gear.sealskin_boots": 1
+    }
+  }
+}

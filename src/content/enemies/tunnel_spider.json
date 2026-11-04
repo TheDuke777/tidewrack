@@ -1,0 +1,24 @@
+{
+  "id": "enemy.tunnel_spider",
+  "name": "Tunnel Spider",
+  "category": "beast",
+  "description": "Long legs unfold from a crack in the ceiling. Its body is the size of a dog.",
+  "stats": {
+    "atk": 5,
+    "def": 1,
+    "hp": 8
+  },
+  "rolls": {
+    "def": [
+      0,
+      1
+    ]
+  },
+  "loot": {
+    "chance": 0.25,
+    "gear": {
+      "gear.miners_helm": 1,
+      "gear.storm_lantern": 1
+    }
+  }
+}

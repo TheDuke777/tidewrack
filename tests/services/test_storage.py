@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from tidewrack.core.engine.game import Look, Move, Wait
+from tidewrack.core.combat.rules import STANDARD
+from tidewrack.core.engine.game import Attack, Defend, Look, Move, Wait
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
 from tidewrack.services.session import GameSession, next_world_name
@@ -161,7 +162,7 @@ def test_every_released_save_format_still_opens(tmp_path, fixture):
     [listing] = store.list_slots()
     session = GameSession.open(store, slot_id, CONTENT)
     assert listing.meta == session.meta
-    session.perform(Wait())
+    session.perform(Defend() if session.game.view().combat else Wait())  # a fight may be on
     assert session.game.turn == envelope["game"]["turn"] + 1
 
 
@@ -215,3 +216,21 @@ def test_v4_gear_fixture_keeps_its_gear(tmp_path):
         "body": "Patched Coat",
     }
     assert session.game.view().stats == {"atk": 4, "def": 6, "hp": 20}  # buckler rolled +1
+
+
+def test_v4_saves_get_full_health_an_empty_codex_and_peace(tmp_path):
+    envelope = json.loads((FIXTURES / "v4_gear.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    view = session.game.view()
+    assert view.hp == view.max_hp and view.combat is None
+    assert session.game.foes().foes == ()
+    assert session.game.rules == STANDARD
+
+
+def test_v5_fixture_resumes_mid_fight(tmp_path):
+    envelope = json.loads((FIXTURES / "v5_combat.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    view = session.game.view()
+    assert view.combat is not None and view.combat.name == "Conger Eel"
+    assert [f.name for f in session.game.foes().foes] == ["Conger Eel"]
+    assert session.perform(Attack()).took_turn

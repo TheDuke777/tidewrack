@@ -104,5 +104,10 @@
   "finds": {
     "chance": 0.25,
     "gear": { "gear.harpoon": 1, "gear.boathook": 1, "gear.sealskin_boots": 2, "gear.oilskin_hood": 1, "gear.watchmans_coat": 1, "gear.whalebone_charm": 2 }
+  },
+  "enemies": {
+    "placed_chance": 0.25,
+    "wandering_chance": 0.12,
+    "pool": { "enemy.shore_crab": 3, "enemy.conger_eel": 2, "enemy.drowned_sailor": 1, "enemy.smuggler": 1 }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "id": "enemy.cave_rat",
+  "name": "Cave Rat",
+  "category": "beast",
+  "description": "Fat, pale and bold, it bares yellow teeth at your lamp.",
+  "stats": {
+    "atk": 2,
+    "def": 0,
+    "hp": 5
+  }
+}

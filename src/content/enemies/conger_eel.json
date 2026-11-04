@@ -1,0 +1,23 @@
+{
+  "id": "enemy.conger_eel",
+  "name": "Conger Eel",
+  "category": "beast",
+  "description": "A grey eel as thick as your arm, all teeth, lunging from a flooded crack.",
+  "stats": {
+    "atk": 5,
+    "def": 1,
+    "hp": 9
+  },
+  "rolls": {
+    "atk": [
+      0,
+      1
+    ]
+  },
+  "loot": {
+    "chance": 0.2,
+    "gear": {
+      "gear.whalebone_charm": 1
+    }
+  }
+}

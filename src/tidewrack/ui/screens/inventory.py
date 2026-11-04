@@ -216,9 +216,12 @@ class InventoryScreen:
 
     def _sheet(self, view: InventoryView) -> list[ft.Control]:
         total = view.sheet.total
+        game = self.session.game
+        top = [f"HP {game.hp()}/{game.max_hp()}"]
+        top += [f"{STAT_LABELS[s]} {total[s]}" for s in STATS if s != "hp"]
         lines: list[ft.Control] = [
             ft.Text(
-                "   ".join(f"{STAT_LABELS[s]} {total[s]}" for s in STATS),
+                "   ".join(top),
                 size=20,
                 weight=ft.FontWeight.BOLD,
             )

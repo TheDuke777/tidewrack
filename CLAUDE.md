@@ -129,7 +129,7 @@ tidewrack/
 │   ├── gear/                        # gear definitions: slot, base stats, rolls, upgrades, set
 │   ├── affixes/                     # prefixes/suffixes found gear may roll ("Keen", "of the Gull")
 │   ├── gearsets/                    # set bonuses by pieces worn
-│   ├── monsters/
+│   ├── enemies/                     # beasts, people, spirits: stats, rolls, loot table
 │   ├── consumables/                 # (later; the loader only allows flat <kind>/<name>.json,
 │   ├── materials/                   #   so no items/ parent dir) incl. cooking ingredients
 │   ├── recipes/
@@ -158,14 +158,16 @@ tidewrack/
 │   │   │                            #   overworld.py (locations + roads)
 │   │   ├── procgen/                 # grid.py (shared layout), location_gen.py,
 │   │   │                            #   world_gen.py (+ world_hash), gear_gen.py (kit +
-│   │   │                            #   finds); later: biomes, names, quests, factions,
-│   │   │                            #   pets, lore
+│   │   │                            #   finds), enemy_gen.py (placed + wanderer queues);
+│   │   │                            #   later: biomes, names, quests, factions, pets, lore
 │   │   ├── gear/                    # stats.py (STATS), item.py (Item snapshot, SLOTS),
 │   │   │                            #   stat_pipeline.py, compare.py
+│   │   ├── combat/                  # rules.py (Rules snapshot, damage), fight.py (rounds,
+│   │   │                            #   encounters, defeat, regen)
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
-│   │   ├── codex/                   # discovery tracker, bestiary/lore/quest-log models,
-│   │   │                            #   help index + search, glossary
+│   │   ├── codex/                   # foes.py (Foes section: reveal by kills); later
+│   │   │                            #   lore/quest-log models, help index + search, glossary
 │   │   ├── data/                    # schemas.py (pydantic → runtime models);
 │   │   │                            #   loader.py (pure: {path: text} → Content);
 │   │   │                            #   save.py (GameState schema + component codec)
@@ -185,7 +187,7 @@ tidewrack/
 │   └── ui/
 │       ├── app.py                   # slot picker ⇄ open world; confirm dialogs
 │       ├── shell.py                 # open world: Material 3 navigation bar over tabs
-│       │                            #   (Explore, Inventory); add tabs here
+│       │                            #   (Explore, Inventory, Codex); add tabs here
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
 │       ├── components/              # gear_compare_card, stat_delta, tier_progress, toast, …
 │       ├── map_canvas.py            # point-crawl renderer + fog of war + tap-to-move
@@ -280,6 +282,14 @@ Two distinct operations (don't conflate them):
 - Edge cases: two-handed vs dual slots, multi-slot gear (compare against the slot it would replace), set bonuses gained/lost, unmet requirements flagged, effect-text diff (new/lost effects), "at max upgrade" potential line, unknown/cursed stats.
 - **Built (step 5):** stats are ATK/DEF/HP (`core/gear/stats.py`; a new stat is one entry there plus content). Six slots (main hand, off hand, head, body, feet, trinket); a two-hander fills both hands, and an off-hand item replaces an equipped two-hander. Items are **snapshots** (`Item` holds its definition, roll, affixes and set bonuses), so saves don't depend on content. New worlds get the recipe's `kit` (equipped) and **finds** placed at world creation from roomset `finds` (`procgen/gear_gen.py`, its own `gear` substream, never in gate rooms). Upgrade levels are stored and shown ("fully upgraded" line) but nothing raises them until crafting (step 7). **Not yet:** requirements (no levels until combat) and unidentified/cursed gear (no identification yet); add them to `compare` when those mechanics land.
 
+### 8.4b Combat (built in step 6a)
+- **Enemies, not monsters:** content kind `enemies/` (`enemy.<id>`) with a `category` (beast, person, spirit); people can be enemies (wreckers, smugglers; later factions). Snapshots (`Enemy`) with pre-rolled loot, so saves don't need content.
+- **Encounters:** roomset `enemies` tables place enemies at world creation (never in gate rooms) and roll each location's **wanderer queue** into a `Spawner` (`procgen/enemy_gen.py`, its own `enemies` substream). Entering a room with an enemy, or a wanderer roll on the saved `encounter_rng` (never in gates, towns, or while fleeing), starts a fight.
+- **Rounds** (`core/combat/fight.py`): you act first (Attack, Defend, Flee), then the enemy strikes back. Damage `max(1, ATK − DEF + d(0..⌈ATK/3⌉))`; Defend multiplies damage taken; Flee may fail (free blow) and returns you to the room you came from. Only Look is allowed mid-fight.
+- **Health** is stored as damage taken (`Health`), so max HP follows gear; taking gear off never knocks you out. Regen out of fights every few turns; Wait in a Town rests to full. **Defeat** wakes you at the last town's gate (`Respawn`) with part of your HP; the enemy stays at full strength.
+- **Difficulty (decided, not built):** per world, chosen at creation and fixed. Rule knobs live in the `Rules` snapshot saved in `GameState` (`flee_chance`, regen, `respawn_hp`, `enemy_strength` applied at fight time, `defend_factor`); generation knobs (placement density, wanderer queues) are fixed by nature. Every world is Standard until the picker lands with the difficulty sim (step 8).
+- **Codex → Foes** (`core/codex/foes.py`): an entry on first meeting; stats after 1 defeat, drops after 3; grouped by category.
+
 ### 8.5 Codex, help, and onboarding
 - **Codex tabs:** Bestiary, Quest Log, Lore, Items & Recipes, Pets, Factions & Regions, Modifiers, Achievements. Every content definition has a stable ID; entries show as ??? until discovered, then **fill in progressively** (e.g. kill count reveals drop table/weaknesses).
 - **Codex is generated from the same content data the game runs on**, so docs can't drift from reality. Formula text and stat definitions are pulled from actual constants.
@@ -325,7 +335,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit and finds together.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Enemies come from the separate `enemies` substream (`enemies_hash`). Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit, finds and enemies together.
 - Every location is generated **at world creation**, never lazily on first visit, so an update can't change places a player hasn't reached yet.
 - `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
@@ -433,7 +443,9 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 4. ✅ **Done (v0.3.0).** **World graph + map:** hand-rolled seeded generation, canvas point-crawl, fog of war. (Spike 3.)
    - ✅ **Done (v0.3.0).** **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration; plus pinch-zoom/pan maps, a scrolling game screen and a collapsible, resizable log (first app-wide setting).
 5. ✅ **Done (v0.4.0).** **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip. ATK/DEF/HP, six slots, starting kit + seeded finds, take/drop/equip/unequip, inventory tab with pack filters, bulk drop and drop confirmation, save schema v4 with migration, generator v3. Also: Material 3 navigation bar (`ui/shell.py`), gate and kind markers on the maps.
-6. **Combat + quests + codex discovery** (bestiary/quest log first).
+6. **Combat + quests + codex discovery**, in two parts:
+   - 🚧 **In progress (unreleased).** **6a. Combat + Foes codex:** round-by-round fights, placed + wandering enemies (beasts, people, spirits), loot, health/regen/rest, defeat → last town, `Rules` snapshot for future difficulty, Codex tab. Save schema v5, generator v4. The explore screen's bottom row now shows only turn/rooms/places.
+   - **6b. Quests + quest log.**
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.
 9. **Pets** (rarity, soft pity, persistence).

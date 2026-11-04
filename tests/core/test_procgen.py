@@ -2,6 +2,7 @@ import pytest
 
 from tidewrack.core.engine.events import LocationDiscovered, LocationEntered
 from tidewrack.core.engine.game import Game, Move, Travel
+from tidewrack.core.procgen.enemy_gen import enemies_hash, generate_enemies
 from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate_kit
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
@@ -24,18 +25,26 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 3
+    assert GENERATOR_VERSION == 4
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 3
+    assert GENERATOR_VERSION == 4
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
+def test_golden_enemies():
+    # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
+    assert GENERATOR_VERSION == 4
+    world = new_world(20261103)
+    assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
+
+
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
+GOLDEN_ENEMIES = "d6a93d9319360c3cc50ab54e09d7a9d22ef0676bb92270276ced28f7c9ea3976"
 GOLDEN_FINDS = "ff12eed26353d043cc262fc20305260710ca8fab607e476cfcf5317ad36ec9e0"
 
 
@@ -279,3 +288,31 @@ def test_kit_is_plain():
     kit = generate_kit(RECIPE, CONTENT)
     assert [i.gear_id for i in kit] == RECIPE.kit
     assert all(not i.affixes and i.upgrade == 0 for i in kit)
+
+
+# --- enemies -----------------------------------------------------------------------
+
+
+def test_enemies_are_valid_deterministic_and_never_at_gates_or_in_towns():
+    placed_total = 0
+    for seed in range(20):
+        world = new_world(seed)
+        placed, spawners = generate_enemies(seed, world, CONTENT)
+        assert (placed, spawners) == generate_enemies(seed, world, CONTENT)
+        placed_total += len(placed)
+        for p in placed:
+            location = world.location(p.location)
+            assert p.room in location.rooms and p.room not in location.gates
+            assert location.kind != "Town"
+            roomset = next(r for r in ROOMSETS.values() if r.name == location.kind)
+            assert p.enemy.enemy_id in roomset.enemies.pool
+        for spawner in spawners:
+            location = world.location(spawner.location)
+            assert location.kind != "Town" and len(spawner.queue) == 6
+    assert placed_total > 20 * 5
+
+
+def test_enemies_dont_change_the_world_or_its_finds():
+    assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
+    world = new_world(20261103)
+    assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS

@@ -105,6 +105,49 @@ class GearSetSchema(Schema):
     bonuses: list[SetBonusSchema] = Field(min_length=1)
 
 
+# --- enemies -------------------------------------------------------------------------
+
+ENEMY_CATEGORIES = ("beast", "person", "spirit")
+
+
+class LootSchema(Schema):
+    chance: Unit = 0.0  # that an enemy drops anything
+    gear: Weights = {}  # gear id -> relative weight
+
+
+class EnemySchema(Schema):
+    """Someone or something hostile. People are enemies too (wreckers, smugglers)."""
+
+    id: content_id("enemy")
+    name: Text
+    category: Literal[ENEMY_CATEGORIES]  # type: ignore[valid-type]
+    description: Text
+    stats: StatBlock
+    rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
+    loot: LootSchema = LootSchema()
+
+    @model_validator(mode="after")
+    def _check(self) -> EnemySchema:
+        _known_stats(self.rolls)
+        if self.stats.get("hp", 0) < 1:
+            raise ValueError("enemies need at least 1 hp")
+        for stat, (low, high) in self.rolls.items():
+            if low > high:
+                raise ValueError(f"roll for {stat} has min {low} above max {high}")
+        if self.loot.chance and not self.loot.gear:
+            raise ValueError("loot.chance is set but loot.gear is empty")
+        return self
+
+
+class EncountersSchema(Schema):
+    """Enemies in a roomset's locations: placed at world creation, plus wanderers."""
+
+    placed_chance: Unit = 0.0  # per room (never gate rooms)
+    wandering_chance: Unit = 0.0  # per room entered without an enemy in it
+    wanderers: int = Field(default=6, ge=0, le=50)  # rolled per location at creation
+    pool: Weights = {}  # enemy id -> relative weight
+
+
 class FindsSchema(Schema):
     """Gear lying about a roomset's locations, placed when the world is made."""
 
@@ -146,6 +189,7 @@ class RoomsetSchema(Schema):
     entrance: ArchetypeSchema  # the gate room travellers arrive in and leave from
     rooms: list[ArchetypeSchema] = Field(min_length=1)
     finds: FindsSchema = FindsSchema()
+    enemies: EncountersSchema = EncountersSchema()
 
     @model_validator(mode="after")
     def _check_size(self) -> RoomsetSchema:

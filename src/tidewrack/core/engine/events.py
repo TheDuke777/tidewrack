@@ -63,6 +63,7 @@ class RoomEntered(Event):
     room: str
     from_room: str | None  # None on arriving in the location
     first_visit: bool
+    fleeing: bool = False  # running from a fight: no wandering enemy finds you here
 
 
 @dataclass(frozen=True)
@@ -126,6 +127,64 @@ class ItemUnequipped(Event):
     item: int
     gear_id: str
     name: str
+
+
+# --- combat ------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CombatStarted(Event):
+    enemy: int
+    enemy_id: str
+    name: str
+    wandering: bool  # it came across you, rather than waiting in the room
+
+
+@dataclass(frozen=True)
+class Attacked(Event):
+    attacker: int
+    target: int
+    attacker_name: str
+    target_name: str
+    damage: int
+    defended: bool  # the target was defending
+
+
+@dataclass(frozen=True)
+class Fled(Event):
+    enemy: int
+    name: str
+
+
+@dataclass(frozen=True)
+class FleeFailed(Event):
+    enemy: int
+    name: str
+
+
+@dataclass(frozen=True)
+class EnemyKilled(Event):
+    enemy: int
+    enemy_id: str
+    name: str
+    category: str
+    loot: tuple[str, ...]  # names of what it dropped
+
+
+@dataclass(frozen=True)
+class PlayerDefeated(Event):
+    enemy_id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class Respawned(Event):
+    location: str
+
+
+@dataclass(frozen=True)
+class Rested(Event):
+    location: str
 
 
 @dataclass(frozen=True)

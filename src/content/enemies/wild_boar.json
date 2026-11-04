@@ -1,0 +1,17 @@
+{
+  "id": "enemy.wild_boar",
+  "name": "Wild Boar",
+  "category": "beast",
+  "description": "Bristled, mud-caked and furious, it lowers its tusks and charges.",
+  "stats": {
+    "atk": 4,
+    "def": 1,
+    "hp": 10
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  }
+}

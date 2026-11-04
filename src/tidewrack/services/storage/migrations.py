@@ -80,11 +80,27 @@ def _v3_to_v4(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v4_to_v5(envelope: Envelope) -> Envelope:
+    # v5 adds combat: the player gets full health, an empty codex and a place to
+    # wake after a defeat (the world's start, a town in generated worlds). Old
+    # worlds have no enemies or wanderers, and keep the Standard rules and
+    # seed-derived combat streams that GameState defaults to.
+    game = envelope["game"]
+    for entity in game["entities"]:
+        components = entity["components"]
+        if "Player" in components:
+            components["Health"] = {"damage": 0}
+            components["Codex"] = {"foes": {}, "kills": {}}
+            components["Respawn"] = {"location": game["world"]["start"]}
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
     2: _v2_to_v3,
     3: _v3_to_v4,
+    4: _v4_to_v5,
 }
 
 

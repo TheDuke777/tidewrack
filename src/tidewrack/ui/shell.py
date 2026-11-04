@@ -18,6 +18,7 @@ import flet as ft
 
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.screens.codex import CodexScreen
 from tidewrack.ui.screens.game import GameScreen
 from tidewrack.ui.screens.inventory import Confirm, InventoryScreen
 
@@ -32,9 +33,11 @@ class WorldShell:
     ) -> None:
         self.explore = GameScreen(session, settings, on_back=on_back)
         self.inventory = InventoryScreen(session, confirm=confirm)
+        self.codex = CodexScreen(session)
         self.tabs = [
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),
             (self.inventory, "Inventory", ft.Icons.BACKPACK_OUTLINED, ft.Icons.BACKPACK),
+            (self.codex, "Codex", ft.Icons.MENU_BOOK_OUTLINED, ft.Icons.MENU_BOOK),
         ]
         self.body = ft.Column(
             expand=True,
