@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0-beta.3] - 2026-11-04
+
 ### Fixed
 - Turning in a quest really does clear it from the notice board now. Showing
   the reward toast stopped the rest of the screen from updating; any toast now
