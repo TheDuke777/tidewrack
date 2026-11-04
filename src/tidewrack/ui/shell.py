@@ -3,6 +3,11 @@
 Each tab is a screen object with `control` and `refresh()`; switching refreshes
 the tab being shown, since the other one may have changed the game (dropping an
 item in the inventory puts it in the room). New tabs are one entry in `tabs`.
+
+Every tab stays mounted and switching only changes which one is visible. Taking
+a tab's controls off the page and putting the same objects back later left Flet
+diffing later changes against stale list snapshots, so the phone showed rows
+twice (duplicate set bonuses, "ghost" pack items) until the next full redraw.
 """
 
 from __future__ import annotations
@@ -31,7 +36,11 @@ class WorldShell:
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),
             (self.inventory, "Inventory", ft.Icons.BACKPACK_OUTLINED, ft.Icons.BACKPACK),
         ]
-        self.body = ft.Container(expand=True, content=self.explore.control)
+        self.body = ft.Column(
+            expand=True,
+            spacing=0,
+            controls=[screen.control for screen, *_ in self.tabs],
+        )
         self.navigation_bar = ft.NavigationBar(
             selected_index=0,
             destinations=[
@@ -41,8 +50,14 @@ class WorldShell:
             on_change=lambda e: self.select(int(e.control.selected_index)),
         )
 
+        self.select(0)
+
+    @property
+    def current(self) -> int:
+        return self.navigation_bar.selected_index or 0
+
     def select(self, index: int) -> None:
-        screen = self.tabs[index][0]
-        screen.refresh()
-        self.body.content = screen.control
+        for i, (screen, *_) in enumerate(self.tabs):
+            screen.control.visible = i == index
+        self.tabs[index][0].refresh()
         self.navigation_bar.selected_index = index

@@ -432,7 +432,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 3. ✅ **Done (v0.2.0).** **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.
 4. ✅ **Done (v0.3.0).** **World graph + map:** hand-rolled seeded generation, canvas point-crawl, fog of war. (Spike 3.)
    - ✅ **Done (v0.3.0).** **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration; plus pinch-zoom/pan maps, a scrolling game screen and a collapsible, resizable log (first app-wide setting).
-5. 🚧 **In progress (unreleased).** **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip. Built: ATK/DEF/HP, six slots, starting kit + seeded finds, take/drop/equip/unequip, inventory screen, save schema v4 with migration, generator v3.
+5. ✅ **Done (v0.4.0).** **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip. ATK/DEF/HP, six slots, starting kit + seeded finds, take/drop/equip/unequip, inventory tab with pack filters, bulk drop and drop confirmation, save schema v4 with migration, generator v3. Also: Material 3 navigation bar (`ui/shell.py`), gate and kind markers on the maps.
 6. **Combat + quests + codex discovery** (bestiary/quest log first).
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.

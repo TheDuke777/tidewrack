@@ -93,13 +93,17 @@ def test_shell_switches_tabs(tmp_path):
     session, shell, _ = _shell(tmp_path)
     assert shell.explore.status.value.startswith("ATK 4 DEF 2 HP 20 · Turn 0")
     assert [d.label for d in shell.navigation_bar.destinations] == ["Explore", "Inventory"]
+    assert shell.explore.control.visible and not shell.inventory.control.visible
     shell.select(1)
-    assert shell.body.content is shell.inventory.control
+    # Both tabs stay mounted; only visibility changes (see shell.py).
+    assert shell.body.controls == [shell.explore.control, shell.inventory.control]
+    assert shell.inventory.control.visible and not shell.explore.control.visible
+    assert shell.current == 1
     texts = _texts(shell.inventory.control)
     assert "ATK 4   DEF 2   HP 20" in texts and "Head: empty" in texts
     assert "Your pack is empty." in texts
     shell.select(0)
-    assert shell.body.content is shell.explore.control
+    assert shell.explore.control.visible and not shell.inventory.control.visible
 
 
 def _fill_pack(session):

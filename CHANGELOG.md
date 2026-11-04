@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- After switching between Explore and Inventory, some rows could show twice
+  (such as set bonuses in the stat list, or a "ghost" copy of a pack item that
+  couldn't be dropped) until you switched tabs again.
+
 ## [0.4.0-beta.2] - 2026-11-04
 
 ### Added
