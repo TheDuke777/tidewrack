@@ -6,9 +6,43 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-04
+
 ### Fixed
 - Drowned Watch pieces found before 0.5.0-beta.3 now wear the same teal set
   chip as newer ones, instead of indigo.
+
+### Added
+- Sort your pack by name, ATK, DEF, HP or verdict, best first or worst first
+  (A to Z or Z to A for names). Sorting works on whatever your filters show.
+- Combat. Enemies wait in the rooms of caves, forests and mines, and others
+  wander and may come upon you. Fights go round by round: Attack, Defend (take
+  less damage from the next blow) or Flee (back the way you came; it doesn't
+  always work).
+- Not every enemy is a beast: wreckers prowl the forests and smugglers hide in
+  the sea caves, alongside crabs, eels, boars, wisps, rats, spiders and the
+  drowned.
+- Beaten enemies sometimes drop gear.
+- Health. You slowly recover outside fights, and Rest in a town to heal fully.
+  If you're beaten, you wake at the edge of the last town you visited.
+- A Codex tab with Foes: everyone and everything you've fought, grouped as
+  beasts, people and spirits. Beat them to learn their strength, then what they
+  drop.
+
+### Changed
+- A fight now takes over the Explore screen: the map hides until it's over, so
+  you can't miss that one has started.
+- Trying to change gear mid-fight now tells you why you can't.
+- Every level of the Codex folds away: the Foes section and each group in it
+  (Beasts, People, Spirits).
+- Gear sets show as coloured chips beside the Better/Worse verdict, so matching
+  pieces stand out.
+- Recovering outside fights now heals a share of your maximum HP (5% every
+  three turns, at least 1), so it keeps pace as your health grows.
+- The line under the Explore screen now shows only your progress (turn, rooms,
+  places). Your stats are on the Inventory tab.
+- Worlds made with earlier versions open at full health, but have no enemies.
+  Start a new world to fight.
 
 ## [0.5.0-beta.4] - 2026-11-04
 
