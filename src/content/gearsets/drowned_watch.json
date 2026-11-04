@@ -1,6 +1,7 @@
 {
   "id": "gearset.drowned_watch",
   "name": "Drowned Watch",
+  "color": "teal",
   "bonuses": [
     { "pieces": 2, "stats": { "def": 2 } },
     { "pieces": 3, "stats": { "hp": 5 } }

@@ -84,7 +84,11 @@ def _shell(tmp_path, confirm=None):
             on_confirm()
 
     shell = WorldShell(
-        session, SettingsStore(tmp_path / "s.json"), on_back=lambda: None, confirm=record
+        session,
+        SettingsStore(tmp_path / "s.json"),
+        on_back=lambda: None,
+        confirm=record,
+        notify=lambda message: None,
     )
     return session, shell, asked
 

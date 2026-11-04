@@ -18,7 +18,7 @@ from pydantic import (
     model_validator,
 )
 
-from tidewrack.core.gear.item import SLOTS
+from tidewrack.core.gear.item import SET_COLORS, SLOTS
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, STATS
 from tidewrack.core.world.location import Exit, Location, Room
 from tidewrack.core.world.overworld import Overworld
@@ -102,6 +102,7 @@ class GearSetSchema(Schema):
 
     id: content_id("gearset")
     name: Text
+    color: Literal[SET_COLORS]  # type: ignore[valid-type]  # its chip's colour
     bonuses: list[SetBonusSchema] = Field(min_length=1)
 
 

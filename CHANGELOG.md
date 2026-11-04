@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- A fight now takes over the Explore screen: the map hides until it's over, so
+  you can't miss that one has started.
+- Trying to change gear mid-fight now tells you why you can't.
+- Every level of the Codex folds away: the Foes section and each group in it
+  (Beasts, People, Spirits).
+- Gear sets show as coloured chips beside the Better/Worse verdict, so matching
+  pieces stand out.
+
 ## [0.5.0-beta.2] - 2026-11-04
 
 ### Changed

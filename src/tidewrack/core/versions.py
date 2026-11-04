@@ -14,4 +14,5 @@ SCHEMA_VERSION = 5
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
-GENERATOR_VERSION = 4
+# 5: generated items record their set's chip colour
+GENERATOR_VERSION = 5

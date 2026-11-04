@@ -217,6 +217,8 @@ class ItemView:
     upgrade: str | None  # "+1/3" when upgradable
     affixes: tuple[str, ...]
     gear_set: str | None
+    gear_set_id: str | None
+    gear_set_color: str | None  # one of core.gear.item.SET_COLORS, if the set has one
     effects: tuple[str, ...]
     comparison: Comparison  # against what the player has on now
 
@@ -631,6 +633,8 @@ class Game:
             upgrade=f"+{item.upgrade}/{item.max_upgrade}" if item.max_upgrade else None,
             affixes=tuple(a.name for a in item.affixes),
             gear_set=item.gear_set.name if item.gear_set else None,
+            gear_set_id=item.gear_set.id if item.gear_set else None,
+            gear_set_color=item.gear_set.color if item.gear_set else None,
             effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
             comparison=compare(item, self._equipped(), base),
         )

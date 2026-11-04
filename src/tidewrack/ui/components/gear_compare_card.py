@@ -16,6 +16,7 @@ import flet as ft
 from tidewrack.core.engine.game import ItemView
 from tidewrack.core.gear.compare import Comparison, format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
+from tidewrack.ui.components.set_chip import set_chip
 from tidewrack.ui.components.stat_delta import delta_color, stat_delta
 
 VERDICTS = {
@@ -37,6 +38,16 @@ def verdict_chip(verdict: str) -> ft.Container:
     )
 
 
+def chips(item: ItemView) -> list[ft.Control]:
+    """Top-right of the card: the verdict (unless equipped) and the item's set."""
+    found: list[ft.Control] = []
+    if not item.comparison.equipped:
+        found.append(verdict_chip(item.comparison.verdict))
+    if item.gear_set and item.gear_set_id:
+        found.append(set_chip(item.gear_set, item.gear_set_id, item.gear_set_color))
+    return found
+
+
 def impact_line(comparison: Comparison) -> str:
     """ "ATK 4 → 7 · DEF 3 → 2 · HP 20": the player's stats before → after."""
     parts = []
@@ -53,8 +64,6 @@ def subtitle(item: ItemView) -> str:
     parts = [item.slot]
     if item.upgrade:
         parts.append(f"upgrade {item.upgrade}")
-    if item.gear_set:
-        parts.append(f"{item.gear_set} set")
     if comparison.equipped:
         parts.append("equipped")
     elif comparison.replaces:
@@ -92,7 +101,11 @@ def gear_compare_card(item: ItemView, actions: Sequence[ft.Control] = ()) -> ft.
                     ft.Text(subtitle(item), size=13, color=ft.Colors.ON_SURFACE_VARIANT),
                 ],
             ),
-            *([] if comparison.equipped else [verdict_chip(comparison.verdict)]),
+            ft.Column(
+                spacing=6,
+                horizontal_alignment=ft.CrossAxisAlignment.END,
+                controls=chips(item),
+            ),
         ],
     )
     body: list[ft.Control] = [header]

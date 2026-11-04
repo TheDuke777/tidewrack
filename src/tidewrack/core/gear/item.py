@@ -38,11 +38,15 @@ class SetBonus:
     effects: list[str] = field(default_factory=list)
 
 
+SET_COLORS = ("teal", "amber", "indigo", "pink", "green", "orange", "purple", "cyan")
+
+
 @dataclass
 class GearSet:
     id: str
     name: str
     bonuses: list[SetBonus] = field(default_factory=list)
+    color: str | None = None  # one of SET_COLORS; None in saves from before v0.5.0
 
 
 @dataclass

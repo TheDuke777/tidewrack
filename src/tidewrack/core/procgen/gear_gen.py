@@ -52,6 +52,7 @@ def make_item(
                 SetBonus(b.pieces, dict(b.stats), list(b.effects))
                 for b in sorted(schema.bonuses, key=lambda b: b.pieces)
             ],
+            color=schema.color,
         )
     return Item(
         gear_id=gear.id,

@@ -55,7 +55,13 @@ class App:
         )
 
     def show_game(self, session: GameSession) -> None:
-        shell = WorldShell(session, self.settings, on_back=self.show_picker, confirm=self.confirm)
+        shell = WorldShell(
+            session,
+            self.settings,
+            on_back=self.show_picker,
+            confirm=self.confirm,
+            notify=self._notify,
+        )
         self._show(shell.body, shell.navigation_bar)
         if session.from_backup:
             self._notify(

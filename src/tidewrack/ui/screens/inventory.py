@@ -13,7 +13,16 @@ from dataclasses import dataclass
 
 import flet as ft
 
-from tidewrack.core.engine.game import Command, Drop, Equip, InventoryView, ItemView, Unequip
+from tidewrack.core.engine.events import ActionRejected
+from tidewrack.core.engine.game import (
+    Command,
+    Drop,
+    Equip,
+    InventoryView,
+    ItemView,
+    TurnResult,
+    Unequip,
+)
 from tidewrack.core.gear.compare import format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
@@ -69,9 +78,12 @@ def filter_options(pack: Iterable[ItemView]) -> dict[str, list[tuple[str, str]]]
 
 
 class InventoryScreen:
-    def __init__(self, session: GameSession, confirm: Confirm) -> None:
+    def __init__(
+        self, session: GameSession, confirm: Confirm, notify: Callable[[str], None]
+    ) -> None:
         self.session = session
         self.confirm = confirm
+        self.notify = notify  # a toast, for actions the game refuses (e.g. mid-fight)
         self.filter = PackFilter()
         self.selecting = False
         self.selected: set[int] = set()
@@ -122,8 +134,16 @@ class InventoryScreen:
     # --- actions -----------------------------------------------------------------
 
     def act(self, command: Command) -> None:
-        self.session.perform(command)  # autosaves
+        self._tell(self.session.perform(command))  # autosaves
         self.refresh()
+
+    def _tell(self, *results: TurnResult) -> None:
+        """Toast the first reason the game refused something (the log has them all)."""
+        for result in results:
+            for event in result.events:
+                if isinstance(event, ActionRejected):
+                    self.notify(event.reason)
+                    return
 
     def _drop(self, item: ItemView) -> None:
         def drop() -> None:
@@ -138,8 +158,8 @@ class InventoryScreen:
             return
 
         def drop() -> None:
-            for item in chosen:
-                self.session.perform(Drop(item.id))
+            results = [self.session.perform(Drop(item.id)) for item in chosen]
+            self._tell(*results)
             self.selected.clear()
             self.selecting = False
             self.refresh()

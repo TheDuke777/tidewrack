@@ -1,7 +1,9 @@
 """The codex: what you've discovered. For now, the foes you've met.
 
 Entries fill in as you beat them (core.codex.foes): unknown details show as
-"???", and each card says what defeating more of them will reveal.
+"???", and each card says what defeating more of them will reveal. Every level
+collapses: the section (Foes; later Lore, Quests…) and each group inside it
+(Beasts, People, Spirits). What's open is remembered while the world is.
 """
 
 from __future__ import annotations
@@ -18,7 +20,8 @@ UNKNOWN = "???"
 class CodexScreen:
     def __init__(self, session: GameSession) -> None:
         self.session = session
-        self.foes = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.open: dict[str, bool] = {}  # section/group key -> expanded (default: open)
+        self.sections = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.control = ft.SafeArea(
             expand=True,
             content=ft.Container(
@@ -27,14 +30,7 @@ class CodexScreen:
                     expand=True,
                     controls=[
                         ft.Text("Codex", size=22, weight=ft.FontWeight.BOLD),
-                        ft.ListView(
-                            expand=True,
-                            spacing=12,
-                            controls=[
-                                ft.Text("Foes", size=18, weight=ft.FontWeight.BOLD),
-                                self.foes,
-                            ],
-                        ),
+                        ft.ListView(expand=True, spacing=12, controls=[self.sections]),
                     ],
                 ),
             ),
@@ -42,21 +38,47 @@ class CodexScreen:
         self.refresh()
 
     def refresh(self) -> None:
-        groups = self.session.game.foes().by_category()
-        if not groups:
-            self.foes.controls = [
+        self.sections.controls = [self._foes_section()]
+
+    def _foes_section(self) -> ft.Control:
+        foes = self.session.game.foes()
+        groups = foes.by_category()
+        if groups:
+            inner: list[ft.Control] = [
+                self._tile(
+                    f"foes/{heading}",
+                    f"{heading} ({len(group)})",
+                    [foe_card(foe) for foe in group],
+                    size=15,
+                )
+                for heading, group in groups
+            ]
+        else:
+            inner = [
                 ft.Text(
                     "You haven't met any foes yet. Whatever you fight is recorded here.",
                     size=14,
                     color=ft.Colors.ON_SURFACE_VARIANT,
                 )
             ]
-            return
-        controls: list[ft.Control] = []
-        for heading, foes in groups:
-            controls.append(ft.Text(heading, size=15, weight=ft.FontWeight.BOLD))
-            controls += [foe_card(foe) for foe in foes]
-        self.foes.controls = controls
+        return self._tile("foes", f"Foes ({len(foes.foes)})", inner, size=18)
+
+    def _tile(
+        self, key: str, title: str, controls: list[ft.Control], size: int
+    ) -> ft.ExpansionTile:
+        def changed(e: ft.Event) -> None:
+            self.open[key] = bool(e.data)
+
+        return ft.ExpansionTile(
+            title=ft.Text(title, size=size, weight=ft.FontWeight.BOLD),
+            expanded=self.open.get(key, True),
+            maintain_state=True,
+            controls_padding=ft.Padding.only(left=8, bottom=8),
+            tile_padding=ft.Padding.symmetric(horizontal=4),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            on_change=changed,
+            controls=controls,
+        )
 
 
 def foe_lines(foe: FoeView) -> list[str]:

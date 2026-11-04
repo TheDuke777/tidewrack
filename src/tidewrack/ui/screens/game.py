@@ -177,6 +177,7 @@ class GameScreen:
             on_size_change=self._panes_resized,
         )
         self._shown_room: tuple[str, str] | None = None
+        self._was_fighting = False
         header = ft.Row(
             controls=[
                 ft.IconButton(
@@ -279,6 +280,9 @@ class GameScreen:
         ]
         # During a fight, the fight panel replaces everything you can't do anyway.
         fighting = view.combat is not None
+        if fighting and not self._was_fighting:
+            self._scroll_details_to_top()  # the fight panel is the first thing you see
+        self._was_fighting = fighting
         self.combat.controls = [combat_panel(view, self.act)] if fighting else []
         for section in (self.here, self.exits, self.roads, self.actions):
             section.visible = not fighting
@@ -292,10 +296,11 @@ class GameScreen:
         # Worlds saved before v0.4 have no world map; the oldest have no room map.
         area, world = self.map_choice.segments
         area.disabled, world.disabled = view.map is None, view.world_map is None
-        self.map_choice.visible = not (area.disabled and world.disabled)
+        # A fight takes over the screen: no map, so it's obvious one has started.
+        self.map_choice.visible = not (area.disabled and world.disabled) and not fighting
         choice = (self.map_choice.selected or [None])[0]
         shown = {"area": view.map, "world": view.world_map}.get(choice)
-        self.map.control.visible = shown is not None
+        self.map.control.visible = shown is not None and not fighting
         if shown is not None:
             on_world = choice == "world"
             legend = f"{kinds_legend(shown)}\n{WORLD_LEGEND}" if on_world else ROOM_LEGEND

@@ -25,27 +25,27 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 4
+    assert GENERATOR_VERSION == 5
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 4
+    assert GENERATOR_VERSION == 5
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 4
+    assert GENERATOR_VERSION == 5
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
-GOLDEN_ENEMIES = "d6a93d9319360c3cc50ab54e09d7a9d22ef0676bb92270276ced28f7c9ea3976"
-GOLDEN_FINDS = "ff12eed26353d043cc262fc20305260710ca8fab607e476cfcf5317ad36ec9e0"
+GOLDEN_ENEMIES = "a071c9e302ccb084e03dd8323926b46711b4a0cf559eb04ccd37bddc701add6e"
+GOLDEN_FINDS = "ad3e543e3e78e20f6f9c99679912e3051e93fab9d463a8fe525fe5ae11c4763b"
 
 
 # --- worlds ------------------------------------------------------------------------
