@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0-beta.1] - 2026-11-04
+
 ### Added
 - Combat. Enemies wait in the rooms of caves, forests and mines, and others
   wander and may come upon you. Fights go round by round: Attack, Defend (take
