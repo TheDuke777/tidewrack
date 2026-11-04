@@ -7,11 +7,11 @@ import secrets
 import flet as ft
 
 from tidewrack.core.data.loader import Content
-from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.session import GameSession, next_world_name
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
 from tidewrack.ui.screens.game import GameScreen
+from tidewrack.ui.screens.inventory import InventoryScreen
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
 from tidewrack.version import get_build_info, version_label
 
@@ -53,20 +53,31 @@ class App:
             ).control
         )
 
-    def show_game(self, session: GameSession) -> None:
-        self._show(GameScreen(session, self.settings, on_back=self.show_picker).control)
-        if session.from_backup:
+    def show_game(self, session: GameSession, *, opened: bool = True) -> None:
+        self._show(
+            GameScreen(
+                session,
+                self.settings,
+                on_back=self.show_picker,
+                on_inventory=lambda: self.show_inventory(session),
+            ).control
+        )
+        if opened and session.from_backup:
             self._notify(
                 "The latest save was unreadable, so this world was restored from a backup."
             )
+
+    def show_inventory(self, session: GameSession) -> None:
+        self._show(
+            InventoryScreen(session, on_back=lambda: self.show_game(session, opened=False)).control
+        )
 
     # --- actions -----------------------------------------------------------------
 
     def new_world(self) -> None:
         name = next_world_name([s.meta.name for s in self.store.list_slots()])
         seed = new_seed()
-        world = generate_world(seed, self.content.world(WORLD_RECIPE), self.content.roomsets)
-        session = GameSession.new(self.store, self.content, world, name, seed)
+        session = GameSession.generate(self.store, self.content, WORLD_RECIPE, name, seed)
         self.show_game(session)
 
     def open_slot(self, slot_id: str) -> None:

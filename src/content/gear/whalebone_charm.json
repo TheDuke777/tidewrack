@@ -1,0 +1,7 @@
+{
+  "id": "gear.whalebone_charm",
+  "name": "Whalebone Charm",
+  "slot": "trinket",
+  "base": { "hp": 4 },
+  "rolls": { "hp": [0, 2] }
+}

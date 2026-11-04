@@ -1,3 +1,4 @@
+from tidewrack.core.data.save import GameState
 from tidewrack.core.engine.components import Explorer, Position
 from tidewrack.core.engine.events import (
     ActionRejected,
@@ -5,7 +6,9 @@ from tidewrack.core.engine.events import (
     RoomEntered,
     TurnEnded,
 )
-from tidewrack.core.engine.game import Game, Look, Move, Wait
+from tidewrack.core.engine.game import Drop, Equip, Game, Look, Move, Take, Unequip, Wait
+from tidewrack.core.gear.item import Item
+from tidewrack.core.procgen.gear_gen import generate_kit, make_item
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
 
@@ -113,3 +116,118 @@ def test_same_seed_and_commands_give_identical_runs():
 
     assert run(2024) == run(2024)
     assert run(2024)[0] != run(2025)[0]  # ambient lines differ between seeds
+
+
+# --- gear --------------------------------------------------------------------------
+
+CONTENT = load_bundled_content()
+RECIPE = CONTENT.world("world.standard")
+
+
+def gear_item(gear_id, **roll):
+    return make_item(CONTENT.gear[gear_id], CONTENT.gearsets, roll)
+
+
+def geared_game() -> Game:
+    """Kit on; a Harpoon and a Buckler at the start, a Cutlass one room down."""
+    return Game(
+        1,
+        WORLD,
+        RECIPE.player,
+        kit=generate_kit(RECIPE, CONTENT),
+        finds=[
+            (FIRST_DESCENT.id, "wrack_cove", gear_item("gear.harpoon")),
+            (FIRST_DESCENT.id, "wrack_cove", gear_item("gear.buckler")),
+            (FIRST_DESCENT.id, "cliff_stair", gear_item("gear.cutlass", atk=1)),
+        ],
+    )
+
+
+def here(game, name):
+    return next(i for i in game.view().items_here if i.name == name)
+
+
+def test_the_kit_is_equipped_and_counts_toward_stats():
+    game = geared_game()
+    slots = {s.slot: s.item.name for s in game.inventory().slots if s.item}
+    assert slots == {"main_hand": "Driftwood Club", "body": "Patched Coat"}
+    assert game.view().stats == {"atk": 4, "def": 2, "hp": 20}
+    assert [i.name for i in game.view().items_here] == ["Harpoon", "Buckler"]
+    assert "Lying here: Harpoon and Buckler." in game.log
+
+
+def test_take_then_equip_a_two_hander_frees_both_hands():
+    game = geared_game()
+    buckler = here(game, "Buckler")
+    assert game.perform(Take(buckler.id)).took_turn
+    game.perform(Equip(buckler.id))
+    assert game.view().stats["def"] == 4
+
+    harpoon = here(game, "Harpoon")
+    assert harpoon.comparison.replaces == ("Driftwood Club", "Buckler")
+    game.perform(Take(harpoon.id))
+    result = game.perform(Equip(harpoon.id))
+    assert "ItemEquipped" in _kinds(result)
+    assert game.log[-1] == "You put away the Driftwood Club and Buckler and equip the Harpoon."
+    inventory = game.inventory()
+    off_hand = next(s for s in inventory.slots if s.slot == "off_hand")
+    assert off_hand.item is None and off_hand.filled_by == "Harpoon"
+    assert [i.name for i in inventory.pack] == ["Driftwood Club", "Buckler"]
+    assert game.view().stats == {"atk": 9, "def": 2, "hp": 20}
+
+
+def test_unequip_and_drop():
+    game = geared_game()
+    coat = next(s.item for s in game.inventory().slots if s.slot == "body")
+    game.perform(Unequip(coat.id))
+    assert game.view().stats["def"] == 1
+    assert [i.name for i in game.inventory().pack] == ["Patched Coat"]
+    game.perform(Move("Descend the cliff stair"))
+    game.perform(Drop(coat.id))
+    assert [i.name for i in game.view().items_here] == ["Patched Coat", "Cutlass"]
+    assert game.log[-1] == "You put down the Patched Coat."
+
+
+def test_dropping_an_equipped_item_takes_it_off_first():
+    game = geared_game()
+    club = next(s.item for s in game.inventory().slots if s.slot == "main_hand")
+    result = game.perform(Drop(club.id))
+    assert _kinds(result)[:2] == ["ItemUnequipped", "ItemDropped"]
+    assert game.view().stats["atk"] == 2
+
+
+def test_gear_actions_on_the_wrong_item_are_rejected_and_free():
+    game = geared_game()
+    cutlass = next(
+        e
+        for e, (item, position) in game.world.query(Item, Position)
+        if position.room == "cliff_stair"
+    )
+    club = next(s.item for s in game.inventory().slots if s.slot == "main_hand")
+    for command, reason in [
+        (Take(cutlass), "That isn't here."),
+        (Equip(cutlass), "You aren't carrying that."),
+        (Drop(cutlass), "You aren't carrying that."),
+        (Unequip(cutlass), "You don't have that on."),
+        (Equip(club.id), "You already have the Driftwood Club on."),
+        (Take(9999), "That isn't here."),
+    ]:
+        result = game.perform(command)
+        assert not result.took_turn
+        assert [e.reason for e in result.events if isinstance(e, ActionRejected)] == [reason]
+    assert game.turn == 0
+
+
+def test_gear_survives_a_save_round_trip():
+    game = geared_game()
+    harpoon = here(game, "Harpoon")
+    game.perform(Take(harpoon.id))
+    game.perform(Equip(harpoon.id))
+    restored = Game.from_state(GameState.model_validate_json(game.to_state().model_dump_json()))
+    assert restored.view() == game.view()
+    assert restored.inventory() == game.inventory()
+    move = Move("Descend the cliff stair")
+    assert restored.perform(move) == game.perform(move)
+    take = Take(here(game, "Cutlass").id)
+    assert restored.perform(take) == game.perform(take)
+    assert restored.to_state() == game.to_state()

@@ -100,5 +100,9 @@
       "features": ["Tide-lines on the pillars, far above your head."],
       "ambient": ["Wind sighs between the pillars."]
     }
-  ]
+  ],
+  "finds": {
+    "chance": 0.25,
+    "gear": { "gear.harpoon": 1, "gear.boathook": 1, "gear.sealskin_boots": 2, "gear.oilskin_hood": 1, "gear.watchmans_coat": 1, "gear.whalebone_charm": 2 }
+  }
 }

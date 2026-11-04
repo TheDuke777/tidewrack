@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Gear. You start with a Driftwood Club and a Patched Coat, and every new world
+  has gear lying in its rooms: cutlasses, harpoons, bucklers, lanterns, helms,
+  boots and charms, some with a twist such as "Keen" or "of the Gull".
+- Six equipment slots (main hand, off hand, head, body, feet, trinket).
+  Two-handed weapons take both hands.
+- Your stats (ATK, DEF and HP) show at the bottom of the game screen.
+- Every piece of gear shows how it compares with what you have on: a Better,
+  Worse or Mixed verdict, the change to each stat (both the item's own stats
+  and with its bonuses), what your stats would become, what it would replace,
+  and what it could reach fully upgraded. Changes are marked with ▲, ▼ or ＝
+  and a sign, never by colour alone.
+- Take, Take & equip, Equip, Take off and Drop. The new inventory screen
+  (backpack button) shows your stats, what adds up to them, your six slots and
+  your pack.
+- The Drowned Watch set: wear two or three pieces for extra DEF and HP.
+
+### Changed
+- Worlds made with earlier versions open with the starting stats and no gear;
+  their rooms have nothing to find. Start a new world to find gear.
+
 ## [0.3.1-beta.1] - 2026-11-04
 
 ### Changed

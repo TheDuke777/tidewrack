@@ -1,0 +1,8 @@
+{
+  "id": "gear.pick",
+  "name": "Miner's Pick",
+  "slot": "main_hand",
+  "two_handed": true,
+  "base": { "atk": 6 },
+  "rolls": { "atk": [0, 2] }
+}

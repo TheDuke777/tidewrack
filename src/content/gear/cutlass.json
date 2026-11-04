@@ -1,0 +1,9 @@
+{
+  "id": "gear.cutlass",
+  "name": "Cutlass",
+  "slot": "main_hand",
+  "base": { "atk": 4 },
+  "rolls": { "atk": [0, 2] },
+  "max_upgrade": 3,
+  "upgrade_step": { "atk": 1 }
+}

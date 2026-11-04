@@ -1,0 +1,7 @@
+{
+  "id": "gear.storm_lantern",
+  "name": "Storm Lantern",
+  "slot": "off_hand",
+  "base": { "hp": 3 },
+  "rolls": { "hp": [0, 2] }
+}

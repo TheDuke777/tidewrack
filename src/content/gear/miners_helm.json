@@ -1,0 +1,7 @@
+{
+  "id": "gear.miners_helm",
+  "name": "Miner's Helm",
+  "slot": "head",
+  "base": { "def": 1, "hp": 2 },
+  "rolls": { "hp": [0, 2] }
+}

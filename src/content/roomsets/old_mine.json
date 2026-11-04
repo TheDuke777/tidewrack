@@ -68,5 +68,9 @@
       "features": ["A miner's candle stub stuck to the wall with clay."],
       "ambient": ["Somewhere above, something taps on stone."]
     }
-  ]
+  ],
+  "finds": {
+    "chance": 0.25,
+    "gear": { "gear.pick": 2, "gear.miners_helm": 2, "gear.storm_lantern": 1, "gear.buckler": 1 }
+  }
 }

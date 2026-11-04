@@ -1,0 +1,7 @@
+{
+  "id": "affix.salted",
+  "name": "Salted",
+  "position": "prefix",
+  "slots": ["off_hand", "head", "body", "feet"],
+  "stats": { "def": 1 }
+}

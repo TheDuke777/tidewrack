@@ -7,6 +7,8 @@ when the same seed would produce different results (RNG or generation changes).
 
 # 2: dungeon nodes may carry map positions (`pos`)
 # 3: a save holds a world of locations (each with rooms) instead of one dungeon
-SCHEMA_VERSION = 3
+# 4: gear (player Stats; Item, Carried and Equipped components)
+SCHEMA_VERSION = 4
 # 2: worlds of locations; per-roomset layouts
-GENERATOR_VERSION = 2
+# 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
+GENERATOR_VERSION = 3

@@ -1,0 +1,8 @@
+{
+  "id": "gear.boathook",
+  "name": "Boathook",
+  "slot": "main_hand",
+  "two_handed": true,
+  "base": { "atk": 5, "def": 1 },
+  "rolls": { "atk": [0, 2] }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "gear.buckler",
+  "name": "Buckler",
+  "slot": "off_hand",
+  "base": { "def": 2 },
+  "rolls": { "def": [0, 1] },
+  "max_upgrade": 2,
+  "upgrade_step": { "def": 1 }
+}

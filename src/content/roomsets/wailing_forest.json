@@ -77,5 +77,9 @@
       "features": ["Coins pressed into the bark of the oldest tree, green with age."],
       "ambient": ["The branches knock together, almost like speech."]
     }
-  ]
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": { "gear.cutlass": 1, "gear.harpoon": 1, "gear.storm_lantern": 1, "gear.sealskin_boots": 1, "gear.oilskin_hood": 1, "gear.whalebone_charm": 1 }
+  }
 }

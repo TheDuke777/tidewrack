@@ -92,6 +92,42 @@ class AmbientNoticed(Event):
     text: str
 
 
+# --- gear --------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ItemTaken(Event):
+    entity: int
+    item: int
+    gear_id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class ItemDropped(Event):
+    entity: int
+    item: int
+    gear_id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class ItemEquipped(Event):
+    entity: int
+    item: int
+    gear_id: str
+    name: str
+    replaced: tuple[str, ...]  # names of the items it took the place of
+
+
+@dataclass(frozen=True)
+class ItemUnequipped(Event):
+    entity: int
+    item: int
+    gear_id: str
+    name: str
+
+
 @dataclass(frozen=True)
 class ActionRejected(Event):
     reason: str

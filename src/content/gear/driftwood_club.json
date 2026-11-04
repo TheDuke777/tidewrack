@@ -1,0 +1,7 @@
+{
+  "id": "gear.driftwood_club",
+  "name": "Driftwood Club",
+  "slot": "main_hand",
+  "base": { "atk": 2 },
+  "rolls": { "atk": [0, 1] }
+}

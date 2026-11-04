@@ -126,11 +126,12 @@ tidewrack/
 │   ├── roomsets/                    # location kinds (town, forest, mine, sea caves): names,
 │   │                                #   size, layout shape, room archetypes, gate room
 │   ├── dungeons/                    # hand-authored locations (first_descent → tutorial later)
+│   ├── gear/                        # gear definitions: slot, base stats, rolls, upgrades, set
+│   ├── affixes/                     # prefixes/suffixes found gear may roll ("Keen", "of the Gull")
+│   ├── gearsets/                    # set bonuses by pieces worn
 │   ├── monsters/
-│   ├── items/
-│   │   ├── gear/
-│   │   ├── consumables/
-│   │   └── materials/               # incl. cooking ingredients
+│   ├── consumables/                 # (later; the loader only allows flat <kind>/<name>.json,
+│   ├── materials/                   #   so no items/ parent dir) incl. cooking ingredients
 │   ├── recipes/
 │   │   ├── crafting/
 │   │   └── cooking/
@@ -156,9 +157,11 @@ tidewrack/
 │   │   ├── world/                   # location.py (rooms + exits + gates),
 │   │   │                            #   overworld.py (locations + roads)
 │   │   ├── procgen/                 # grid.py (shared layout), location_gen.py,
-│   │   │                            #   world_gen.py (+ world_hash); later: biomes,
-│   │   │                            #   names, quests, factions, pets, lore
-│   │   ├── gear/                    # stat_pipeline.py, compare.py
+│   │   │                            #   world_gen.py (+ world_hash), gear_gen.py (kit +
+│   │   │                            #   finds); later: biomes, names, quests, factions,
+│   │   │                            #   pets, lore
+│   │   ├── gear/                    # stats.py (STATS), item.py (Item snapshot, SLOTS),
+│   │   │                            #   stat_pipeline.py, compare.py
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
 │   │   ├── codex/                   # discovery tracker, bestiary/lore/quest-log models,
@@ -273,6 +276,7 @@ Two distinct operations (don't conflate them):
 - **UI (`gear_compare_card`, used everywhere gear appears — loot, shop, inventory, crafting preview):** both base and total Δ visible by default per stat row; player-impact summary ("ATK 42 → 47, DEF 30 → 28"); verdict chip **Better / Worse / Mixed**.
 - **Never color alone:** every delta pairs color with ▲/▼/＝ and a +/− sign.
 - Edge cases: two-handed vs dual slots, multi-slot gear (compare against the slot it would replace), set bonuses gained/lost, unmet requirements flagged, effect-text diff (new/lost effects), "at max upgrade" potential line, unknown/cursed stats.
+- **Built (step 5):** stats are ATK/DEF/HP (`core/gear/stats.py`; a new stat is one entry there plus content). Six slots (main hand, off hand, head, body, feet, trinket); a two-hander fills both hands, and an off-hand item replaces an equipped two-hander. Items are **snapshots** (`Item` holds its definition, roll, affixes and set bonuses), so saves don't depend on content. New worlds get the recipe's `kit` (equipped) and **finds** placed at world creation from roomset `finds` (`procgen/gear_gen.py`, its own `gear` substream, never in gate rooms). Upgrade levels are stored and shown ("fully upgraded" line) but nothing raises them until crafting (step 7). **Not yet:** requirements (no levels until combat) and unidentified/cursed gear (no identification yet); add them to `compare` when those mechanics land.
 
 ### 8.5 Codex, help, and onboarding
 - **Codex tabs:** Bestiary, Quest Log, Lore, Items & Recipes, Pets, Factions & Regions, Modifiers, Achievements. Every content definition has a stable ID; entries show as ??? until discovered, then **fill in progressively** (e.g. kill count reveals drop table/weaknesses).
@@ -319,7 +323,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit and finds together.
 - Every location is generated **at world creation**, never lazily on first visit, so an update can't change places a player hasn't reached yet.
 - `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
@@ -426,7 +430,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 3. ✅ **Done (v0.2.0).** **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.
 4. ✅ **Done (v0.3.0).** **World graph + map:** hand-rolled seeded generation, canvas point-crawl, fog of war. (Spike 3.)
    - ✅ **Done (v0.3.0).** **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration; plus pinch-zoom/pan maps, a scrolling game screen and a collapsible, resizable log (first app-wide setting).
-5. **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip.
+5. 🚧 **In progress (unreleased).** **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip. Built: ATK/DEF/HP, six slots, starting kit + seeded finds, take/drop/equip/unequip, inventory screen, save schema v4 with migration, generator v3.
 6. **Combat + quests + codex discovery** (bestiary/quest log first).
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.

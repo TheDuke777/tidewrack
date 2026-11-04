@@ -69,8 +69,23 @@ def _v2_to_v3(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v3_to_v4(envelope: Envelope) -> Envelope:
+    # v4 adds gear: the player gets base stats (the values new worlds started with
+    # in v4, written out here so later content changes can't alter this migration)
+    # and carries nothing. Old worlds have no finds; their rooms stay empty.
+    for entity in envelope["game"]["entities"]:
+        components = entity["components"]
+        if "Player" in components:
+            components["Stats"] = {"base": {"atk": 2, "def": 1, "hp": 20}}
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
-MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {1: _v1_to_v2, 2: _v2_to_v3}
+MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
+    1: _v1_to_v2,
+    2: _v2_to_v3,
+    3: _v3_to_v4,
+}
 
 
 class NewerSaveError(SaveError):

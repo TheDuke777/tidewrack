@@ -1,0 +1,138 @@
+"""The gear comparison card, used wherever gear appears (CLAUDE.md §8.4).
+
+It shows, against what the player has on now: a verdict chip, what the item
+would replace, the base Δ and total Δ for every stat, the player's stats before
+and after, set bonuses and effects gained or lost, and what the item could reach
+fully upgraded. Everything comes from one Comparison (core.gear.compare), so the
+card can't disagree with the game.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import flet as ft
+
+from tidewrack.core.engine.game import ItemView
+from tidewrack.core.gear.compare import Comparison, format_stats
+from tidewrack.core.gear.stats import STAT_LABELS, STATS
+from tidewrack.ui.components.stat_delta import delta_color, stat_delta
+
+VERDICTS = {
+    "better": ("▲ Better", ft.Colors.GREEN),
+    "worse": ("▼ Worse", ft.Colors.ERROR),
+    "mixed": ("◆ Mixed", ft.Colors.TERTIARY),
+    "same": ("＝ Same", ft.Colors.ON_SURFACE_VARIANT),
+}
+STAT_COLUMN, DELTA_COLUMN = 44, 64
+
+
+def verdict_chip(verdict: str) -> ft.Container:
+    label, color = VERDICTS[verdict]
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+        border=ft.Border.all(1, color),
+        border_radius=ft.BorderRadius.all(12),
+        content=ft.Text(label, size=13, color=color, weight=ft.FontWeight.BOLD),
+    )
+
+
+def impact_line(comparison: Comparison) -> str:
+    """ "ATK 4 → 7 · DEF 3 → 2 · HP 20": the player's stats before → after."""
+    parts = []
+    for row in comparison.rows:
+        label = STAT_LABELS[row.stat]
+        parts.append(
+            f"{label} {row.before}" if row.change == 0 else f"{label} {row.before} → {row.after}"
+        )
+    return " · ".join(parts)
+
+
+def subtitle(item: ItemView) -> str:
+    comparison = item.comparison
+    parts = [item.slot]
+    if item.upgrade:
+        parts.append(f"upgrade {item.upgrade}")
+    if item.gear_set:
+        parts.append(f"{item.gear_set} set")
+    if comparison.equipped:
+        parts.append("equipped")
+    elif comparison.replaces:
+        parts.append("replaces " + " and ".join(comparison.replaces))
+    else:
+        parts.append("empty slot")
+    return " · ".join(parts)
+
+
+def notes(item: ItemView) -> list[str]:
+    """Lines under the stat table: sets, effects, upgrade potential."""
+    comparison = item.comparison
+    lines = [f"Gains set bonus: {s}" for s in comparison.sets_gained]
+    lines += [f"Loses set bonus: {s}" for s in comparison.sets_lost]
+    lines += [f"New effect: {e}" for e in comparison.effects_gained]
+    lines += [f"Loses effect: {e}" for e in comparison.effects_lost]
+    if comparison.equipped:
+        lines += [f"Effect: {e}" for e in item.effects]
+    if comparison.at_max is not None:
+        maxed = " · ".join(f"{STAT_LABELS[s]} {comparison.at_max[s]}" for s in STATS)
+        lines.append(f"Fully upgraded, you'd have {maxed}")
+    return lines
+
+
+def gear_compare_card(item: ItemView, actions: Sequence[ft.Control] = ()) -> ft.Card:
+    comparison = item.comparison
+    header = ft.Row(
+        vertical_alignment=ft.CrossAxisAlignment.START,
+        controls=[
+            ft.Column(
+                expand=True,
+                spacing=2,
+                controls=[
+                    ft.Text(item.name, size=17, weight=ft.FontWeight.BOLD),
+                    ft.Text(subtitle(item), size=13, color=ft.Colors.ON_SURFACE_VARIANT),
+                ],
+            ),
+            *([] if comparison.equipped else [verdict_chip(comparison.verdict)]),
+        ],
+    )
+    body: list[ft.Control] = [header]
+    if comparison.equipped:
+        # Nothing to compare against: show what it gives instead.
+        body.append(ft.Text(f"Gives {format_stats(item.total) or 'no stats'}", size=14))
+    else:
+        body.append(
+            ft.Column(spacing=4, controls=[_table_header(), *map(_table_row, comparison.rows)])
+        )
+        body.append(ft.Text(f"You: {impact_line(comparison)}", size=13))
+    body += [ft.Text(line, size=13, color=ft.Colors.ON_SURFACE_VARIANT) for line in notes(item)]
+    if actions:
+        body.append(ft.Row(wrap=True, spacing=8, run_spacing=8, controls=list(actions)))
+    return ft.Card(
+        content=ft.Container(padding=12, content=ft.Column(spacing=10, controls=body)),
+    )
+
+
+def _table_header() -> ft.Row:
+    style = {"size": 12, "color": ft.Colors.ON_SURFACE_VARIANT}
+    return ft.Row(
+        spacing=8,
+        controls=[
+            ft.Text("", width=STAT_COLUMN, **style),
+            ft.Text("Base", width=DELTA_COLUMN, **style),
+            ft.Text("Total", width=DELTA_COLUMN, **style),
+            ft.Text("You", **style),
+        ],
+    )
+
+
+def _table_row(row) -> ft.Row:
+    you = str(row.before) if row.change == 0 else f"{row.before} → {row.after}"
+    return ft.Row(
+        spacing=8,
+        controls=[
+            ft.Text(STAT_LABELS[row.stat], width=STAT_COLUMN, size=14, weight=ft.FontWeight.BOLD),
+            stat_delta(row.base_delta, width=DELTA_COLUMN),
+            stat_delta(row.total_delta, width=DELTA_COLUMN),
+            ft.Text(you, size=14, color=delta_color(row.change)),
+        ],
+    )

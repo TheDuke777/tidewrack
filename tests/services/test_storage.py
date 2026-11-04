@@ -195,3 +195,23 @@ def test_there_is_a_fixture_for_every_schema_version():
 
     versions = {json.loads(p.read_text())["schema_version"] for p in FIXTURES.glob("*.json")}
     assert versions == set(range(1, SCHEMA_VERSION + 1))
+
+
+def test_v3_saves_get_default_stats_and_no_gear(tmp_path):
+    envelope = json.loads((FIXTURES / "v3_world.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert session.game.view().stats == {"atk": 2, "def": 1, "hp": 20}
+    inventory = session.game.inventory()
+    assert inventory.pack == () and all(s.item is None for s in inventory.slots)
+
+
+def test_v4_gear_fixture_keeps_its_gear(tmp_path):
+    envelope = json.loads((FIXTURES / "v4_gear.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    equipped = {s.slot: s.item.name for s in session.game.inventory().slots if s.item}
+    assert equipped == {
+        "main_hand": "Driftwood Club",
+        "off_hand": "Salted Buckler",
+        "body": "Patched Coat",
+    }
+    assert session.game.view().stats == {"atk": 4, "def": 6, "hp": 20}  # buckler rolled +1

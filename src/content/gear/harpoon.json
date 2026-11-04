@@ -1,0 +1,10 @@
+{
+  "id": "gear.harpoon",
+  "name": "Harpoon",
+  "slot": "main_hand",
+  "two_handed": true,
+  "base": { "atk": 7 },
+  "rolls": { "atk": [0, 3] },
+  "max_upgrade": 3,
+  "upgrade_step": { "atk": 1 }
+}

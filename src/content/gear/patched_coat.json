@@ -1,0 +1,6 @@
+{
+  "id": "gear.patched_coat",
+  "name": "Patched Coat",
+  "slot": "body",
+  "base": { "def": 1 }
+}

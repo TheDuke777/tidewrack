@@ -1,0 +1,1476 @@
+{
+ "content_version": "6647bdee5989475d24168fd2984ed5ff3daccb41ab8854e4dfb47c764c536645",
+ "format": "tidewrack.slot",
+ "game": {
+  "ambient_rng": {
+   "s": [
+    3018444452456132290,
+    1060024703888253056,
+    2360096173943749746,
+    7710193649970721333
+   ],
+   "seed": 5158914432884427925
+  },
+  "entities": [
+   {
+    "components": {
+     "Explorer": {
+      "locations_discovered": [
+       "loc_00",
+       "loc_01"
+      ],
+      "locations_visited": [
+       "loc_00"
+      ],
+      "rooms_discovered": {
+       "loc_00": [
+        "room_00",
+        "room_01",
+        "room_02",
+        "room_03",
+        "room_04"
+       ]
+      },
+      "rooms_visited": {
+       "loc_00": [
+        "room_00",
+        "room_01"
+       ]
+      }
+     },
+     "Name": {
+      "text": "You"
+     },
+     "Player": {},
+     "Position": {
+      "location": "loc_00",
+      "room": "room_01"
+     },
+     "Stats": {
+      "base": {
+       "atk": 2,
+       "def": 1,
+       "hp": 20
+      }
+     }
+    },
+    "id": 1
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A gatekeeper's stool, empty, with a half-mended net draped over it."
+     }
+    },
+    "id": 2
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_02"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 3
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_03"
+     },
+     "Scenery": {
+      "text": "A figurehead over the hearth, her painted eyes following the door."
+     }
+    },
+    "id": 4
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_04"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 5
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_05"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 6
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_06"
+     },
+     "Scenery": {
+      "text": "A chalk board listing today's catch, half of it crossed out."
+     }
+    },
+    "id": 7
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_07"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 8
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A rusted mooring ring, worn bright on one side by a rope long gone."
+     }
+    },
+    "id": 9
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_01"
+     },
+     "Scenery": {
+      "text": "Tide-lines on the pillars, far above your head."
+     }
+    },
+    "id": 10
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_02"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 11
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_03"
+     },
+     "Scenery": {
+      "text": "Pale anemones close as your shadow passes over them."
+     }
+    },
+    "id": 12
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_07"
+     },
+     "Scenery": {
+      "text": "A ring of pebbles, carefully arranged, around nothing at all."
+     }
+    },
+    "id": 13
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A rusted mooring ring, worn bright on one side by a rope long gone."
+     }
+    },
+    "id": 14
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_03"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 15
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_04"
+     },
+     "Scenery": {
+      "text": "A ring of pebbles, carefully arranged, around nothing at all."
+     }
+    },
+    "id": 16
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_07"
+     },
+     "Scenery": {
+      "text": "Something has knotted the kelp into crude, careful shapes."
+     }
+    },
+    "id": 17
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_09"
+     },
+     "Scenery": {
+      "text": "A gull skull, polished, set apart from the rest."
+     }
+    },
+    "id": 18
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_10"
+     },
+     "Scenery": {
+      "text": "A gull skull, polished, set apart from the rest."
+     }
+    },
+    "id": 19
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_11"
+     },
+     "Scenery": {
+      "text": "A ring of pebbles, carefully arranged, around nothing at all."
+     }
+    },
+    "id": 20
+   },
+   {
+    "components": {
+     "Carried": {
+      "by": 1
+     },
+     "Equipped": {
+      "slot": "main_hand"
+     },
+     "Item": {
+      "affixes": [],
+      "base": {
+       "atk": 2
+      },
+      "effects": [],
+      "gear_id": "gear.driftwood_club",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Driftwood Club",
+      "roll": {},
+      "slot": "main_hand",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     }
+    },
+    "id": 21
+   },
+   {
+    "components": {
+     "Carried": {
+      "by": 1
+     },
+     "Equipped": {
+      "slot": "body"
+     },
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.patched_coat",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Patched Coat",
+      "roll": {},
+      "slot": "body",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     }
+    },
+    "id": 22
+   },
+   {
+    "components": {
+     "Carried": {
+      "by": 1
+     },
+     "Equipped": {
+      "slot": "off_hand"
+     },
+     "Item": {
+      "affixes": [
+       {
+        "effects": [],
+        "id": "affix.salted",
+        "name": "Salted",
+        "prefix": true,
+        "stats": {
+         "def": 1
+        }
+       }
+      ],
+      "base": {
+       "def": 2
+      },
+      "effects": [],
+      "gear_id": "gear.buckler",
+      "gear_set": null,
+      "max_upgrade": 2,
+      "name": "Buckler",
+      "roll": {
+       "def": 1
+      },
+      "slot": "off_hand",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {
+       "def": 1
+      }
+     }
+    },
+    "id": 23
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "atk": 5,
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.boathook",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Boathook",
+      "roll": {
+       "atk": 2
+      },
+      "slot": "main_hand",
+      "two_handed": true,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_01"
+     }
+    },
+    "id": 24
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 2,
+       "hp": 2
+      },
+      "effects": [],
+      "gear_id": "gear.watchmans_coat",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Watchman's Coat",
+      "roll": {},
+      "slot": "body",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_02"
+     }
+    },
+    "id": 25
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "def": 1
+      },
+      "effects": [],
+      "gear_id": "gear.sealskin_boots",
+      "gear_set": {
+       "bonuses": [
+        {
+         "effects": [],
+         "pieces": 2,
+         "stats": {
+          "def": 2
+         }
+        },
+        {
+         "effects": [],
+         "pieces": 3,
+         "stats": {
+          "hp": 5
+         }
+        }
+       ],
+       "id": "gearset.drowned_watch",
+       "name": "Drowned Watch"
+      },
+      "max_upgrade": 0,
+      "name": "Sealskin Boots",
+      "roll": {},
+      "slot": "feet",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_01",
+      "room": "room_10"
+     }
+    },
+    "id": 26
+   },
+   {
+    "components": {
+     "Item": {
+      "affixes": [],
+      "base": {
+       "hp": 4
+      },
+      "effects": [],
+      "gear_id": "gear.whalebone_charm",
+      "gear_set": null,
+      "max_upgrade": 0,
+      "name": "Whalebone Charm",
+      "roll": {},
+      "slot": "trinket",
+      "two_handed": false,
+      "upgrade": 0,
+      "upgrade_step": {}
+     },
+     "Position": {
+      "location": "loc_02",
+      "room": "room_01"
+     }
+    },
+    "id": 27
+   }
+  ],
+  "log": [
+   "\u2014 Fathom Rest \u00b7 Town \u2014",
+   "You stand at The Town Gate.",
+   "You make your way to Salt-Stained Street.",
+   "A Salted Buckler lies here.",
+   "You take the Salted Buckler.",
+   "A shutter bangs somewhere above you.",
+   "You equip the Salted Buckler.",
+   "Time passes."
+  ],
+  "next_entity_id": 28,
+  "rng": {
+   "s": [
+    10451216379200822465,
+    13757245211066428519,
+    17911839290282890590,
+    8196980753821780235
+   ],
+   "seed": 1
+  },
+  "seed": 1,
+  "turn": 4,
+  "world": {
+   "locations": [
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_00",
+     "kind": "Town",
+     "name": "Fathom Rest",
+     "pos": [
+      0.7867,
+      0.8653
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "A cart rattles past and away down the road.",
+        "Someone calls a greeting from a window, then thinks better of it."
+       ],
+       "description": "A gate of grey driftwood, bound with iron and left open. Roads leave from here along the coast and inland.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_01"
+        },
+        {
+         "label": "Go west",
+         "to": "room_04"
+        }
+       ],
+       "features": [
+        "A gatekeeper's stool, empty, with a half-mended net draped over it."
+       ],
+       "id": "room_00",
+       "name": "The Town Gate",
+       "pos": [
+        0.8586,
+        0.8262
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_03"
+        },
+        {
+         "label": "Go south",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Salt-Stained Street",
+       "pos": [
+        0.8205,
+        0.6463
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "Tall narrow houses lean together over the street, their upper floors almost touching.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_07"
+        },
+        {
+         "label": "Go east",
+         "to": "room_01"
+        },
+        {
+         "label": "Go south",
+         "to": "room_04"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_02",
+       "name": "Quiet Street",
+       "pos": [
+        0.5905,
+        0.5952
+       ]
+      },
+      {
+       "ambient": [
+        "Somebody laughs too loudly at a corner table.",
+        "The fire spits salt."
+       ],
+       "description": "A tavern built from a ship's timbers; the floor still slopes like a deck.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go south",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A figurehead over the hearth, her painted eyes following the door."
+       ],
+       "id": "room_03",
+       "name": "Salt-Stained Tavern",
+       "pos": [
+        0.9201,
+        0.4001
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go east",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_04",
+       "name": "Crooked Street",
+       "pos": [
+        0.6526,
+        0.829
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_04"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_05",
+       "name": "Lantern-Lit Street",
+       "pos": [
+        0.403,
+        0.8222
+       ]
+      },
+      {
+       "ambient": [
+        "A trader shouts a price, then a lower one.",
+        "Coins clink somewhere nearby."
+       ],
+       "description": "Trestle tables under patched awnings. Most stalls sell fish; one sells only rope.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_05"
+        }
+       ],
+       "features": [
+        "A chalk board listing today's catch, half of it crossed out."
+       ],
+       "id": "room_06",
+       "name": "Shuttered Market",
+       "pos": [
+        0.1094,
+        0.9144
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_02"
+        },
+        {
+         "label": "Go west",
+         "to": "room_09"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_07",
+       "name": "Cobbled Street",
+       "pos": [
+        0.6412,
+        0.3842
+       ]
+      },
+      {
+       "ambient": [
+        "A boat creaks against its fenders.",
+        "The tide slaps at the steps."
+       ],
+       "description": "A long quay of black stone, slick with weed below the high-water line.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_08",
+       "name": "Shuttered Quay",
+       "pos": [
+        0.8467,
+        0.1111
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "Tall narrow houses lean together over the street, their upper floors almost touching.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_09",
+       "name": "Weathered Street",
+       "pos": [
+        0.3946,
+        0.3297
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_01",
+     "kind": "Sea Caves",
+     "name": "The Brine Halls",
+     "pos": [
+      0.4311,
+      0.8205
+     ],
+     "roads": [
+      "loc_00",
+      "loc_02"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "Surf booms behind you.",
+        "Gulls wheel overhead and will not follow you in."
+       ],
+       "description": "A ragged opening in the cliff, half-drowned at high tide. Cold air breathes out of it, smelling of salt and old stone.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_04"
+        },
+        {
+         "label": "Go east",
+         "to": "room_01"
+        },
+        {
+         "label": "Go west",
+         "to": "room_02"
+        }
+       ],
+       "features": [
+        "A rusted mooring ring, worn bright on one side by a rope long gone."
+       ],
+       "id": "room_00",
+       "name": "The Cave Mouth",
+       "pos": [
+        0.5279,
+        0.8663
+       ]
+      },
+      {
+       "ambient": [
+        "Wind sighs between the pillars."
+       ],
+       "description": "A long gallery with pillars of dripstone, like the nave of a drowned church.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_07"
+        },
+        {
+         "label": "Go west",
+         "to": "room_00"
+        }
+       ],
+       "features": [
+        "Tide-lines on the pillars, far above your head."
+       ],
+       "id": "room_01",
+       "name": "Flooded Gallery",
+       "pos": [
+        0.692,
+        0.9193
+       ]
+      },
+      {
+       "ambient": [
+        "The kelp stirs in a draught you cannot feel."
+       ],
+       "description": "A tall chamber festooned with kelp, as if the sea once filled it to the roof.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_03"
+        },
+        {
+         "label": "Go east",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_08"
+        }
+       ],
+       "features": [
+        "Something has knotted the kelp into crude, careful shapes."
+       ],
+       "id": "room_02",
+       "name": "Bone-White Kelp Hall",
+       "pos": [
+        0.3364,
+        0.938
+       ]
+      },
+      {
+       "ambient": [
+        "The pool shivers, though nothing touched it."
+       ],
+       "description": "A still pool fills most of the chamber, its surface flat as glass.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_02"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [
+        "Pale anemones close as your shadow passes over them."
+       ],
+       "id": "room_03",
+       "name": "Flooded Tidal Pool",
+       "pos": [
+        0.2949,
+        0.7304
+       ]
+      },
+      {
+       "ambient": [
+        "A bubble rises from the black water and breaks."
+       ],
+       "description": "A chamber where seawater collects and slowly sours.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_04",
+       "name": "Bone-White Sump",
+       "pos": [
+        0.5176,
+        0.6997
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        },
+        {
+         "label": "Go east",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_05",
+       "name": "Sunken Passage",
+       "pos": [
+        0.0715,
+        0.7356
+       ]
+      },
+      {
+       "ambient": [
+        "A bubble rises from the black water and breaks."
+       ],
+       "description": "A chamber where seawater collects and slowly sours.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go south",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_06",
+       "name": "Echoing Sump",
+       "pos": [
+        0.1191,
+        0.5339
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go west",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A ring of pebbles, carefully arranged, around nothing at all."
+       ],
+       "id": "room_07",
+       "name": "Brackish Grotto",
+       "pos": [
+        0.9133,
+        0.941
+       ]
+      },
+      {
+       "ambient": [
+        "The pool shivers, though nothing touched it."
+       ],
+       "description": "A still pool fills most of the chamber, its surface flat as glass.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_08",
+       "name": "Bone-White Tidal Pool",
+       "pos": [
+        0.0647,
+        0.8587
+       ]
+      },
+      {
+       "ambient": [
+        "Wind sighs between the pillars."
+       ],
+       "description": "A high, narrow gallery. Light from somewhere far above falls in a single thread.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_10"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_09",
+       "name": "Moonlit Gallery",
+       "pos": [
+        0.3051,
+        0.5177
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_11"
+        },
+        {
+         "label": "Go west",
+         "to": "room_09"
+        }
+       ],
+       "features": [],
+       "id": "room_10",
+       "name": "Narrow Passage",
+       "pos": [
+        0.4703,
+        0.482
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+       "exits": [
+        {
+         "label": "Go west",
+         "to": "room_10"
+        }
+       ],
+       "features": [],
+       "id": "room_11",
+       "name": "Windless Passage",
+       "pos": [
+        0.6718,
+        0.5158
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_02",
+     "kind": "Sea Caves",
+     "name": "The Undertow Deep",
+     "pos": [
+      0.1195,
+      0.8626
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "Surf booms behind you.",
+        "Gulls wheel overhead and will not follow you in."
+       ],
+       "description": "A ragged opening in the cliff, half-drowned at high tide. Cold air breathes out of it, smelling of salt and old stone.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go east",
+         "to": "room_03"
+        },
+        {
+         "label": "Go west",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A rusted mooring ring, worn bright on one side by a rope long gone."
+       ],
+       "id": "room_00",
+       "name": "The Cave Mouth",
+       "pos": [
+        0.2684,
+        0.9253
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A crack in the rock just wide enough to pass, its walls slick with weed.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Sunken Passage",
+       "pos": [
+        0.1376,
+        0.9134
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Glistening Grotto",
+       "pos": [
+        0.2841,
+        0.7058
+       ]
+      },
+      {
+       "ambient": [
+        "The kelp stirs in a draught you cannot feel."
+       ],
+       "description": "Dried kelp hangs from the ceiling in long curtains that rustle as you pass.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_04"
+        },
+        {
+         "label": "Go west",
+         "to": "room_00"
+        }
+       ],
+       "features": [
+        "Something has knotted the kelp into crude, careful shapes."
+       ],
+       "id": "room_03",
+       "name": "Sunken Kelp Hall",
+       "pos": [
+        0.4956,
+        0.902
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        },
+        {
+         "label": "Go east",
+         "to": "room_05"
+        },
+        {
+         "label": "Go west",
+         "to": "room_03"
+        }
+       ],
+       "features": [
+        "A ring of pebbles, carefully arranged, around nothing at all."
+       ],
+       "id": "room_04",
+       "name": "Dripping Grotto",
+       "pos": [
+        0.6923,
+        0.892
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_09"
+        },
+        {
+         "label": "Go west",
+         "to": "room_04"
+        }
+       ],
+       "features": [],
+       "id": "room_05",
+       "name": "Moonlit Grotto",
+       "pos": [
+        0.9246,
+        0.9128
+       ]
+      },
+      {
+       "ambient": [
+        "Your footsteps come back to you a moment late."
+       ],
+       "description": "A winding passage, scoured smooth by water. You walk bent to keep your head clear.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go south",
+         "to": "room_04"
+        },
+        {
+         "label": "Go west",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_06",
+       "name": "Crooked Passage",
+       "pos": [
+        0.6842,
+        0.7243
+       ]
+      },
+      {
+       "ambient": [
+        "The kelp stirs in a draught you cannot feel."
+       ],
+       "description": "A tall chamber festooned with kelp, as if the sea once filled it to the roof.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go east",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "Something has knotted the kelp into crude, careful shapes."
+       ],
+       "id": "room_07",
+       "name": "Moonlit Kelp Hall",
+       "pos": [
+        0.471,
+        0.7435
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere, something gnaws."
+       ],
+       "description": "Small bones crunch underfoot. Something feeds here, and is tidy about it.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_08",
+       "name": "Echoing Bone Shelf",
+       "pos": [
+        0.4795,
+        0.4661
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere, something gnaws."
+       ],
+       "description": "Small bones crunch underfoot. Something feeds here, and is tidy about it.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_10"
+        },
+        {
+         "label": "Go south",
+         "to": "room_05"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "A gull skull, polished, set apart from the rest."
+       ],
+       "id": "room_09",
+       "name": "Silent Bone Shelf",
+       "pos": [
+        0.9271,
+        0.6625
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere, something gnaws."
+       ],
+       "description": "Small bones crunch underfoot. Something feeds here, and is tidy about it.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_09"
+        },
+        {
+         "label": "Go west",
+         "to": "room_11"
+        }
+       ],
+       "features": [
+        "A gull skull, polished, set apart from the rest."
+       ],
+       "id": "room_10",
+       "name": "Windless Bone Shelf",
+       "pos": [
+        0.9177,
+        0.5309
+       ]
+      },
+      {
+       "ambient": [
+        "A drop of water lands on your neck.",
+        "The glow pulses, very slowly."
+       ],
+       "description": "A low dome of wet rock. Water beads on every surface and falls in slow, ringing drops.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_12"
+        },
+        {
+         "label": "Go east",
+         "to": "room_10"
+        }
+       ],
+       "features": [
+        "A ring of pebbles, carefully arranged, around nothing at all."
+       ],
+       "id": "room_11",
+       "name": "Echoing Grotto",
+       "pos": [
+        0.6709,
+        0.482
+       ]
+      },
+      {
+       "ambient": [
+        "Wind sighs between the pillars."
+       ],
+       "description": "A long gallery with pillars of dripstone, like the nave of a drowned church.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_11"
+        }
+       ],
+       "features": [],
+       "id": "room_12",
+       "name": "Echoing Gallery",
+       "pos": [
+        0.7036,
+        0.3221
+       ]
+      }
+     ],
+     "start": "room_00"
+    }
+   ],
+   "start": "loc_00"
+  }
+ },
+ "generator_version": 3,
+ "meta": {
+  "created_at": "2026-11-04T18:00:00+00:00",
+  "name": "World 4",
+  "revision": 5,
+  "slot_id": "00000000000000000000000000000004",
+  "summary": {
+   "location": "Fathom Rest",
+   "locations_visited": 1,
+   "room": "Salt-Stained Street",
+   "total_locations": 3,
+   "turn": 4
+  },
+  "updated_at": "2026-11-04T18:05:00+00:00"
+ },
+ "schema_version": 4
+}

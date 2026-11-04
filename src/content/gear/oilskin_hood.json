@@ -1,0 +1,7 @@
+{
+  "id": "gear.oilskin_hood",
+  "name": "Oilskin Hood",
+  "slot": "head",
+  "base": { "def": 1 },
+  "set": "gearset.drowned_watch"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "affix.keen",
+  "name": "Keen",
+  "position": "prefix",
+  "slots": ["main_hand"],
+  "stats": { "atk": 1 }
+}

@@ -15,7 +15,7 @@ every event in a deterministic order.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
@@ -27,7 +27,16 @@ from tidewrack.core.data.save import (
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
-from tidewrack.core.engine.components import Explorer, Name, Player, Position, Scenery
+from tidewrack.core.engine.components import (
+    Carried,
+    Equipped,
+    Explorer,
+    Name,
+    Player,
+    Position,
+    Scenery,
+    Stats,
+)
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
     ActionRejected,
@@ -35,6 +44,10 @@ from tidewrack.core.engine.events import (
     Event,
     EventBus,
     GameStarted,
+    ItemDropped,
+    ItemEquipped,
+    ItemTaken,
+    ItemUnequipped,
     LocationDiscovered,
     LocationEntered,
     LookedAround,
@@ -43,6 +56,11 @@ from tidewrack.core.engine.events import (
     TurnEnded,
     Waited,
 )
+from tidewrack.core.gear import stats
+from tidewrack.core.gear.compare import Comparison, compare
+from tidewrack.core.gear.item import SLOT_LABELS, SLOTS, Item, slots_taken
+from tidewrack.core.gear.stat_pipeline import StatSheet, item_base, item_total, player_stats
+from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location, Room
 from tidewrack.core.world.overworld import Overworld
@@ -78,7 +96,35 @@ class Wait:
     """Spend a turn doing nothing."""
 
 
-Command = Move | Travel | Look | Wait
+@dataclass(frozen=True)
+class Take:
+    """Pick up an item lying here."""
+
+    item: int  # entity id, from an ItemView
+
+
+@dataclass(frozen=True)
+class Drop:
+    """Put down a carried item (taking it off first if it's equipped)."""
+
+    item: int
+
+
+@dataclass(frozen=True)
+class Equip:
+    """Wear or wield a carried item, taking off whatever is in its slots."""
+
+    item: int
+
+
+@dataclass(frozen=True)
+class Unequip:
+    """Take off an equipped item; it stays in the pack."""
+
+    item: int
+
+
+Command = Move | Travel | Look | Wait | Take | Drop | Equip | Unequip
 
 
 # --- results and view model --------------------------------------------------------
@@ -124,6 +170,36 @@ class MapView:
 
 
 @dataclass(frozen=True)
+class ItemView:
+    id: int  # entity id, for Take/Drop/Equip/Unequip
+    name: str  # with affixes and upgrade level
+    slot: str  # "Main hand", "Both hands", …
+    equipped: bool
+    base: StatBlock  # base + roll
+    total: StatBlock  # with upgrades and affixes
+    upgrade: str | None  # "+1/3" when upgradable
+    affixes: tuple[str, ...]
+    gear_set: str | None
+    effects: tuple[str, ...]
+    comparison: Comparison  # against what the player has on now
+
+
+@dataclass(frozen=True)
+class SlotView:
+    slot: str  # slot id
+    label: str
+    item: ItemView | None
+    filled_by: str | None  # when a two-hander in another slot fills this one
+
+
+@dataclass(frozen=True)
+class InventoryView:
+    slots: tuple[SlotView, ...]  # every slot, in SLOTS order
+    pack: tuple[ItemView, ...]  # carried but not equipped
+    sheet: StatSheet
+
+
+@dataclass(frozen=True)
 class GameView:
     location: str  # the location's name
     kind: str  # "Town", "Sea Caves", …
@@ -142,23 +218,45 @@ class GameView:
     total_locations: int
     map: MapView | None  # rooms of this location; None if it has no map positions
     world_map: MapView | None  # locations; None if the world has no map positions
+    items_here: tuple[ItemView, ...]  # lying in this room
+    stats: StatBlock  # the player's total, gear included
 
 
 # --- the game ----------------------------------------------------------------------
 
 
 class Game:
-    def __init__(self, seed: int, world: Overworld) -> None:
-        """Start a new run in `world`."""
+    def __init__(
+        self,
+        seed: int,
+        world: Overworld,
+        player_base: Mapping[str, int] = DEFAULT_PLAYER_BASE,
+        kit: Iterable[Item] = (),
+        finds: Iterable[tuple[str, str, Item]] = (),
+    ) -> None:
+        """Start a new run in `world`, wearing `kit`, with `finds` (location id,
+        room id, item) lying where they were placed at world creation."""
         self._setup(seed, world)
         start = world.location(world.start)
         self.player = self.world.create(
-            Player(), Name("You"), Position(start.id, start.start), Explorer()
+            Player(),
+            Name("You"),
+            Position(start.id, start.start),
+            Explorer(),
+            Stats(stats.full(player_base)),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
                 for text in room.features:
                     self.world.create(Scenery(text), Position(location.id, room.id))
+        for item in kit:
+            if any(set(slots_taken(item)) & set(slots_taken(i)) for i in self._equipped()):
+                raise ValueError(f"kit has two items for the {item.slot} slot")
+            self.world.create(item, Carried(self.player), Equipped(item.slot))
+        for location_id, room_id, item in finds:
+            if room_id not in world.location(location_id).rooms:
+                raise ValueError(f"find placed in unknown room {location_id}/{room_id}")
+            self.world.create(item, Position(location_id, room_id))
 
         self.bus.emit(GameStarted(seed))
         self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
@@ -224,6 +322,14 @@ class Game:
             },
         )
         game.player = game.world.single(Player)[0]
+        if not game.world.has(game.player, Stats):
+            raise ValueError("the player has no Stats")
+        for entity, (_, carried) in game.world.query(Item, Carried):
+            if not game.world.exists(carried.by) or game.world.has(entity, Position):
+                raise ValueError(f"item {entity} is carried by a missing entity or also placed")
+        for entity, _ in game.world.query(Equipped):
+            if not game.world.has(entity, Item, Carried):
+                raise ValueError(f"entity {entity} is equipped but isn't a carried item")
         for entity, (position,) in game.world.query(Position):
             location = game.overworld.locations.get(position.location)
             if location is None or position.room not in location.rooms:
@@ -293,6 +399,14 @@ class Game:
             case Wait():
                 self.bus.emit(Waited(location.id, position.room))
                 took_turn = True
+            case Take(item=entity):
+                took_turn = self._take(entity, position)
+            case Drop(item=entity):
+                took_turn = self._drop(entity, position)
+            case Equip(item=entity):
+                took_turn = self._equip(entity)
+            case Unequip(item=entity):
+                took_turn = self._unequip(entity)
             case _:
                 raise TypeError(f"unknown command: {command!r}")
 
@@ -305,6 +419,144 @@ class Game:
             self.bus.emit(TurnEnded(self.turn))
             events += self.bus.flush()
         return TurnResult(took_turn, tuple(events))
+
+    # --- gear --------------------------------------------------------------------
+
+    def _carried(self, entity: int) -> Item | None:
+        """The item `entity` if the player carries it."""
+        item = self.world.try_get(entity, Item)
+        carried = self.world.try_get(entity, Carried)
+        return item if item and carried and carried.by == self.player else None
+
+    def _equipped(self) -> list[Item]:
+        return [item for _, item in self._equipped_entities()]
+
+    def _equipped_entities(self) -> list[tuple[int, Item]]:
+        return [
+            (e, item)
+            for e, (item, carried, _) in self.world.query(Item, Carried, Equipped)
+            if carried.by == self.player
+        ]
+
+    def _take(self, entity: int, here: Position) -> bool:
+        item = self.world.try_get(entity, Item)
+        spot = self.world.try_get(entity, Position)
+        if (
+            item is None
+            or spot is None
+            or (spot.location, spot.room)
+            != (
+                here.location,
+                here.room,
+            )
+        ):
+            self.bus.emit(ActionRejected("That isn't here."))
+            return False
+        self.world.remove(entity, Position)
+        self.world.add(entity, Carried(self.player))
+        self.bus.emit(ItemTaken(self.player, entity, item.gear_id, item.display_name))
+        return True
+
+    def _drop(self, entity: int, here: Position) -> bool:
+        item = self._carried(entity)
+        if item is None:
+            self.bus.emit(ActionRejected("You aren't carrying that."))
+            return False
+        if self.world.has(entity, Equipped):
+            self.world.remove(entity, Equipped)
+            self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
+        self.world.remove(entity, Carried)
+        self.world.add(entity, Position(here.location, here.room))
+        self.bus.emit(ItemDropped(self.player, entity, item.gear_id, item.display_name))
+        return True
+
+    def _equip(self, entity: int) -> bool:
+        item = self._carried(entity)
+        if item is None:
+            self.bus.emit(ActionRejected("You aren't carrying that."))
+            return False
+        if self.world.has(entity, Equipped):
+            self.bus.emit(ActionRejected(f"You already have the {item.display_name} on."))
+            return False
+        taken = set(slots_taken(item))
+        replaced = [(e, i) for e, i in self._equipped_entities() if taken & set(slots_taken(i))]
+        for other, _ in replaced:
+            self.world.remove(other, Equipped)
+        self.world.add(entity, Equipped(item.slot))
+        self.bus.emit(
+            ItemEquipped(
+                self.player,
+                entity,
+                item.gear_id,
+                item.display_name,
+                tuple(i.display_name for _, i in replaced),
+            )
+        )
+        return True
+
+    def _unequip(self, entity: int) -> bool:
+        item = self._carried(entity)
+        if item is None or not self.world.has(entity, Equipped):
+            self.bus.emit(ActionRejected("You don't have that on."))
+            return False
+        self.world.remove(entity, Equipped)
+        self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
+        return True
+
+    def _items_at(self, location_id: str, room_id: str) -> list[tuple[int, Item]]:
+        return [
+            (e, item)
+            for e, (item, p) in self.world.query(Item, Position)
+            if (p.location, p.room) == (location_id, room_id)
+        ]
+
+    def _item_view(self, entity: int, item: Item) -> ItemView:
+        base = self.world.get(self.player, Stats).base
+        return ItemView(
+            id=entity,
+            name=item.display_name,
+            slot="Both hands" if item.two_handed else SLOT_LABELS[item.slot],
+            equipped=self.world.has(entity, Equipped),
+            base=item_base(item),
+            total=item_total(item),
+            upgrade=f"+{item.upgrade}/{item.max_upgrade}" if item.max_upgrade else None,
+            affixes=tuple(a.name for a in item.affixes),
+            gear_set=item.gear_set.name if item.gear_set else None,
+            effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
+            comparison=compare(item, self._equipped(), base),
+        )
+
+    def sheet(self) -> StatSheet:
+        return player_stats(self.world.get(self.player, Stats).base, self._equipped())
+
+    def inventory(self) -> InventoryView:
+        equipped = self._equipped_entities()
+        by_slot = {item.slot: (e, item) for e, item in equipped}
+        slots = []
+        for slot in SLOTS:
+            filled_by = next(
+                (
+                    item.display_name
+                    for _, item in equipped
+                    if item.slot != slot and slot in slots_taken(item)
+                ),
+                None,
+            )
+            held = by_slot.get(slot)
+            slots.append(
+                SlotView(
+                    slot=slot,
+                    label=SLOT_LABELS[slot],
+                    item=self._item_view(*held) if held else None,
+                    filled_by=filled_by,
+                )
+            )
+        pack = tuple(
+            self._item_view(e, item)
+            for e, (item, carried) in self.world.query(Item, Carried)
+            if carried.by == self.player and not self.world.has(e, Equipped)
+        )
+        return InventoryView(slots=tuple(slots), pack=pack, sheet=self.sheet())
 
     def _explorer(self) -> Explorer:
         return self.world.get(self.player, Explorer)
@@ -373,6 +625,10 @@ class Game:
             total_locations=len(self.overworld.locations),
             map=room_map,
             world_map=world_map,
+            items_here=tuple(
+                self._item_view(e, i) for e, i in self._items_at(location.id, room.id)
+            ),
+            stats=self.sheet().total,
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -424,14 +680,28 @@ class Game:
                         self._say(
                             f"You make your way to {name}." if first else f"You return to {name}."
                         )
+                    self._mention_items(location_id, room_id)
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
                     s.text
                     for _, (s, p) in self.world.query(Scenery, Position)
                     if (p.location, p.room) == (location_id, room_id)
                 ]
-                for text in scenery or ["Nothing else here catches your eye."]:
+                items = self._items_at(location_id, room_id)
+                for text in scenery or ([] if items else ["Nothing else here catches your eye."]):
                     self._say(text)
+                self._mention_items(location_id, room_id)
+            case ItemTaken(name=name):
+                self._say(f"You take the {name}.")
+            case ItemDropped(name=name):
+                self._say(f"You put down the {name}.")
+            case ItemEquipped(name=name, replaced=replaced):
+                if replaced:
+                    self._say(f"You put away the {_and(replaced)} and equip the {name}.")
+                else:
+                    self._say(f"You equip the {name}.")
+            case ItemUnequipped(name=name):
+                self._say(f"You take off the {name}.")
             case Waited():
                 self._say("Time passes.")
             case AmbientNoticed(text=text):
@@ -439,9 +709,22 @@ class Game:
             case ActionRejected(reason=reason):
                 self._say(reason)
 
+    def _mention_items(self, location_id: str, room_id: str) -> None:
+        names = [item.display_name for _, item in self._items_at(location_id, room_id)]
+        if len(names) == 1:
+            self._say(f"A {names[0]} lies here.")
+        elif names:
+            self._say(f"Lying here: {_and(names)}.")
+
     def _say(self, line: str) -> None:
         self.log.append(line)
         del self.log[:-LOG_LIMIT]
+
+
+def _and(names: Iterable[str]) -> str:
+    """ "a", "a and b", "a, b and c"."""
+    names = list(names)
+    return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
 
 
 # --- maps --------------------------------------------------------------------------

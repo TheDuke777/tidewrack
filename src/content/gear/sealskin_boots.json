@@ -1,0 +1,8 @@
+{
+  "id": "gear.sealskin_boots",
+  "name": "Sealskin Boots",
+  "slot": "feet",
+  "base": { "def": 1 },
+  "rolls": { "def": [0, 1] },
+  "set": "gearset.drowned_watch"
+}

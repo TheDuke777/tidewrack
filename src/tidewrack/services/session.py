@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -17,6 +17,10 @@ from pydantic import ValidationError
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.save import GameState
 from tidewrack.core.engine.game import Command, Game, TurnResult
+from tidewrack.core.gear.item import Item
+from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
+from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
+from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.core.versions import GENERATOR_VERSION, SCHEMA_VERSION
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.storage import SaveError, SaveStore, SlotMeta, SlotSummary
@@ -50,6 +54,31 @@ class GameSession:
     # --- creating and opening ----------------------------------------------------
 
     @classmethod
+    def generate(
+        cls,
+        store: SaveStore,
+        content: Content,
+        recipe_id: str,
+        name: str,
+        seed: int,
+        clock: Clock = utc_now,
+    ) -> GameSession:
+        """Generate a fresh world from a recipe (layout, kit and finds) in a new slot."""
+        recipe = content.world(recipe_id)
+        world = generate_world(seed, recipe, content.roomsets)
+        return cls.new(
+            store,
+            content,
+            world,
+            name,
+            seed,
+            clock,
+            player_base=recipe.player,
+            kit=generate_kit(recipe, content),
+            finds=generate_finds(seed, world, content),
+        )
+
+    @classmethod
     def new(
         cls,
         store: SaveStore,
@@ -58,9 +87,13 @@ class GameSession:
         name: str,
         seed: int,
         clock: Clock = utc_now,
+        *,
+        player_base: Mapping[str, int] = DEFAULT_PLAYER_BASE,
+        kit: Iterable[Item] = (),
+        finds: Iterable[tuple[str, str, Item]] = (),
     ) -> GameSession:
         """Start a world in a new slot (saved immediately)."""
-        game = Game(seed, world)
+        game = Game(seed, world, player_base, kit, finds)
         now = clock()
         meta = SlotMeta(
             slot_id=uuid.uuid4().hex,

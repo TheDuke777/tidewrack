@@ -7,10 +7,19 @@ Unknown keys are rejected so typos in content fail loudly instead of being ignor
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
+from tidewrack.core.gear.item import SLOTS
+from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, STATS
 from tidewrack.core.world.location import Exit, Location, Room
 from tidewrack.core.world.overworld import Overworld
 
@@ -26,6 +35,82 @@ def content_id(kind: str) -> type[str]:
 
 class Schema(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+def _known_stats(block: dict[str, int]) -> dict[str, int]:
+    unknown = sorted(set(block) - set(STATS))
+    if unknown:
+        raise ValueError(f"unknown stats {unknown}; stats are {list(STATS)}")
+    return block
+
+
+StatBlock = Annotated[dict[str, int], AfterValidator(_known_stats)]
+Slot = Literal[SLOTS]  # type: ignore[valid-type]
+Weights = dict[str, Annotated[float, Field(gt=0)]]
+
+
+# --- gear ----------------------------------------------------------------------------
+
+
+class GearSchema(Schema):
+    """A kind of gear. Each copy found rolls its own bonus and maybe an affix."""
+
+    id: content_id("gear")
+    name: Text
+    slot: Slot
+    two_handed: bool = False
+    base: StatBlock
+    rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
+    max_upgrade: int = Field(default=0, ge=0, le=10)
+    upgrade_step: StatBlock = {}  # added per upgrade level
+    set: content_id("gearset") | None = None
+    effects: list[Text] = []
+
+    @model_validator(mode="after")
+    def _check(self) -> GearSchema:
+        _known_stats(self.rolls)
+        for stat, (low, high) in self.rolls.items():
+            if low > high:
+                raise ValueError(f"roll for {stat} has min {low} above max {high}")
+        if self.two_handed and self.slot != "main_hand":
+            raise ValueError("two-handed gear must have slot main_hand")
+        if self.max_upgrade and not any(self.upgrade_step.values()):
+            raise ValueError("upgradable gear needs a non-zero upgrade_step")
+        return self
+
+
+class AffixSchema(Schema):
+    """A modifier a found item may roll: "Keen Cutlass", "Boots of the Gull"."""
+
+    id: content_id("affix")
+    name: Text
+    position: Literal["prefix", "suffix"]
+    slots: list[Slot] = Field(min_length=1)  # gear it can appear on
+    weight: float = Field(default=1.0, gt=0)
+    stats: StatBlock = {}
+    effects: list[Text] = []
+
+
+class SetBonusSchema(Schema):
+    pieces: int = Field(ge=2)
+    stats: StatBlock = {}
+    effects: list[Text] = []
+
+
+class GearSetSchema(Schema):
+    """Gear that grants bonuses when several pieces are worn together."""
+
+    id: content_id("gearset")
+    name: Text
+    bonuses: list[SetBonusSchema] = Field(min_length=1)
+
+
+class FindsSchema(Schema):
+    """Gear lying about a roomset's locations, placed when the world is made."""
+
+    chance: Unit = 0.0  # per room (gate rooms never have finds)
+    gear: Weights = {}  # gear id -> relative weight
+    affix_chance: Unit = 0.3
 
 
 # --- roomsets (raw material for generated locations) -------------------------------
@@ -60,6 +145,7 @@ class RoomsetSchema(Schema):
     adjectives: list[Text] = Field(min_length=1)
     entrance: ArchetypeSchema  # the gate room travellers arrive in and leave from
     rooms: list[ArchetypeSchema] = Field(min_length=1)
+    finds: FindsSchema = FindsSchema()
 
     @model_validator(mode="after")
     def _check_size(self) -> RoomsetSchema:
@@ -80,6 +166,8 @@ class WorldRecipeSchema(Schema):
     locations: int = Field(ge=2, le=40)
     start: content_id("roomset")  # the kind of location every game starts in
     roomsets: dict[content_id("roomset"), Annotated[float, Field(gt=0)]] = Field(min_length=1)
+    player: StatBlock = dict(DEFAULT_PLAYER_BASE)  # the player's starting stats
+    kit: list[content_id("gear")] = []  # starting gear, equipped
 
 
 # --- locations -----------------------------------------------------------------------

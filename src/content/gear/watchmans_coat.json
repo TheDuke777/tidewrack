@@ -1,0 +1,7 @@
+{
+  "id": "gear.watchmans_coat",
+  "name": "Watchman's Coat",
+  "slot": "body",
+  "base": { "def": 2, "hp": 2 },
+  "set": "gearset.drowned_watch"
+}

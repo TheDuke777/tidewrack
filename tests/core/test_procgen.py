@@ -2,6 +2,7 @@ import pytest
 
 from tidewrack.core.engine.events import LocationDiscovered, LocationEntered
 from tidewrack.core.engine.game import Game, Move, Travel
+from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate_kit
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
 from tidewrack.core.procgen.world_gen import generate_world, world_hash
@@ -23,11 +24,19 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 2
+    assert GENERATOR_VERSION == 3
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
+def test_golden_finds():
+    # Same rule for the gear lying about a world (procgen/gear_gen.py).
+    assert GENERATOR_VERSION == 3
+    world = new_world(20261103)
+    assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
+
+
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
+GOLDEN_FINDS = "ff12eed26353d043cc262fc20305260710ca8fab607e476cfcf5317ad36ec9e0"
 
 
 # --- worlds ------------------------------------------------------------------------
@@ -235,3 +244,38 @@ def test_maps_are_none_without_positions():
     assert view.map is None and view.world_map is None
     world = Overworld(location.id, {location.id: location})
     assert Game(1, world).view().map is not None
+
+
+# --- gear --------------------------------------------------------------------------
+
+
+def test_finds_are_valid_deterministic_and_never_at_gates():
+    total = 0
+    for seed in range(20):
+        world = new_world(seed)
+        finds = generate_finds(seed, world, CONTENT)
+        assert finds == generate_finds(seed, world, CONTENT)
+        total += len(finds)
+        for find in finds:
+            location = world.location(find.location)
+            assert find.room in location.rooms and find.room not in location.gates
+            roomset = next(r for r in ROOMSETS.values() if r.name == location.kind)
+            assert find.item.gear_id in roomset.finds.gear
+            gear = CONTENT.gear[find.item.gear_id]
+            for stat, value in find.item.roll.items():
+                low, high = gear.rolls[stat]
+                assert low <= value <= high
+            for affix in find.item.affixes:
+                assert gear.slot in CONTENT.affixes[affix.id].slots
+    assert total > 20 * 5  # every world has something to find
+
+
+def test_finds_dont_change_the_world():
+    # Finds use their own substream: placing them never reshapes a world.
+    assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
+
+
+def test_kit_is_plain():
+    kit = generate_kit(RECIPE, CONTENT)
+    assert [i.gear_id for i in kit] == RECIPE.kit
+    assert all(not i.affixes and i.upgrade == 0 for i in kit)

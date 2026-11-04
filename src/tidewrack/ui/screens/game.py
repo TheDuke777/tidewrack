@@ -16,9 +16,21 @@ from dataclasses import dataclass
 
 import flet as ft
 
-from tidewrack.core.engine.game import Command, GameView, Look, Move, Travel, Wait
+from tidewrack.core.engine.game import (
+    Command,
+    Equip,
+    GameView,
+    ItemView,
+    Look,
+    Move,
+    Take,
+    Travel,
+    Wait,
+)
+from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import Settings, SettingsStore
+from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.map_canvas import MapCanvas
 from tidewrack.version import get_build_info, version_label
 
@@ -65,7 +77,11 @@ class LogSplit:
 
 class GameScreen:
     def __init__(
-        self, session: GameSession, settings: SettingsStore, on_back: Callable[[], None]
+        self,
+        session: GameSession,
+        settings: SettingsStore,
+        on_back: Callable[[], None],
+        on_inventory: Callable[[], None],
     ) -> None:
         self.session = session
         self.settings = settings
@@ -76,6 +92,7 @@ class GameScreen:
         self.where = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
         self.room = ft.Text(size=26, weight=ft.FontWeight.BOLD)
         self.description = ft.Text(size=16)
+        self.here = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
@@ -108,7 +125,7 @@ class GameScreen:
         # log below scrolls separately (it follows the newest line).
         self.details = ft.ListView(
             spacing=12,
-            controls=[self.room, self.description, self.exits, self.roads, actions],
+            controls=[self.room, self.description, self.here, self.exits, self.roads, actions],
         )
         self.log_hint = ft.Text(
             size=12,
@@ -158,6 +175,11 @@ class GameScreen:
                     on_click=lambda _: on_back(),
                 ),
                 self.where,
+                ft.IconButton(
+                    icon=ft.Icons.BACKPACK_OUTLINED,
+                    tooltip="Inventory",
+                    on_click=lambda _: on_inventory(),
+                ),
                 self.map_choice,
             ],
         )
@@ -247,6 +269,9 @@ class GameScreen:
             for exit_ in view.exits
         ]
         self.roads.controls = self._roads(view)
+        self.here.controls = [
+            gear_compare_card(item, self._take_buttons(item)) for item in view.items_here
+        ]
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
         self.log_hint.value = view.log[-1] if view.log else ""
         self._apply_split()
@@ -268,7 +293,9 @@ class GameScreen:
             )
 
         self.status.value = (
-            f"Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
+            ""
+            + " ".join(f"{STAT_LABELS[s]} {view.stats[s]}" for s in STATS)
+            + f" · Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
             f"Places {view.locations_visited}/{view.total_locations} · "
             f"Seed {view.seed:x} · {self.version}"
         )
@@ -281,6 +308,24 @@ class GameScreen:
             return
         if page is not None:
             page.run_task(self.details.scroll_to, offset=0)
+
+    def _take_buttons(self, item: ItemView) -> list[ft.Control]:
+        return [
+            ft.FilledButton(
+                content="Take & equip",
+                icon=ft.Icons.CHECK,
+                on_click=lambda _, i=item.id: self._take_and_equip(i),
+            ),
+            ft.OutlinedButton(
+                content="Take",
+                icon=ft.Icons.BACKPACK_OUTLINED,
+                on_click=lambda _, i=item.id: self.act(Take(i)),
+            ),
+        ]
+
+    def _take_and_equip(self, item: int) -> None:
+        self.session.perform(Take(item))
+        self.act(Equip(item))
 
     def _roads(self, view: GameView) -> list[ft.Control]:
         if not view.roads:

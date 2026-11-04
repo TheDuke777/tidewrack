@@ -89,5 +89,9 @@
       "features": ["An anvil with a gull's footprints pressed into the soot on it."],
       "ambient": ["A hammer rings, stops, rings again."]
     }
-  ]
+  ],
+  "finds": {
+    "chance": 0.15,
+    "gear": { "gear.cutlass": 2, "gear.buckler": 2, "gear.boathook": 1, "gear.oilskin_hood": 1, "gear.watchmans_coat": 1, "gear.whalebone_charm": 1 }
+  }
 }

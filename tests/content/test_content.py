@@ -122,3 +122,58 @@ def test_roomset_sizes_must_make_sense():
     roomset["size"] = [9, 4]
     problems = _problems(dict(BUNDLED, **{"roomsets/old_mine.json": json.dumps(roomset)}))
     assert any("roomsets/old_mine.json" in p and "size must satisfy" in p for p in problems)
+
+
+# --- gear --------------------------------------------------------------------------
+
+
+def _edited(path: str, mutate) -> list[str]:
+    data = json.loads(BUNDLED[path])
+    mutate(data)
+    return _problems(dict(BUNDLED, **{path: json.dumps(data)}))
+
+
+def test_bundled_gear_loads():
+    content = load_content(BUNDLED)
+    assert content.world("world.standard").kit == ["gear.driftwood_club", "gear.patched_coat"]
+    assert content.gear["gear.harpoon"].two_handed
+    assert content.gearsets["gearset.drowned_watch"].bonuses[0].pieces == 2
+
+
+def test_gear_rejects_unknown_stats_and_slots():
+    problems = _edited("gear/cutlass.json", lambda d: d.update(base={"str": 3}, slot="hand"))
+    assert any("gear/cutlass.json: slot:" in p for p in problems)
+    assert any("gear/cutlass.json: base:" in p and "unknown stats ['str']" in p for p in problems)
+    problems = _edited("gear/cutlass.json", lambda d: d.update(rolls={"luck": [0, 1]}))
+    assert any("unknown stats ['luck']" in p for p in problems)
+
+
+def test_gear_rejects_inconsistent_definitions():
+    problems = _edited("gear/buckler.json", lambda d: d.update(two_handed=True))
+    assert any("two-handed gear must have slot main_hand" in p for p in problems)
+    problems = _edited("gear/cutlass.json", lambda d: d.update(rolls={"atk": [3, 1]}))
+    assert any("min 3 above max 1" in p for p in problems)
+    problems = _edited("gear/cutlass.json", lambda d: d.update(upgrade_step={}))
+    assert any("needs a non-zero upgrade_step" in p for p in problems)
+
+
+def test_gear_references_must_exist():
+    assert _edited("worlds/standard.json", lambda d: d["kit"].append("gear.trident")) == [
+        "worlds/standard.json: unknown gear 'gear.trident'"
+    ]
+    assert _edited(
+        "roomsets/old_mine.json", lambda d: d["finds"]["gear"].update({"gear.drill": 1})
+    ) == ["roomsets/old_mine.json: unknown gear 'gear.drill'"]
+    assert _edited("gear/cutlass.json", lambda d: d.update(set="gearset.pirate")) == [
+        "gear/cutlass.json: unknown gear set 'gearset.pirate'"
+    ]
+
+
+def test_kit_cant_fill_a_slot_twice():
+    problems = _edited("worlds/standard.json", lambda d: d["kit"].append("gear.harpoon"))
+    assert problems == ["worlds/standard.json: kit has more than one item for a slot"]
+
+
+def test_roomset_names_must_be_unique():
+    problems = _edited("roomsets/old_mine.json", lambda d: d.update(name="Town"))
+    assert problems == ["roomsets/old_mine.json: name 'Town' is also used by roomset.harbour_town"]

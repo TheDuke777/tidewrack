@@ -1,0 +1,8 @@
+{
+  "id": "affix.barnacled",
+  "name": "Barnacled",
+  "position": "prefix",
+  "slots": ["main_hand", "off_hand", "body"],
+  "weight": 0.7,
+  "stats": { "atk": -1, "def": 2 }
+}

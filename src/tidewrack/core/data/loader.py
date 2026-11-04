@@ -19,12 +19,22 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from tidewrack.core.data.schemas import DungeonSchema, RoomsetSchema, WorldRecipeSchema
+from tidewrack.core.data.schemas import (
+    AffixSchema,
+    DungeonSchema,
+    GearSchema,
+    GearSetSchema,
+    RoomsetSchema,
+    WorldRecipeSchema,
+)
 from tidewrack.core.world.location import Location
 
 # kind directory -> (schema, id prefix)
 KINDS = {
+    "affixes": (AffixSchema, "affix"),
     "dungeons": (DungeonSchema, "dungeon"),
+    "gear": (GearSchema, "gear"),
+    "gearsets": (GearSetSchema, "gearset"),
     "roomsets": (RoomsetSchema, "roomset"),
     "worlds": (WorldRecipeSchema, "world"),
 }
@@ -41,6 +51,9 @@ class Content:
     dungeons: dict[str, Location]
     roomsets: dict[str, RoomsetSchema]
     worlds: dict[str, WorldRecipeSchema]
+    gear: dict[str, GearSchema]
+    affixes: dict[str, AffixSchema]
+    gearsets: dict[str, GearSetSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -91,6 +104,9 @@ def load_content(files: Mapping[str, str]) -> Content:
         dungeons={i: m.to_location() for i, m in loaded["dungeons"].items()},
         roomsets=loaded["roomsets"],
         worlds=loaded["worlds"],
+        gear=loaded["gear"],
+        affixes=loaded["affixes"],
+        gearsets=loaded["gearsets"],
         content_hash=content_hash(files),
     )
 
@@ -98,12 +114,39 @@ def load_content(files: Mapping[str, str]) -> Content:
 def _broken_references(loaded: dict[str, dict]) -> list[str]:
     """IDs one content file uses that no file defines."""
     problems = []
+
+    def check(path: str, ids, kind: str, what: str) -> None:
+        problems.extend(f"{path}: unknown {what} {i!r}" for i in ids if i not in loaded[kind])
+
     for recipe in loaded["worlds"].values():
-        path = f"worlds/{recipe.id.partition('.')[2]}.json"
-        for roomset_id in [recipe.start, *recipe.roomsets]:
-            if roomset_id not in loaded["roomsets"]:
-                problems.append(f"{path}: unknown roomset {roomset_id!r}")
+        path = _path("worlds", recipe.id)
+        check(path, [recipe.start, *recipe.roomsets], "roomsets", "roomset")
+        check(path, recipe.kit, "gear", "gear")
+        slots = [s for g in recipe.kit if g in loaded["gear"] for s in _slots(loaded["gear"][g])]
+        if len(slots) != len(set(slots)):
+            problems.append(f"{path}: kit has more than one item for a slot")
+    names: dict[str, str] = {}
+    for roomset in loaded["roomsets"].values():
+        path = _path("roomsets", roomset.id)
+        check(path, roomset.finds.gear, "gear", "gear")
+        if roomset.finds.chance and not roomset.finds.gear:
+            problems.append(f"{path}: finds.chance is set but finds.gear is empty")
+        # Finds map a location's kind (the roomset's name) back to its roomset.
+        if roomset.name in names:
+            problems.append(f"{path}: name {roomset.name!r} is also used by {names[roomset.name]}")
+        names.setdefault(roomset.name, roomset.id)
+    for gear in loaded["gear"].values():
+        if gear.set is not None:
+            check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")
     return problems
+
+
+def _path(kind: str, content_id: str) -> str:
+    return f"{kind}/{content_id.partition('.')[2]}.json"
+
+
+def _slots(gear: GearSchema) -> tuple[str, ...]:
+    return ("main_hand", "off_hand") if gear.two_handed else (gear.slot,)
 
 
 def content_hash(files: Mapping[str, str]) -> str:

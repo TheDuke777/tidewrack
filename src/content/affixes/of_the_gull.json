@@ -1,0 +1,7 @@
+{
+  "id": "affix.of_the_gull",
+  "name": "of the Gull",
+  "position": "suffix",
+  "slots": ["head", "body", "feet", "trinket"],
+  "stats": { "hp": 3 }
+}
