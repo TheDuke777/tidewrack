@@ -115,7 +115,7 @@ tidewrack/
 │   ├── actions/build-cache/         # restore/save Flutter, NDK, Gradle caches (§10)
 │   └── workflows/
 │       ├── ci.yml                   # tests, lint, content validation, quick sims
-│       ├── release.yml              # tag → signed APK → GitHub Release → Pushover
+│       ├── release.yml              # tag → signed APK → GitHub Release → ntfy
 │       └── warm-build-cache.yml     # Mon/Thu on main: fills + refreshes build caches
 ├── tools/
 │   └── release.py                   # bump version/build_number, changelog, tag, push
@@ -341,7 +341,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 ### Release flow
 1. Work merges to `main`; `ci.yml` runs lint, `core/` import-lint, golden-seed tests, migration tests, content validation, import fuzz tests, and quick sims.
 2. Locally: `python tools/release.py patch|minor|major` (add `--pre` for a beta, `--dry-run` to preview). It refuses on a dirty tree, a non-`main` branch, or failing tests; then bumps `version` and `build_number`, promotes the CHANGELOG's "Unreleased" section, commits `release: vX.Y.Z`, tags, and pushes commit + tag.
-3. The tag triggers `release.yml`: verify tag == pyproject version → run tests → restore the keystore from secrets → `flet build apk` → write a SHA-256 file → create the GitHub Release (marked pre-release if the tag has a suffix) with notes from the CHANGELOG → attach the APK + checksum → send a Pushover notification (success links the release, failure links the logs; skipped if the `PUSHOVER_*` secrets are absent). It refuses to publish a debug-signed APK. Uses the built-in `GITHUB_TOKEN` with `contents: write`.
+3. The tag triggers `release.yml`: verify tag == pyproject version → run tests → restore the keystore from secrets → `flet build apk` → write a SHA-256 file → create the GitHub Release (marked pre-release if the tag has a suffix) with notes from the CHANGELOG → attach the APK + checksum → send an ntfy notification to the self-hosted server (on success, tapping it opens the app in Komi Store via `githubstore://repo/<owner>/<repo>`, with "Open in Komi Store" and "View release" buttons; on failure or cancel it opens the run logs; skipped if `NTFY_URL` is absent). It refuses to publish a debug-signed APK. Uses the built-in `GITHUB_TOKEN` with `contents: write`.
 4. Phone: Komi Store's background check finds the release, notifies, and installs over the existing app (its update interval and pre-release inclusion are configurable per its settings).
 5. First launch after an update: if a schema migration is needed, **snapshot every slot first**, then migrate.
 
@@ -354,7 +354,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 - Pinning `flet-cli` (pyproject `build` group) also pins the APK's bundled Python (highest version allowed by `requires-python`).
 
 ### Secrets (GitHub Actions)
-`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` (same as the store password for PKCS12), `ANDROID_KEY_ALIAS` (`tidewrack`), `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY`.
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD` (same as the store password for PKCS12), `ANDROID_KEY_ALIAS` (`tidewrack`), `NTFY_URL` (full topic URL, `https://<server>/<topic>`), `NTFY_TOKEN` (access token with write access to that topic).
 
 ### Signing & identity (permanent decisions)
 - **One release keystore**, created once, backed up in two places (password manager + offline copy), stored in GitHub as a base64 secret with its passwords as separate secrets. Never committed. Losing it means everyone must uninstall to update (cloud saves and backups soften this, but avoid it).

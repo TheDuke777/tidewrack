@@ -104,19 +104,24 @@ jobs:
             --notes-file "$RUNNER_TEMP/notes.md" \
             "${flags[@]}"
 
-      # Runs whatever happened above. A missing secret or a Pushover outage only
+      # Runs whatever happened above. A missing secret or an ntfy outage only
       # warns: by this point the release itself has already succeeded or failed.
-      - name: Notify via Pushover
+      # NTFY_URL is the full topic URL (https://<server>/<topic>); NTFY_TOKEN is
+      # an access token with write access to it (optional if the topic is open).
+      - name: Notify via ntfy
         if: always()
         env:
-          PUSHOVER_APP_TOKEN: ${{ secrets.PUSHOVER_APP_TOKEN }}
-          PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
+          NTFY_URL: ${{ secrets.NTFY_URL }}
+          NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          # Komi Store's own deep link to a repo's page (the one its install
+          # notifications use); a plain github.com link may open GitHub instead.
+          KOMI_URL: githubstore://repo/${{ github.repository }}
         run: |
-          if [ -z "$PUSHOVER_APP_TOKEN" ] || [ -z "$PUSHOVER_USER_KEY" ]; then
-            echo "::warning::Pushover secrets not set; skipping notification"
+          if [ -z "$NTFY_URL" ]; then
+            echo "::warning::NTFY_URL secret not set; skipping notification"
             exit 0
           fi
           kind="release"
@@ -125,22 +130,31 @@ jobs:
             success)
               title="Tidewrack $TAG published"
               message="The $kind is on GitHub; Komi Store will pick it up on its next check."
-              url="$RELEASE_URL"; url_title="View release" ;;
+              priority=default; tags=tada
+              click="$KOMI_URL"
+              actions="view, Open in Komi Store, $KOMI_URL, clear=true; view, View release, $RELEASE_URL" ;;
             cancelled)
               title="Tidewrack $TAG cancelled"
               message="The release run was cancelled before it finished."
-              url="$RUN_URL"; url_title="View run" ;;
+              priority=default; tags=warning
+              click="$RUN_URL"
+              actions="view, View run, $RUN_URL" ;;
             *)
               title="Tidewrack $TAG FAILED"
               message="The release run failed. Check the logs to see which step broke."
-              url="$RUN_URL"; url_title="View logs" ;;
+              priority=high; tags=x
+              click="$RUN_URL"
+              actions="view, View logs, $RUN_URL" ;;
           esac
+          auth=()
+          if [ -n "$NTFY_TOKEN" ]; then auth=(-H "Authorization: Bearer $NTFY_TOKEN"); fi
           curl -sS --fail-with-body --retry 3 \
-            --form-string "token=$PUSHOVER_APP_TOKEN" \
-            --form-string "user=$PUSHOVER_USER_KEY" \
-            --form-string "title=$title" \
-            --form-string "message=$message" \
-            --form-string "url=$url" \
-            --form-string "url_title=$url_title" \
-            https://api.pushover.net/1/messages.json \
-            || echo "::warning::Pushover notification failed"
+            "${auth[@]}" \
+            -H "Title: $title" \
+            -H "Priority: $priority" \
+            -H "Tags: $tags" \
+            -H "Click: $click" \
+            -H "Actions: $actions" \
+            --data-raw "$message" \
+            "$NTFY_URL" \
+            || echo "::warning::ntfy notification failed"
