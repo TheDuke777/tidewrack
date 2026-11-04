@@ -144,3 +144,4 @@ def test_set_items_wear_their_set_chip():
     assert texts == ["▲ Better", "Drowned Watch set"]
     assert set_color("gearset.drowned_watch", "teal") == PALETTE["teal"]
     assert set_color("gearset.old", None) == set_color("gearset.old", None)  # older saves
+    assert set_color("gearset.drowned_watch", None) == PALETTE["teal"]  # matches new pieces

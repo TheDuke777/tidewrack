@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Drowned Watch pieces found before 0.5.0-beta.3 now wear the same teal set
+  chip as newer ones, instead of indigo.
+
 ## [0.5.0-beta.4] - 2026-11-04
 
 ### Added

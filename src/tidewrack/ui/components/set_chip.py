@@ -22,9 +22,14 @@ PALETTE = {
 }
 assert set(PALETTE) == set(SET_COLORS)
 
+# Sets that existed before items recorded their colour (v0.5.0), so pieces from
+# older saves match new ones. Never add to this: new sets always have a colour.
+LEGACY_COLORS = {"gearset.drowned_watch": "teal"}
+
 
 def set_color(set_id: str, color: str | None) -> str:
     """The chip colour: the set's own, or a fixed pick by id for older saves."""
+    color = color or LEGACY_COLORS.get(set_id)
     if color in PALETTE:
         return PALETTE[color]
     return PALETTE[SET_COLORS[sum(map(ord, set_id)) % len(SET_COLORS)]]
