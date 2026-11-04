@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0-beta.2] - 2026-11-04
+
 ### Fixed
 - Turning in a quest now clears it from the notice board straight away, instead
   of only after another tap.
