@@ -158,6 +158,8 @@ class MapNode:
     state: Literal["current", "visited", "seen"]  # "seen": known but not yet visited
     name: str | None  # None while the player doesn't know it
     command: Command | None  # set when one step away: perform it to go there
+    gate: bool = False  # a room roads leave from (area maps)
+    kind: str | None = None  # a location's kind, e.g. "Town" (world maps)
 
 
 @dataclass(frozen=True)
@@ -596,6 +598,7 @@ class Game:
                 discovered=explorer.rooms_discovered.get(location.id, set()),
                 commands={e.to: Move(e.label) for e in room.exits},
                 names_on_discovery=False,
+                gates=set(location.gates),
             )
         if self.overworld.has_map:
             world_map = _fog_map(
@@ -606,6 +609,7 @@ class Game:
                 discovered=explorer.locations_discovered,
                 commands={to: Travel(to) for to in location.roads} if at_gate else {},
                 names_on_discovery=True,  # signposts name the places a road leads
+                kinds={loc.id: loc.kind for loc in self.overworld.locations.values()},
             )
         return GameView(
             location=location.name,
@@ -738,6 +742,8 @@ def _fog_map(
     discovered: set[str],
     commands: dict[str, Command],
     names_on_discovery: bool,
+    gates: set[str] = frozenset(),  # type: ignore[assignment]
+    kinds: dict[str, str] | None = None,
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -754,6 +760,8 @@ def _fog_map(
                 state=state,
                 name=name if names_on_discovery or node_id in visited else None,
                 command=commands.get(node_id),
+                gate=node_id in gates,
+                kind=(kinds or {}).get(node_id),
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

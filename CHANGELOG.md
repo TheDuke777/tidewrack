@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A navigation bar at the bottom switches between Explore and Inventory.
+- Filter your pack by slot, affix or set, and select several items to drop at
+  once (filter first, then "Select all shown").
+- Gate rooms, where roads leave from, show as squares on the area map. On the
+  world map, each place's name starts with a symbol for its kind (⌂ Town,
+  ≈ Sea Caves, ♣ Forest, ⚒ Mine), with a key below the map.
+
+### Changed
+- Dropping gear now asks first.
+- The inventory is a tab instead of a button in the top bar.
+
 ## [0.4.0-beta.1] - 2026-11-04
 
 ### Added

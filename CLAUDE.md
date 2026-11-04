@@ -48,7 +48,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | Concern | Choice | Notes |
 |---|---|---|
 | UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
-| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there. Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
+| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there. Gate rooms are rounded squares; world-map labels start with a kind glyph (`KIND_GLYPHS`; add one per new roomset name). Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
 | World structure | Hand-rolled (`core/procgen/grid.py`, `location_gen.py`, `world_gen.py`) | One grid-based spanning tree + loops layout for both rooms and the overworld; gives map positions directly and stays deterministic. Chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 nodes) |
 | Overworld regions | *Later, if they add something:* `scipy.spatial.Voronoi` | Not needed for the grid overworld; heavy compiled dependency (check pypi.flet.dev, and Pyodide if web is pursued) |
 | Biomes | *Later:* `opensimplex` | Coherent noise → biome per region |
@@ -183,7 +183,9 @@ tidewrack/
 │   │   └── settings/                # Settings model + SettingsStore (app-wide settings.json
 │   │                                #   beside saves/; UI prefs such as the log split)
 │   └── ui/
-│       ├── app.py                   # navigation shell (slot picker ⇄ game)
+│       ├── app.py                   # slot picker ⇄ open world; confirm dialogs
+│       ├── shell.py                 # open world: Material 3 navigation bar over tabs
+│       │                            #   (Explore, Inventory); add tabs here
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
 │       ├── components/              # gear_compare_card, stat_delta, tier_progress, toast, …
 │       ├── map_canvas.py            # point-crawl renderer + fog of war + tap-to-move
@@ -266,7 +268,7 @@ Two distinct operations (don't conflate them):
 - **Appearance:** light/dark/system, MD3 seed color, font scale, high-contrast, colorblind-safe palette, reduce motion.
 - **Cloud:** account (sign in/out), sync now, auto-sync on/off, Wi-Fi only, last synced, per-slot sync status, delete cloud data.
 - **Data:** share world, backup save, import, restore from backup, storage usage.
-- **Gameplay:** text speed, auto-advance, combat-log verbosity, confirm-destructive-actions, tooltips/hints on-off.
+- **Gameplay:** text speed, auto-advance, combat-log verbosity, confirm-destructive-actions (drop already always confirms via `App.confirm`; sell will too), tooltips/hints on-off.
 - **Tutorial:** replay onboarding, reset contextual hints.
 - **Sound/haptics** (if added), **About** (version, licenses, privacy statement).
 

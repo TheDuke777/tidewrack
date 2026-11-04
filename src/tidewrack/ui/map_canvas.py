@@ -4,6 +4,8 @@ Draws one MapView from Game.view(): the rooms of this location or the locations
 of the world, only as far as the player knows them. State is shown by shape as
 well as colour (§11): filled = visited, hollow = seen but unvisited, large dot
 inside a ring = you, extra outer ring = one step away (tap it to go there).
+Gate rooms (where roads leave from) are rounded squares instead of circles, and
+on the world map each place's name starts with a glyph for its kind (⌂ town…).
 
 Pinch to zoom and drag to pan. Zooming spreads the map out rather than
 magnifying it, so dots and labels stay readable on big maps; the view is handled
@@ -36,6 +38,11 @@ MAX_ZOOM = 4.0
 FOCUS_ZOOM = 2.0  # "centre on me" zooms in at least this far
 FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
 REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
+
+# A glyph per location kind for world-map labels and the legend; unknown kinds
+# (new roomsets before this list is updated) fall back to a plain dot.
+KIND_GLYPHS = {"Town": "⌂", "Sea Caves": "≈", "Forest": "♣", "Mine": "⚒", "Dungeon": "▼"}
+DEFAULT_GLYPH = "•"
 
 Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # left, top, right, bottom
@@ -235,27 +242,28 @@ class MapCanvas:
         ]
         for node in self.view.nodes:
             x, y = self._points[node.id]
+            mark = _square if node.gate else _circle
             if node.state == "current":
                 shapes += [
-                    cv.Circle(x, y, r + 2, paint=_fill(ft.Colors.PRIMARY)),
-                    cv.Circle(x, y, r + 6, paint=_ring(ft.Colors.PRIMARY, 2.5)),
+                    mark(x, y, r + 2, _fill(ft.Colors.PRIMARY)),
+                    mark(x, y, r + 6, _ring(ft.Colors.PRIMARY, 2.5)),
                 ]
             elif node.state == "visited":
-                shapes.append(cv.Circle(x, y, r, paint=_fill(ft.Colors.SECONDARY)))
+                shapes.append(mark(x, y, r, _fill(ft.Colors.SECONDARY)))
             else:  # hollow; filled with the background so paths don't show through it
                 shapes += [
-                    cv.Circle(x, y, r, paint=_fill(BACKGROUND)),
-                    cv.Circle(x, y, r, paint=_ring(ft.Colors.ON_SURFACE_VARIANT, 2)),
+                    mark(x, y, r, _fill(BACKGROUND)),
+                    mark(x, y, r, _ring(ft.Colors.ON_SURFACE_VARIANT, 2)),
                 ]
             if node.command is not None:
-                shapes.append(cv.Circle(x, y, r + 5, paint=_ring(ft.Colors.TERTIARY, 1.5)))
+                shapes.append(mark(x, y, r + 5, _ring(ft.Colors.TERTIARY, 1.5)))
         if self.labels:
             shapes += self._labels(r)
         self.canvas.shapes = shapes
 
     def _labels(self, r: float) -> list[cv.Shape]:
         assert self.view is not None
-        names = {n.id: n.name for n in self.view.nodes if n.name}
+        names = {n.id: label(n.name, n.kind) for n in self.view.nodes if n.name}
         spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
         return [
             cv.Text(
@@ -270,6 +278,27 @@ class MapCanvas:
             )
             for node_id, (x, y) in spots.items()
         ]
+
+
+def label(name: str, kind: str | None) -> str:
+    """A node's label: world-map places start with their kind's glyph."""
+    return name if kind is None else f"{KIND_GLYPHS.get(kind, DEFAULT_GLYPH)} {name}"
+
+
+def kinds_legend(view: MapView) -> str:
+    """ "⌂ Town  ≈ Sea Caves": the kinds of the places this map shows, in map order."""
+    kinds = dict.fromkeys(n.kind for n in view.nodes if n.kind and n.name)
+    return "   ".join(f"{KIND_GLYPHS.get(k, DEFAULT_GLYPH)} {k}" for k in kinds)
+
+
+def _circle(x: float, y: float, r: float, paint: ft.Paint) -> cv.Shape:
+    return cv.Circle(x, y, r, paint=paint)
+
+
+def _square(x: float, y: float, r: float, paint: ft.Paint) -> cv.Shape:
+    """A rounded square about as heavy as a circle of radius `r` (gate rooms)."""
+    side = r * 1.8
+    return cv.Rect(x - side / 2, y - side / 2, side, side, border_radius=r * 0.35, paint=paint)
 
 
 def _fill(color: str) -> ft.Paint:

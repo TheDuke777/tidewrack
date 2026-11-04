@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
 
 import flet as ft
 
@@ -10,9 +11,8 @@ from tidewrack.core.data.loader import Content
 from tidewrack.services.session import GameSession, next_world_name
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
-from tidewrack.ui.screens.game import GameScreen
-from tidewrack.ui.screens.inventory import InventoryScreen
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
+from tidewrack.ui.shell import WorldShell
 from tidewrack.version import get_build_info, version_label
 
 WORLD_RECIPE = "world.standard"
@@ -32,7 +32,8 @@ class App:
         self.settings = settings
         self.content = content
 
-    def _show(self, control: ft.Control) -> None:
+    def _show(self, control: ft.Control, navigation_bar: ft.NavigationBar | None = None) -> None:
+        self.page.navigation_bar = navigation_bar
         self.page.controls.clear()
         self.page.controls.append(control)
         self.page.update()
@@ -53,24 +54,13 @@ class App:
             ).control
         )
 
-    def show_game(self, session: GameSession, *, opened: bool = True) -> None:
-        self._show(
-            GameScreen(
-                session,
-                self.settings,
-                on_back=self.show_picker,
-                on_inventory=lambda: self.show_inventory(session),
-            ).control
-        )
-        if opened and session.from_backup:
+    def show_game(self, session: GameSession) -> None:
+        shell = WorldShell(session, self.settings, on_back=self.show_picker, confirm=self.confirm)
+        self._show(shell.body, shell.navigation_bar)
+        if session.from_backup:
             self._notify(
                 "The latest save was unreadable, so this world was restored from a backup."
             )
-
-    def show_inventory(self, session: GameSession) -> None:
-        self._show(
-            InventoryScreen(session, on_back=lambda: self.show_game(session, opened=False)).control
-        )
 
     # --- actions -----------------------------------------------------------------
 
@@ -87,6 +77,28 @@ class App:
             self._notify(str(e))
             return
         self.show_game(session)
+
+    def confirm(
+        self, title: str, message: str, action: str, on_confirm: Callable[[], None]
+    ) -> None:
+        """Ask before doing something the player might regret (drop, later sell)."""
+
+        def confirmed(_: ft.Event) -> None:
+            self.page.pop_dialog()
+            on_confirm()
+            self.page.update()
+
+        self.page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text(title),
+                content=ft.Text(message),
+                actions=[
+                    ft.TextButton(content="Cancel", on_click=lambda _: self.page.pop_dialog()),
+                    ft.FilledButton(content=action, on_click=confirmed),
+                ],
+            )
+        )
 
     def confirm_delete(self, listing: SlotListing) -> None:
         def delete(_: ft.Event) -> None:

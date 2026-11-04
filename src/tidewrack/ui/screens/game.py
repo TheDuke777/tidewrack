@@ -31,13 +31,16 @@ from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import Settings, SettingsStore
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
-from tidewrack.ui.map_canvas import MapCanvas
+from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
 from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
 
-ROOM_LEGEND = "● visited   ○ unexplored   ◉ you   — tap a ringed room to go there"
-WORLD_LEGEND = "● visited   ○ unexplored   ◉ you   — at a gate, tap a ringed place to travel"
+ROOM_LEGEND = (
+    "● visited   ○ unexplored   ◉ you   ■ gate (roads leave from here)\n"
+    "Tap a ringed room to go there."
+)
+WORLD_LEGEND = "● visited   ○ unexplored   ◉ you\nAt a gate, tap a ringed place to travel."
 
 MIN_LOG_SHARE, MAX_LOG_SHARE = 0.1, 0.8  # same bounds as Settings.log_share
 HIDE_LOG_BELOW = 0.06  # dragging the log smaller than this hides it
@@ -81,7 +84,6 @@ class GameScreen:
         session: GameSession,
         settings: SettingsStore,
         on_back: Callable[[], None],
-        on_inventory: Callable[[], None],
     ) -> None:
         self.session = session
         self.settings = settings
@@ -175,11 +177,6 @@ class GameScreen:
                     on_click=lambda _: on_back(),
                 ),
                 self.where,
-                ft.IconButton(
-                    icon=ft.Icons.BACKPACK_OUTLINED,
-                    tooltip="Inventory",
-                    on_click=lambda _: on_inventory(),
-                ),
                 self.map_choice,
             ],
         )
@@ -285,9 +282,10 @@ class GameScreen:
         self.map.control.visible = shown is not None
         if shown is not None:
             on_world = choice == "world"
+            legend = f"{kinds_legend(shown)}\n{WORLD_LEGEND}" if on_world else ROOM_LEGEND
             self.map.show(
                 shown,
-                WORLD_LEGEND if on_world else ROOM_LEGEND,
+                legend,
                 key=(choice, view.location),  # a new map or place resets the zoom
                 labels=on_world,
             )

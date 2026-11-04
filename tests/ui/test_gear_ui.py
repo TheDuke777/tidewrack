@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import flet as ft
 
 from tidewrack.core.engine.game import Game
@@ -65,21 +67,103 @@ def test_impact_line_lists_every_stat():
     assert impact_line(comparison) == "ATK 4 → 5 · DEF 3 → 2 · HP 20"
 
 
-def test_screens_build(tmp_path):
+def _shell(tmp_path, confirm=None):
     from tidewrack.services.session import GameSession
     from tidewrack.services.settings import SettingsStore
     from tidewrack.services.storage import FileSaveStore
-    from tidewrack.ui.screens.game import GameScreen
-    from tidewrack.ui.screens.inventory import InventoryScreen
+    from tidewrack.ui.shell import WorldShell
 
     session = GameSession.generate(
         FileSaveStore(tmp_path / "saves"), CONTENT, "world.standard", "W", 20261103
     )
-    screen = GameScreen(
-        session, SettingsStore(tmp_path / "s.json"), on_back=lambda: None, on_inventory=lambda: None
+    asked = []
+
+    def record(title, message, action, on_confirm):
+        asked.append(title)
+        if confirm:
+            on_confirm()
+
+    shell = WorldShell(
+        session, SettingsStore(tmp_path / "s.json"), on_back=lambda: None, confirm=record
     )
-    assert screen.status.value.startswith("ATK 4 DEF 2 HP 20 · Turn 0")
-    inventory = InventoryScreen(session, on_back=lambda: None)
-    texts = _texts(inventory.control)
+    return session, shell, asked
+
+
+def test_shell_switches_tabs(tmp_path):
+    session, shell, _ = _shell(tmp_path)
+    assert shell.explore.status.value.startswith("ATK 4 DEF 2 HP 20 · Turn 0")
+    assert [d.label for d in shell.navigation_bar.destinations] == ["Explore", "Inventory"]
+    shell.select(1)
+    assert shell.body.content is shell.inventory.control
+    texts = _texts(shell.inventory.control)
     assert "ATK 4   DEF 2   HP 20" in texts and "Head: empty" in texts
     assert "Your pack is empty." in texts
+    shell.select(0)
+    assert shell.body.content is shell.explore.control
+
+
+def _fill_pack(session):
+    """Put three finds straight into the player's pack (as if taken)."""
+    from tidewrack.core.engine.components import Carried, Position
+    from tidewrack.core.gear.item import Item
+
+    game = session.game
+    found = [e for e, _ in game.world.query(Item, Position)][:3]
+    for entity in found:
+        game.world.remove(entity, Position)
+        game.world.add(entity, Carried(game.player))
+    return [i for i in game.inventory().pack]
+
+
+def test_dropping_asks_first_and_cancel_keeps_the_item(tmp_path):
+    session, shell, asked = _shell(tmp_path, confirm=False)
+    pack = _fill_pack(session)
+    shell.inventory._drop(pack[0])
+    assert asked == [f"Drop the {pack[0].name}?"]
+    assert len(session.game.inventory().pack) == 3
+
+
+def test_bulk_drop_drops_only_selected_and_shown(tmp_path):
+    session, shell, asked = _shell(tmp_path, confirm=True)
+    pack = _fill_pack(session)
+    screen = shell.inventory
+    screen.refresh()
+    screen._toggle_select(None)
+    screen._select_all_shown(None)
+    screen._select(pack[0].id, False)
+    screen._drop_selected(None)
+    assert asked == ["Drop 2 items?"]
+    assert [i.id for i in session.game.inventory().pack] == [pack[0].id]
+    assert not screen.selecting and screen.selected == set()
+
+
+def test_pack_filters():
+    from tidewrack.ui.screens.inventory import ANY_AFFIX, NO_AFFIX, NO_SET, PackFilter
+
+    def item(slot, affixes=(), gear_set=None):
+        view = _game().view().items_here[0]
+        return replace(view, slot=slot, affixes=tuple(affixes), gear_set=gear_set)
+
+    keen = item("Main hand", ["Keen"])
+    boots = item("Feet", gear_set="Drowned Watch")
+    plain = item("Feet")
+    pack = [keen, boots, plain]
+
+    def kept(**f):
+        return [i for i in pack if PackFilter(**f).keeps(i)]
+
+    assert kept() == pack and not PackFilter().active
+    assert kept(slot="Feet") == [boots, plain]
+    assert kept(affix=ANY_AFFIX) == [keen] and kept(affix=NO_AFFIX) == [boots, plain]
+    assert kept(affix="Keen") == [keen] and kept(affix="Salted") == []
+    assert kept(gear_set="Drowned Watch") == [boots]
+    assert kept(gear_set=NO_SET, slot="Feet") == [plain]
+
+
+def test_filter_options_come_from_the_pack():
+    from tidewrack.ui.screens.inventory import filter_options
+
+    view = _game().view().items_here[0]
+    options = filter_options([replace(view, affixes=("Keen",)), replace(view, slot="Feet")])
+    assert [k for k, _ in options["slot"]] == ["all", "Both hands", "Feet"]
+    assert [k for k, _ in options["affix"]][-1] == "Keen"

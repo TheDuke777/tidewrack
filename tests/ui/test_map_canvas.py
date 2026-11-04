@@ -83,3 +83,20 @@ def test_centre_on_and_follow():
     assert v.to_screen((100, 100)) == (150, 100)
     assert v.shows((100, 100), SIZE, FOLLOW_MARGIN)
     assert not v.shows((280, 20), SIZE, FOLLOW_MARGIN)
+
+
+def test_gates_and_kinds_are_marked():
+    from tidewrack.core.engine.game import Game
+    from tidewrack.core.procgen.world_gen import generate_world
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.ui.map_canvas import kinds_legend, label
+
+    content = load_bundled_content()
+    world = generate_world(20261103, content.world("world.standard"), content.roomsets)
+    view = Game(20261103, world).view()
+    assert [n.gate for n in view.map.nodes if n.state == "current"] == [True]  # you start at a gate
+    assert all(n.kind is None for n in view.map.nodes)
+    assert {n.kind for n in view.world_map.nodes} <= {"Town", "Sea Caves", "Forest", "Mine"}
+    assert not any(n.gate for n in view.world_map.nodes)
+    assert kinds_legend(view.world_map).startswith("⌂ Town")
+    assert label("Saltmere", "Town") == "⌂ Saltmere" and label("Hold", None) == "Hold"
