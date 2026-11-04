@@ -104,12 +104,32 @@ class Respawn:
 
 
 @dataclass
+class EnemyTemplate:
+    """A kind of enemy a location can produce again later (step 6c): a snapshot of
+    its definition, so returning enemies never need the content files."""
+
+    enemy_id: str
+    name: str
+    category: str
+    description: str
+    stats: dict[str, int]
+    rolls: dict[str, list[int]] = field(default_factory=dict)  # stat -> [min, max] bonus
+    drops: list[str] = field(default_factory=list)  # names of what its kind can drop
+    loot_chance: float = 0.0  # its kind's own chance (Rules.return_loot_factor scales it)
+    loot: list[Item] = field(default_factory=list)  # pre-rolled pieces it may drop
+    weight: float = 1.0  # how often it's picked
+
+
+@dataclass
 class Spawner:
-    """A location's wandering enemies, rolled at world creation, used front first."""
+    """A location's wandering enemies, rolled at world creation, used front first.
+    The queue slowly refills up to `cap` from `templates` (core.combat.returns)."""
 
     location: str
     chance: float  # per room entered (not gates, not towns)
     queue: list[Enemy] = field(default_factory=list)
+    cap: int = 0  # the queue never refills past this
+    templates: list[EnemyTemplate] = field(default_factory=list)
 
 
 @dataclass

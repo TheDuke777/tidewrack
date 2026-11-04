@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from tidewrack.core.codex.foes import FoesView, foes_view
-from tidewrack.core.combat import fight
+from tidewrack.core.combat import fight, returns
 from tidewrack.core.combat.rules import STANDARD, Rules
 from tidewrack.core.data.save import (
     EntityState,
@@ -422,6 +422,7 @@ class Game:
         self.ambient_rng = self.rng.derive("ambient")
         self.combat_rng = self.rng.derive("combat")
         self.encounter_rng = self.rng.derive("encounters")
+        self.respawn_rng = self.rng.derive("respawns")
         self.rules = STANDARD
         self.world = World()
         self.bus = EventBus()
@@ -429,7 +430,11 @@ class Game:
         self.log: list[str] = []
 
         # Per-turn systems, run in this order after every turn-taking command.
-        self.systems: list[Callable[[Game], None]] = [ambience_system, fight.regen_system]
+        self.systems: list[Callable[[Game], None]] = [
+            ambience_system,
+            fight.regen_system,
+            returns.returns_system,
+        ]
 
         # Subscription order is delivery order: exploration updates state before
         # the narrator describes it, and before encounters start (whose events,
@@ -455,6 +460,7 @@ class Game:
             ambient_rng=RngState(**self.ambient_rng.get_state()),
             combat_rng=RngState(**self.combat_rng.get_state()),
             encounter_rng=RngState(**self.encounter_rng.get_state()),
+            respawn_rng=RngState(**self.respawn_rng.get_state()),
             rules=RulesState(**self.rules.__dict__),
             next_entity_id=next_id,
             entities=[
@@ -474,6 +480,8 @@ class Game:
             game.combat_rng = Rng.from_state(state.combat_rng.model_dump())
         if state.encounter_rng is not None:
             game.encounter_rng = Rng.from_state(state.encounter_rng.model_dump())
+        if state.respawn_rng is not None:
+            game.respawn_rng = Rng.from_state(state.respawn_rng.model_dump())
         game.rules = Rules(**state.rules.model_dump())
         game.turn = state.turn
         game.log = list(state.log)

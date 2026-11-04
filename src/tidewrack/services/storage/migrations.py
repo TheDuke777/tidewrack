@@ -101,6 +101,60 @@ def _v5_to_v6(envelope: Envelope) -> Envelope:
     return envelope
 
 
+MIGRATED_CAP = 6  # the wanderer queue size every world had before v7
+MIGRATED_LOOT_CHANCE = 0.25  # a typical kind's loot chance (the save doesn't record it)
+MIGRATED_LOOT_PIECES = 3
+
+
+def _v6_to_v7(envelope: Envelope) -> Envelope:
+    # v7 lets wanderers return. Every Spawner gets a cap and templates, built only
+    # from enemy snapshots already in the save (never content): the enemies left
+    # in locations of the same kind, placed or still queued, bounties excluded.
+    # A kind of place with no enemy left anywhere gets no templates and stays clear.
+    game = envelope["game"]
+    kinds = {loc["id"]: loc["kind"] for loc in game["world"]["locations"]}
+    seen: dict[str, list[dict]] = {}  # location kind -> enemy snapshots
+    for entity in game["entities"]:
+        components = entity["components"]
+        if "Enemy" in components and "Position" in components and "Bounty" not in components:
+            kind = kinds.get(components["Position"]["location"])
+            seen.setdefault(kind, []).append(components["Enemy"])
+        if "Spawner" in components:
+            kind = kinds.get(components["Spawner"]["location"])
+            seen.setdefault(kind, []).extend(components["Spawner"]["queue"])
+    for entity in game["entities"]:
+        spawner = entity["components"].get("Spawner")
+        if spawner is not None:
+            spawner["cap"] = MIGRATED_CAP
+            spawner["templates"] = _templates(seen.get(kinds.get(spawner["location"]), []))
+    return envelope
+
+
+def _templates(enemies: list[dict]) -> list[dict]:
+    by_kind: dict[str, list[dict]] = {}
+    for enemy in enemies:
+        by_kind.setdefault(enemy["enemy_id"], []).append(enemy)
+    templates = []
+    for enemy_id, copies in sorted(by_kind.items()):
+        first = copies[0]
+        loot = [item for e in copies for item in e["loot"]][:MIGRATED_LOOT_PIECES]
+        templates.append(
+            {
+                "enemy_id": enemy_id,
+                "name": first["name"],
+                "category": first["category"],
+                "description": first["description"],
+                "stats": dict(first["stats"]),
+                "rolls": {},
+                "drops": list(first["drops"]),
+                "loot_chance": MIGRATED_LOOT_CHANCE if loot else 0.0,
+                "loot": loot,
+                "weight": float(len(copies)),
+            }
+        )
+    return templates
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -108,6 +162,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     3: _v3_to_v4,
     4: _v4_to_v5,
     5: _v5_to_v6,
+    6: _v6_to_v7,
 }
 
 

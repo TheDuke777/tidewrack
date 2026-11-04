@@ -34,6 +34,8 @@ class RulesState(Schema):
     respawn_hp: float = Field(default=STANDARD.respawn_hp, gt=0, le=1)
     enemy_strength: float = Field(default=STANDARD.enemy_strength, gt=0)
     defend_factor: float = Field(default=STANDARD.defend_factor, ge=0, le=1)
+    enemy_return_every: int = Field(default=STANDARD.enemy_return_every, ge=1)
+    return_loot_factor: float = Field(default=STANDARD.return_loot_factor, ge=0, le=1)
 
 
 class EntityState(Schema):
@@ -50,6 +52,7 @@ class GameState(Schema):
     ambient_rng: RngState
     combat_rng: RngState | None = None  # None in saves before combat: derived from seed
     encounter_rng: RngState | None = None
+    respawn_rng: RngState | None = None  # None in saves before enemies returned (v7)
     rules: RulesState = RulesState()
     next_entity_id: int = Field(ge=1)
     entities: list[EntityState]

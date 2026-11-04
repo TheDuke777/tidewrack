@@ -24,6 +24,8 @@ class Rules:
     respawn_hp: float = 0.5  # fraction of max HP you wake with after a defeat
     enemy_strength: float = 1.0  # multiplies enemy ATK, DEF and HP when a fight starts
     defend_factor: float = 0.5  # damage taken while defending is multiplied by this
+    enemy_return_every: int = 30  # turns between each location regaining a wanderer
+    return_loot_factor: float = 0.5  # returning enemies' loot chance, times their kind's
 
 
 STANDARD = Rules()

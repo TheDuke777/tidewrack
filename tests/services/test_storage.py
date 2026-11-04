@@ -249,3 +249,25 @@ def test_v6_fixture_keeps_its_quests(tmp_path):
     log = session.game.quests()
     assert sorted(q.kind for q in log.active) == ["Bounty", "Cull", "Recover"]
     assert session.game.view().board == ()  # all taken
+
+
+def test_v6_saves_get_returning_wanderers_from_their_own_snapshots(tmp_path):
+    from tidewrack.core.engine.components import Spawner
+
+    envelope = json.loads((FIXTURES / "v6_quests.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    spawners = [s for _, (s,) in session.game.world.query(Spawner)]
+    assert spawners and all(s.cap == 6 for s in spawners)
+    assert all(s.templates for s in spawners)
+    for spawner in spawners:
+        assert {t.enemy_id for t in spawner.templates} >= {e.enemy_id for e in spawner.queue}
+    assert session.game.rules.enemy_return_every == 30
+
+
+def test_v7_fixture_resumes_with_its_returned_wanderer(tmp_path):
+    from tidewrack.core.engine.components import Spawner
+
+    envelope = json.loads((FIXTURES / "v7_returns.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    spawners = [s for _, (s,) in session.game.world.query(Spawner)]
+    assert all(len(s.queue) == s.cap for s in spawners)

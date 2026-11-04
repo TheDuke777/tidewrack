@@ -165,7 +165,8 @@ tidewrack/
 │   │   ├── gear/                    # stats.py (STATS), item.py (Item snapshot, SLOTS),
 │   │   │                            #   stat_pipeline.py, compare.py
 │   │   ├── combat/                  # rules.py (Rules snapshot, damage), fight.py (rounds,
-│   │   │                            #   encounters, defeat, regen)
+│   │   │                            #   encounters, defeat, regen), returns.py (wanderers
+│   │   │                            #   coming back)
 │   │   ├── quests/                  # quests.py (accept, turn in, progress subscribers)
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
@@ -288,6 +289,7 @@ Two distinct operations (don't conflate them):
 ### 8.4b Combat (built in step 6a)
 - **Enemies, not monsters:** content kind `enemies/` (`enemy.<id>`) with a `category` (beast, person, spirit); people can be enemies (wreckers, smugglers; later factions). Snapshots (`Enemy`) with pre-rolled loot, so saves don't need content.
 - **Encounters:** roomset `enemies` tables place enemies at world creation (never in gate rooms) and roll each location's **wanderer queue** into a `Spawner` (`procgen/enemy_gen.py`, its own `enemies` substream). Entering a room with an enemy, or a wanderer roll on the saved `encounter_rng` (never in gates, towns, or while fleeing), starts a fight.
+- **Enemies return (step 6c, `core/combat/returns.py`):** every `Rules.enemy_return_every` turns each `Spawner` under its `cap` regains one wanderer, rolled on the saved `respawn_rng` from its `templates` (`EnemyTemplate` snapshots made at world creation on a `returns.<location>` substream: stats, roll ranges, a few pre-rolled loot pieces). Loot chance is the kind's times `Rules.return_loot_factor`. Only wanderers return; cleared rooms stay clear. Saves from before v7 get templates built from the enemy snapshots left in same-kind locations (never from content).
 - **Rounds** (`core/combat/fight.py`): you act first (Attack, Defend, Flee), then the enemy strikes back. Damage `max(1, ATK − DEF + d(0..⌈ATK/3⌉))`; Defend multiplies damage taken; Flee may fail (free blow) and returns you to the room you came from. Only Look is allowed mid-fight.
 - **Health** is stored as damage taken (`Health`), so max HP follows gear; taking gear off never knocks you out. Regen out of fights every few turns heals `regen_fraction` of max HP (min `regen_amount`), so recovery time stays flat as HP grows; Wait in a Town rests to full. **Defeat** wakes you at the last town's gate (`Respawn`) with part of your HP; the enemy stays at full strength.
 - **Difficulty (decided, not built):** per world, chosen at creation and fixed. Rule knobs live in the `Rules` snapshot saved in `GameState` (`flee_chance`, regen, `respawn_hp`, `enemy_strength` applied at fight time, `defend_factor`); generation knobs (placement density, wanderer queues) are fixed by nature. Every world is Standard until the picker lands with the difficulty sim (step 8).
@@ -458,7 +460,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 6. **Combat + quests + codex discovery**, in two parts:
    - ✅ **Done (v0.5.0).** **6a. Combat + Foes codex:** round-by-round fights, placed + wandering enemies (beasts, people, spirits), loot, health/regen/rest, defeat → last town, `Rules` snapshot for future difficulty, Codex tab. Save schema v5, generator v5 (items record their set's chip colour). The explore screen's bottom row now shows only turn/rooms/places; a fight hides the map; gear actions refused mid-fight toast their reason; Codex sections and groups are collapsible (`ExpansionTile`, state kept per world while open). Pack sorting (name/ATK/DEF/HP/verdict, either direction; `inventory.sort_pack`) applies after the filters.
    - ✅ **Done (v0.6.0).** **6b. Quests + quest log:** notice boards at town gates, found clues, bounty/cull/explore/recover, gear rewards, Quests tab; world-map ✓/◆ and area-map ✦/◆ marks. Save schema v6 (new components only; old worlds have no quests), generator v6.
-   - **6c. Enemies return:** wanderer queues refill slowly (rate in `Rules`; rolled from a saved stream and enemy templates snapshotted into each `Spawner`), so late culls stay possible and worlds don't empty out. Chosen to come straight after 6b.
+   - ✅ **Done (v0.6.1).** **6c. Enemies return:** wanderer queues refill slowly (one per location every 30 turns up to the starting size; rate and loot factor in `Rules`; rolled from a saved stream and enemy templates snapshotted into each `Spawner`), so late culls stay possible and worlds don't empty out. Save schema v7 (migration builds templates from snapshots), generator v7.
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.
 9. **Pets** (rarity, soft pity, persistence).

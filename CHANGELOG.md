@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Enemies come back. Every 30 turns, each cave, forest and mine gains one
+  wandering enemy, up to as many as it started with. Rooms you've cleared stay
+  clear, but there's always something out there to hunt, so a cull quest taken
+  late can still be finished.
+- Returning enemies can drop gear, at half their kind's usual chance.
+
+### Changed
+- Worlds from earlier versions get returning wanderers too, made from the
+  enemies still left in them. A kind of place where none are left anywhere in
+  the world stays clear.
+
 ## [0.6.0] - 2026-11-04
 
 ### Fixed

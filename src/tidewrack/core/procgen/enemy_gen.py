@@ -21,13 +21,14 @@ from typing import NamedTuple
 
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import EnemySchema
-from tidewrack.core.engine.components import Enemy, Spawner
+from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import roll_item
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.overworld import Overworld
 
 LOOT_AFFIX_CHANCE = 0.3
+RETURN_LOOT_PIECES = 3  # pre-rolled loot pieces per template, for returning enemies
 
 
 class PlacedEnemy(NamedTuple):
@@ -80,8 +81,40 @@ def generate_enemies(
                 placed.append(PlacedEnemy(location.id, room.id, enemy))
         if table.wandering_chance:
             queue = [_pick(location_rng, choices, weights, content) for _ in range(table.wanderers)]
-            spawners.append(Spawner(location.id, table.wandering_chance, queue))
+            # What can come back later (step 6c), on its own substream so the
+            # placed enemies and the first queue never shift.
+            returns_rng = rng.derive(f"returns.{location.id}")
+            templates = [
+                make_template(returns_rng, content.enemies[e], table.pool[e], content)
+                for e in sorted(table.pool)
+            ]
+            spawners.append(
+                Spawner(location.id, table.wandering_chance, queue, table.wanderers, templates)
+            )
     return placed, spawners
+
+
+def make_template(rng: Rng, schema: EnemySchema, weight: float, content: Content) -> EnemyTemplate:
+    """A snapshot of an enemy kind, with a few loot pieces rolled now."""
+    loot = []
+    if schema.loot.chance and schema.loot.gear:
+        choices = sorted(schema.loot.gear)
+        weights = [schema.loot.gear[g] for g in choices]
+        for _ in range(RETURN_LOOT_PIECES):
+            gear = content.gear[rng.weighted_choice(choices, weights)]
+            loot.append(roll_item(rng, gear, content, LOOT_AFFIX_CHANCE))
+    return EnemyTemplate(
+        enemy_id=schema.id,
+        name=schema.name,
+        category=schema.category,
+        description=schema.description,
+        stats=dict(schema.stats),
+        rolls={s: list(r) for s, r in schema.rolls.items()},
+        drops=sorted({content.gear[g].name for g in schema.loot.gear}),
+        loot_chance=schema.loot.chance,
+        loot=loot,
+        weight=weight,
+    )
 
 
 def _pick(rng: Rng, choices: list[str], weights: list[float], content: Content) -> Enemy:
