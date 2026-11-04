@@ -6,9 +6,6 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Fixed
-- Dragging the Log bar now keeps it under your finger instead of falling behind.
-
 ## [0.3.0-beta.3] - 2026-11-03
 
 ### Added
