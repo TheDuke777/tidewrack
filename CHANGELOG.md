@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
+### Added
+- Pinch to zoom and drag to pan either map. The map follows you as you walk,
+  "centre on me" jumps back to where you are, and "show the whole map" zooms
+  back out.
+- Tap the Log bar to hide or show the log, or drag it to resize it (drag it
+  all the way down to hide it). While hidden, the bar shows the newest line.
+  This choice is remembered for every world.
+- Worlds are now made of places: each new world has 8 locations (towns,
+  forests, mines and sea caves) joined by roads, and every location has its
+  own rooms to explore. You start in a harbour town.
+- Travel between locations from their gate rooms (the town gate, the cave
+  mouth, the forest edge, the mine head).
+- A world map alongside the area map: switch between them with the buttons at
+  the top. Places you know of are named; at a gate, tap a ringed place to
+  travel there.
+- Each kind of place is shaped differently: towns are compact with many
+  shortcuts, mines are long and winding, forests sprawl.
+- Every new world is freshly generated, with its own names, descriptions and
+  layout, different every time.
+- A map of the rooms you know, with unexplored rooms shown hollow and your
+  position ringed. Tap a neighbouring room to walk there.
+
+### Changed
+- The map stays put while the room text and buttons scroll beneath it; the log
+  scrolls on its own below them.
+- Place names on the world map move above or beside their dot when they would
+  otherwise run into another place or a road.
+- Existing worlds open as a single location with no roads out of it.
+- Exits are now named by compass direction ("Go north") in generated worlds.
+
 ## [0.3.0-beta.3] - 2026-11-03
 
 ### Added
