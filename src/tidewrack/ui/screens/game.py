@@ -366,10 +366,13 @@ class GameScreen:
 
     def _turn_in(self, quest: str) -> None:
         result = self.session.perform(TurnInQuest(quest))
+        # Refresh first: showing the toast pushes an update to the page at once, and
+        # anything changed after it could reach the screen late (the turned-in card
+        # stayed on the board until the next tap).
+        self.refresh()
         for event in result.events:
             if isinstance(event, QuestCompleted):
                 self.notify(f"{event.reward} added to your pack.")
-        self.refresh()
 
     def _take_buttons(self, item: ItemView) -> list[ft.Control]:
         return [

@@ -174,8 +174,9 @@ class InventoryScreen:
     # --- actions -----------------------------------------------------------------
 
     def act(self, command: Command) -> None:
-        self._tell(self.session.perform(command))  # autosaves
-        self.refresh()
+        result = self.session.perform(command)  # autosaves
+        self.refresh()  # before any toast: showing one updates the page at once
+        self._tell(result)
 
     def _tell(self, *results: TurnResult) -> None:
         """Toast the first reason the game refused something (the log has them all)."""
@@ -199,10 +200,10 @@ class InventoryScreen:
 
         def drop() -> None:
             results = [self.session.perform(Drop(item.id)) for item in chosen]
-            self._tell(*results)
             self.selected.clear()
             self.selecting = False
             self.refresh()
+            self._tell(*results)
 
         names = ", ".join(i.name for i in chosen[:3]) + (" …" if len(chosen) > 3 else "")
         self.confirm(
