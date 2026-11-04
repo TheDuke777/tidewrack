@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0-beta.2] - 2026-11-03
+
 ### Added
 - Worlds are now made of places: each new world has 8 locations (towns,
   forests, mines and sea caves) joined by roads, and every location has its
