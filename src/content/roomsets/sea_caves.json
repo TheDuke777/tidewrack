@@ -1,7 +1,7 @@
 {
   "id": "roomset.sea_caves",
   "name": "Sea Caves",
-  "dungeon_names": [
+  "location_names": [
     "The Drowned Warren",
     "The Gullet Caves",
     "The Brine Halls",
@@ -9,6 +9,8 @@
     "The Undertow Deep",
     "The Saltgrave"
   ],
+  "size": [10, 16],
+  "layout": { "spread": 1.8, "loops": 0.25, "corridors": 0.5 },
   "adjectives": [
     "Dripping", "Echoing", "Silent", "Crooked", "Narrow", "Flooded", "Glistening",
     "Bone-White", "Hollow", "Sunken", "Brackish", "Windless", "Moonlit", "Barnacled"

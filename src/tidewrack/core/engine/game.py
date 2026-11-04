@@ -5,7 +5,7 @@ The UI only ever calls :meth:`Game.perform` with a command and reads
 
 Turn loop, delivered in phases so each sees the previous one's consequences:
 1. the command is validated and applied; its events (and whatever subscribers
-   emit in response, e.g. NodeDiscovered) are delivered;
+   emit in response, e.g. RoomDiscovered) are delivered;
 2. if it took a turn: the counter advances and each per-turn system runs in
    order, and their events are delivered;
 3. ``TurnEnded`` is delivered last.
@@ -26,7 +26,7 @@ from tidewrack.core.data.save import (
     decode_component,
     encode_component,
 )
-from tidewrack.core.data.schemas import DungeonSchema
+from tidewrack.core.data.schemas import OverworldSchema
 from tidewrack.core.engine.components import Explorer, Name, Player, Position, Scenery
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
@@ -35,16 +35,19 @@ from tidewrack.core.engine.events import (
     Event,
     EventBus,
     GameStarted,
+    LocationDiscovered,
+    LocationEntered,
     LookedAround,
-    NodeDiscovered,
-    NodeEntered,
+    RoomDiscovered,
+    RoomEntered,
     TurnEnded,
     Waited,
 )
 from tidewrack.core.rng import Rng
-from tidewrack.core.world.dungeon import DungeonMap
+from tidewrack.core.world.location import Location, Room
+from tidewrack.core.world.overworld import Overworld
 
-AMBIENT_CHANCE = 0.35  # per turn, when the current node has ambient lines
+AMBIENT_CHANCE = 0.35  # per turn, when the current room has ambient lines
 LOG_LIMIT = 200
 
 
@@ -53,7 +56,16 @@ LOG_LIMIT = 200
 
 @dataclass(frozen=True)
 class Move:
+    """Take an exit to another room of this location."""
+
     exit_label: str
+
+
+@dataclass(frozen=True)
+class Travel:
+    """Take the road to a neighbouring location (only from a gate room)."""
+
+    location: str
 
 
 @dataclass(frozen=True)
@@ -66,7 +78,7 @@ class Wait:
     """Spend a turn doing nothing."""
 
 
-Command = Move | Look | Wait
+Command = Move | Travel | Look | Wait
 
 
 # --- results and view model --------------------------------------------------------
@@ -81,7 +93,15 @@ class TurnResult:
 @dataclass(frozen=True)
 class ExitView:
     label: str
-    destination: str | None  # node name once visited; None while unexplored
+    destination: str | None  # room name once visited; None while unexplored
+
+
+@dataclass(frozen=True)
+class RoadView:
+    location: str  # id, for Travel(location)
+    name: str
+    kind: str
+    visited: bool
 
 
 @dataclass(frozen=True)
@@ -90,52 +110,69 @@ class MapNode:
     x: float
     y: float
     state: Literal["current", "visited", "seen"]  # "seen": known but not yet visited
-    name: str | None  # None until visited
-    exit_label: str | None  # set when one step from the current node: Move(exit_label)
+    name: str | None  # None while the player doesn't know it
+    command: Command | None  # set when one step away: perform it to go there
 
 
 @dataclass(frozen=True)
 class MapView:
-    """The fog-of-war map: only nodes the player knows, only paths they've seen."""
+    """A fog-of-war map: only nodes the player knows, only paths they've seen."""
 
     nodes: tuple[MapNode, ...]
     edges: tuple[tuple[str, str], ...]
+    size: int  # nodes in the whole map, known or not (for scaling)
 
 
 @dataclass(frozen=True)
 class GameView:
-    dungeon_name: str
-    location: str
+    location: str  # the location's name
+    kind: str  # "Town", "Sea Caves", …
+    room: str
     description: str
     exits: tuple[ExitView, ...]
+    at_gate: bool  # roads can be taken from here
+    gates: tuple[str, ...]  # names of this location's gate rooms
+    roads: tuple[RoadView, ...]  # this location's neighbours (usable when at_gate)
     log: tuple[str, ...]
     turn: int
     seed: int
-    visited: int
-    total_nodes: int
-    map: MapView | None  # None for dungeons without map positions
+    rooms_visited: int
+    total_rooms: int
+    locations_visited: int
+    total_locations: int
+    map: MapView | None  # rooms of this location; None if it has no map positions
+    world_map: MapView | None  # locations; None if the world has no map positions
 
 
 # --- the game ----------------------------------------------------------------------
 
 
 class Game:
-    def __init__(self, seed: int, dungeon: DungeonMap) -> None:
-        """Start a new run of `dungeon`."""
-        self._setup(seed, dungeon)
-        self.player = self.world.create(Player(), Name("You"), Position(dungeon.start), Explorer())
-        for node in dungeon.nodes.values():
-            for text in node.features:
-                self.world.create(Scenery(text), Position(node.id))
+    def __init__(self, seed: int, world: Overworld) -> None:
+        """Start a new run in `world`."""
+        self._setup(seed, world)
+        start = world.location(world.start)
+        self.player = self.world.create(
+            Player(), Name("You"), Position(start.id, start.start), Explorer()
+        )
+        for location in world.locations.values():
+            for room in location.rooms.values():
+                for text in room.features:
+                    self.world.create(Scenery(text), Position(location.id, room.id))
 
-        self.bus.emit(GameStarted(seed, dungeon.id))
-        self.bus.emit(NodeEntered(self.player, dungeon.start, None, first_visit=True))
+        self.bus.emit(GameStarted(seed))
+        self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
+        self.bus.emit(RoomEntered(self.player, start.id, start.start, None, first_visit=True))
         self.bus.flush()
 
-    def _setup(self, seed: int, dungeon: DungeonMap) -> None:
+    def _setup(
+        self, seed: int, overworld: Overworld, snapshot: OverworldSchema | None = None
+    ) -> None:
         """Runtime wiring shared by new and loaded games."""
         self.seed = seed
-        self.dungeon = dungeon
+        self.overworld = overworld
+        # The world never changes during play, so it's snapshotted for saving once.
+        self._snapshot = snapshot or OverworldSchema.from_overworld(overworld)
         self.rng = Rng(seed)
         self.ambient_rng = self.rng.derive("ambient")
         self.world = World()
@@ -148,7 +185,8 @@ class Game:
 
         # Subscription order is delivery order: exploration updates state before
         # the narrator describes it.
-        self.bus.subscribe(NodeEntered, self._explore)
+        self.bus.subscribe(LocationEntered, self._explore_location)
+        self.bus.subscribe(RoomEntered, self._explore_room)
         self.bus.subscribe(Event, self._narrate)
 
     # --- saving ----------------------------------------------------------------------
@@ -159,7 +197,7 @@ class Game:
             seed=self.seed,
             turn=self.turn,
             log=list(self.log),
-            dungeon=DungeonSchema.from_map(self.dungeon),
+            world=self._snapshot,
             rng=RngState(**self.rng.get_state()),
             ambient_rng=RngState(**self.ambient_rng.get_state()),
             next_entity_id=next_id,
@@ -173,7 +211,7 @@ class Game:
     def from_state(cls, state: GameState) -> Game:
         """Resume a saved game exactly where it stopped (RNG streams included)."""
         game = cls.__new__(cls)
-        game._setup(state.seed, state.dungeon.to_map())
+        game._setup(state.seed, state.world.to_overworld(), state.world)
         game.rng = Rng.from_state(state.rng.model_dump())
         game.ambient_rng = Rng.from_state(state.ambient_rng.model_dump())
         game.turn = state.turn
@@ -187,37 +225,73 @@ class Game:
         )
         game.player = game.world.single(Player)[0]
         for entity, (position,) in game.world.query(Position):
-            if position.node not in game.dungeon.nodes:
-                raise ValueError(f"entity {entity} is at unknown node {position.node!r}")
+            location = game.overworld.locations.get(position.location)
+            if location is None or position.room not in location.rooms:
+                raise ValueError(
+                    f"entity {entity} is at unknown room {position.location}/{position.room}"
+                )
         return game
 
     # --- turn loop -------------------------------------------------------------------
 
     def perform(self, command: Command) -> TurnResult:
         position = self.world.get(self.player, Position)
+        location = self.overworld.location(position.location)
         took_turn = False
 
         match command:
             case Move(exit_label=label):
-                exit_ = self.dungeon.exit(position.node, label)
+                exit_ = location.exit(position.room, label)
                 if exit_ is None:
                     self.bus.emit(ActionRejected("You can't go that way."))
                 else:
-                    explorer = self.world.get(self.player, Explorer)
-                    origin, position.node = position.node, exit_.to
+                    origin, position.room = position.room, exit_.to
                     self.bus.emit(
-                        NodeEntered(
+                        RoomEntered(
                             self.player,
+                            location.id,
                             exit_.to,
                             origin,
-                            first_visit=exit_.to not in explorer.visited,
+                            first_visit=exit_.to
+                            not in self._explorer().rooms_visited.get(location.id, set()),
+                        )
+                    )
+                    took_turn = True
+            case Travel(location=destination_id):
+                if position.room not in location.gates:
+                    gates = " or ".join(location.room(g).name for g in location.gates)
+                    self.bus.emit(
+                        ActionRejected(f"You can only leave {location.name} from {gates}.")
+                    )
+                elif destination_id not in location.roads:
+                    self.bus.emit(ActionRejected("No road leads there from here."))
+                else:
+                    destination = self.overworld.location(destination_id)
+                    position.location, position.room = destination.id, destination.start
+                    explorer = self._explorer()
+                    self.bus.emit(
+                        LocationEntered(
+                            self.player,
+                            destination.id,
+                            location.id,
+                            first_visit=destination.id not in explorer.locations_visited,
+                        )
+                    )
+                    self.bus.emit(
+                        RoomEntered(
+                            self.player,
+                            destination.id,
+                            destination.start,
+                            None,
+                            first_visit=destination.start
+                            not in explorer.rooms_visited.get(destination.id, set()),
                         )
                     )
                     took_turn = True
             case Look():
-                self.bus.emit(LookedAround(position.node))
+                self.bus.emit(LookedAround(location.id, position.room))
             case Wait():
-                self.bus.emit(Waited(position.node))
+                self.bus.emit(Waited(location.id, position.room))
                 took_turn = True
             case _:
                 raise TypeError(f"unknown command: {command!r}")
@@ -232,90 +306,129 @@ class Game:
             events += self.bus.flush()
         return TurnResult(took_turn, tuple(events))
 
+    def _explorer(self) -> Explorer:
+        return self.world.get(self.player, Explorer)
+
+    def here(self) -> tuple[Location, Room]:
+        position = self.world.get(self.player, Position)
+        location = self.overworld.location(position.location)
+        return location, location.room(position.room)
+
     # --- view model ------------------------------------------------------------------
 
     def view(self) -> GameView:
-        here = self.dungeon.node(self.world.get(self.player, Position).node)
-        explorer = self.world.get(self.player, Explorer)
+        location, room = self.here()
+        explorer = self._explorer()
+        rooms_visited = explorer.rooms_visited.get(location.id, set())
+        at_gate = room.id in location.gates
         exits = tuple(
-            ExitView(e.label, self.dungeon.node(e.to).name if e.to in explorer.visited else None)
-            for e in here.exits
+            ExitView(e.label, location.room(e.to).name if e.to in rooms_visited else None)
+            for e in room.exits
         )
+        roads = tuple(
+            RoadView(
+                location=to,
+                name=self.overworld.location(to).name,
+                kind=self.overworld.location(to).kind,
+                visited=to in explorer.locations_visited,
+            )
+            for to in location.roads
+        )
+        room_map = world_map = None
+        if location.has_map:
+            room_map = _fog_map(
+                nodes=[(r.id, r.pos, r.name) for r in location.rooms.values()],
+                neighbours=location.neighbours,
+                here=room.id,
+                visited=rooms_visited,
+                discovered=explorer.rooms_discovered.get(location.id, set()),
+                commands={e.to: Move(e.label) for e in room.exits},
+                names_on_discovery=False,
+            )
+        if self.overworld.has_map:
+            world_map = _fog_map(
+                nodes=[(loc.id, loc.pos, loc.name) for loc in self.overworld.locations.values()],
+                neighbours=self.overworld.neighbours,
+                here=location.id,
+                visited=explorer.locations_visited,
+                discovered=explorer.locations_discovered,
+                commands={to: Travel(to) for to in location.roads} if at_gate else {},
+                names_on_discovery=True,  # signposts name the places a road leads
+            )
         return GameView(
-            map=self._map_view(here.id, explorer) if self.dungeon.has_map else None,
-            dungeon_name=self.dungeon.name,
-            location=here.name,
-            description=here.description,
+            location=location.name,
+            kind=location.kind,
+            room=room.name,
+            description=room.description,
             exits=exits,
+            at_gate=at_gate,
+            gates=tuple(location.room(g).name for g in location.gates),
+            roads=roads,
             log=tuple(self.log),
             turn=self.turn,
             seed=self.seed,
-            visited=len(explorer.visited),
-            total_nodes=len(self.dungeon.nodes),
+            rooms_visited=len(rooms_visited),
+            total_rooms=len(location.rooms),
+            locations_visited=len(explorer.locations_visited),
+            total_locations=len(self.overworld.locations),
+            map=room_map,
+            world_map=world_map,
         )
-
-    def _map_view(self, here: str, explorer: Explorer) -> MapView:
-        step = {e.to: e.label for e in self.dungeon.node(here).exits}
-        nodes = []
-        for node in self.dungeon.nodes.values():  # map order, so output is stable
-            if node.id not in explorer.discovered:
-                continue
-            state = (
-                "current"
-                if node.id == here
-                else "visited"
-                if node.id in explorer.visited
-                else "seen"
-            )
-            x, y = node.pos  # type: ignore[misc]  # has_map guarantees positions
-            nodes.append(
-                MapNode(
-                    id=node.id,
-                    x=x,
-                    y=y,
-                    state=state,
-                    name=node.name if node.id in explorer.visited else None,
-                    exit_label=step.get(node.id),
-                )
-            )
-        edges = sorted(
-            {
-                tuple(sorted((node_id, e.to)))
-                for node_id in explorer.visited
-                for e in self.dungeon.node(node_id).exits
-            }
-        )
-        return MapView(nodes=tuple(nodes), edges=tuple(edges))  # type: ignore[arg-type]
 
     # --- subscribers -----------------------------------------------------------------
 
-    def _explore(self, event: NodeEntered) -> None:
+    def _explore_location(self, event: LocationEntered) -> None:
         explorer = self.world.try_get(event.entity, Explorer)
         if explorer is None:
             return
-        explorer.visited.add(event.node_id)
-        explorer.discovered.add(event.node_id)
-        for neighbour in self.dungeon.neighbours(event.node_id):
-            if neighbour not in explorer.discovered:
-                explorer.discovered.add(neighbour)
-                self.bus.emit(NodeDiscovered(neighbour))
+        explorer.locations_visited.add(event.location)
+        explorer.locations_discovered.add(event.location)
+        for neighbour in self.overworld.neighbours(event.location):
+            if neighbour not in explorer.locations_discovered:
+                explorer.locations_discovered.add(neighbour)
+                self.bus.emit(LocationDiscovered(neighbour))
+
+    def _explore_room(self, event: RoomEntered) -> None:
+        explorer = self.world.try_get(event.entity, Explorer)
+        if explorer is None:
+            return
+        visited = explorer.rooms_visited.setdefault(event.location, set())
+        discovered = explorer.rooms_discovered.setdefault(event.location, set())
+        visited.add(event.room)
+        discovered.add(event.room)
+        for neighbour in self.overworld.location(event.location).neighbours(event.room):
+            if neighbour not in discovered:
+                discovered.add(neighbour)
+                self.bus.emit(RoomDiscovered(event.location, neighbour))
 
     def _narrate(self, event: Event) -> None:
         match event:
-            case GameStarted():
-                self._say(f"— {self.dungeon.name} —")
-            case NodeEntered(entity=entity, node_id=node_id, from_node=origin, first_visit=first):
+            case LocationEntered(entity=entity, location=location_id, from_location=origin):
                 if entity == self.player:
-                    name = self.dungeon.node(node_id).name
+                    location = self.overworld.location(location_id)
+                    if origin is not None:
+                        self._say(f"You take the road to {location.name}.")
+                    self._say(f"— {location.name} · {location.kind} —")
+            case RoomEntered(
+                entity=entity,
+                location=location_id,
+                room=room_id,
+                from_room=origin,
+                first_visit=first,
+            ):
+                if entity == self.player:
+                    name = self.overworld.location(location_id).room(room_id).name
                     if origin is None:
                         self._say(f"You stand at {name}.")
                     else:
                         self._say(
                             f"You make your way to {name}." if first else f"You return to {name}."
                         )
-            case LookedAround(node_id=node_id):
+            case LookedAround(location=location_id, room=room_id):
                 scenery = [
-                    s.text for _, (s, p) in self.world.query(Scenery, Position) if p.node == node_id
+                    s.text
+                    for _, (s, p) in self.world.query(Scenery, Position)
+                    if (p.location, p.room) == (location_id, room_id)
                 ]
                 for text in scenery or ["Nothing else here catches your eye."]:
                     self._say(text)
@@ -331,11 +444,44 @@ class Game:
         del self.log[:-LOG_LIMIT]
 
 
+# --- maps --------------------------------------------------------------------------
+
+
+def _fog_map(
+    nodes: list[tuple[str, tuple[float, float] | None, str]],
+    neighbours: Callable[[str], list[str]],
+    here: str,
+    visited: set[str],
+    discovered: set[str],
+    commands: dict[str, Command],
+    names_on_discovery: bool,
+) -> MapView:
+    """Only what the player knows: discovered nodes, and paths out of visited ones."""
+    shown = []
+    for node_id, pos, name in nodes:  # map order, so output is stable
+        if node_id not in discovered:
+            continue
+        state = "current" if node_id == here else "visited" if node_id in visited else "seen"
+        x, y = pos  # type: ignore[misc]  # callers check has_map
+        shown.append(
+            MapNode(
+                id=node_id,
+                x=x,
+                y=y,
+                state=state,
+                name=name if names_on_discovery or node_id in visited else None,
+                command=commands.get(node_id),
+            )
+        )
+    edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})
+    return MapView(nodes=tuple(shown), edges=tuple(edges), size=len(nodes))  # type: ignore[arg-type]
+
+
 # --- systems -----------------------------------------------------------------------
 
 
 def ambience_system(game: Game) -> None:
     """Sometimes play a flavour line for where the player is."""
-    node = game.dungeon.node(game.world.get(game.player, Position).node)
-    if node.ambient and game.ambient_rng.chance(AMBIENT_CHANCE):
-        game.bus.emit(AmbientNoticed(node.id, game.ambient_rng.choice(node.ambient)))
+    location, room = game.here()
+    if room.ambient and game.ambient_rng.chance(AMBIENT_CHANCE):
+        game.bus.emit(AmbientNoticed(location.id, room.id, game.ambient_rng.choice(room.ambient)))

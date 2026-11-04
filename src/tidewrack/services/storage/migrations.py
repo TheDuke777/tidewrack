@@ -25,8 +25,52 @@ def _v1_to_v2(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v2_to_v3(envelope: Envelope) -> Envelope:
+    # v3 nests rooms inside locations inside a world. An old save's single dungeon
+    # becomes a world with one location (and no roads out of it).
+    game, location_id = envelope["game"], "loc_00"
+    dungeon = game.pop("dungeon")
+    game["world"] = {
+        "start": location_id,
+        "locations": [
+            {
+                "id": location_id,
+                "name": dungeon["name"],
+                "kind": "Sea Caves" if dungeon["id"] == "dungeon.generated" else "Dungeon",
+                "start": dungeon["start"],
+                "gates": [dungeon["start"]],
+                "rooms": dungeon["nodes"],
+            }
+        ],
+    }
+    for entity in game["entities"]:
+        components = entity["components"]
+        if "Position" in components:
+            components["Position"] = {
+                "location": location_id,
+                "room": components["Position"]["node"],
+            }
+        if "Explorer" in components:
+            old = components["Explorer"]
+            components["Explorer"] = {
+                "locations_visited": [location_id],
+                "locations_discovered": [location_id],
+                "rooms_visited": {location_id: old["visited"]},
+                "rooms_discovered": {location_id: old["discovered"]},
+            }
+    old = envelope["meta"]["summary"]
+    envelope["meta"]["summary"] = {
+        "location": old["dungeon_name"],
+        "room": old["location"],
+        "turn": old["turn"],
+        "locations_visited": 1,
+        "total_locations": 1,
+    }
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
-MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {1: _v1_to_v2}
+MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {1: _v1_to_v2, 2: _v2_to_v3}
 
 
 class NewerSaveError(SaveError):

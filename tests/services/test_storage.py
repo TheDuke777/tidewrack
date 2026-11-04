@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tidewrack.core.engine.game import Look, Move, Wait
+from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
 from tidewrack.services.session import GameSession, next_world_name
 from tidewrack.services.storage import FileSaveStore, SaveError
@@ -13,7 +14,8 @@ from tidewrack.services.storage.migrations import NewerSaveError, migrate
 from tidewrack.services.storage.store import BACKUPS_KEPT
 
 CONTENT = load_bundled_content()
-DUNGEON = "dungeon.first_descent"
+FIRST_DESCENT = CONTENT.dungeon("dungeon.first_descent")
+WORLD = Overworld(FIRST_DESCENT.id, {FIRST_DESCENT.id: FIRST_DESCENT})
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "saves"
 
 
@@ -23,9 +25,7 @@ def fake_clock():
 
 
 def new_session(store, name="World 1", seed=7, clock=None):
-    return GameSession.new(
-        store, CONTENT, CONTENT.dungeon(DUNGEON), name, seed, clock=clock or fake_clock()
-    )
+    return GameSession.new(store, CONTENT, WORLD, name, seed, clock=clock or fake_clock())
 
 
 # --- session + autosave ------------------------------------------------------------
@@ -37,7 +37,7 @@ def test_new_world_is_saved_immediately(tmp_path):
     [listing] = store.list_slots()
     assert listing.meta.slot_id == session.meta.slot_id
     assert listing.meta.revision == 1
-    assert listing.meta.summary.location == "Wrack Cove"
+    assert listing.meta.summary.room == "Wrack Cove"
 
 
 def test_every_action_autosaves_and_reopens_identically(tmp_path):
@@ -111,7 +111,7 @@ def test_corrupt_save_falls_back_to_latest_backup(tmp_path):
     assert listing.from_backup and listing.meta.revision == 2
     reopened = GameSession.open(store, session.meta.slot_id, CONTENT)
     assert reopened.from_backup
-    assert reopened.game.view().location == "The Cliff Stair"
+    assert reopened.game.view().room == "The Cliff Stair"
 
 
 def test_unreadable_everywhere_is_an_error(tmp_path):
@@ -146,16 +146,48 @@ def test_newer_saves_are_refused_with_a_clear_message():
         migrate({"schema_version": 999})
 
 
-@pytest.mark.parametrize("fixture", sorted(FIXTURES.glob("*.json")), ids=lambda p: p.name)
-def test_every_released_save_format_still_opens(tmp_path, fixture):
-    """Fixture saves from each released schema must open and keep playing (§9)."""
-    store = FileSaveStore(tmp_path)
-    envelope = json.loads(fixture.read_text(encoding="utf-8"))
+def _install(tmp_path, envelope) -> str:
     slot_id = envelope["meta"]["slot_id"]
     (tmp_path / f"slot_{slot_id}.json.gz").write_bytes(gzip.compress(json.dumps(envelope).encode()))
+    return slot_id
+
+
+@pytest.mark.parametrize("fixture", sorted(FIXTURES.glob("*.json")), ids=lambda p: p.name)
+def test_every_released_save_format_still_opens(tmp_path, fixture):
+    """Fixture saves from each released schema must open, list and keep playing (§9)."""
+    store = FileSaveStore(tmp_path)
+    envelope = json.loads(fixture.read_text(encoding="utf-8"))
+    slot_id = _install(tmp_path, envelope)
+    [listing] = store.list_slots()
     session = GameSession.open(store, slot_id, CONTENT)
+    assert listing.meta == session.meta
     session.perform(Wait())
     assert session.game.turn == envelope["game"]["turn"] + 1
+
+
+def test_v2_saves_become_a_one_location_world(tmp_path):
+    envelope = json.loads((FIXTURES / "v2_generated.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    view = session.game.view()
+    assert (view.location, view.kind, view.room) == (
+        "The Gullet Caves",
+        "Sea Caves",
+        "Brackish Grotto",
+    )
+    assert (view.rooms_visited, view.total_rooms, view.total_locations) == (3, 14, 1)
+    assert view.roads == () and view.map is not None
+    assert session.game.log == envelope["game"]["log"]
+
+
+def test_newer_saves_are_still_listed(tmp_path):
+    store = FileSaveStore(tmp_path)
+    session = new_session(store)
+    envelope = store.load(session.meta.slot_id).envelope
+    envelope["schema_version"] = 999
+    store.save(session.meta.slot_id, envelope)
+    assert [s.meta.name for s in store.list_slots()] == ["World 1"]
+    with pytest.raises(NewerSaveError):
+        GameSession.open(store, session.meta.slot_id, CONTENT)
 
 
 def test_there_is_a_fixture_for_every_schema_version():

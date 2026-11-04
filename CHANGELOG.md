@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Worlds are now made of places: each new world has 8 locations (towns,
+  forests, mines and sea caves) joined by roads, and every location has its
+  own rooms to explore. You start in a harbour town.
+- Travel between locations from their gate rooms (the town gate, the cave
+  mouth, the forest edge, the mine head).
+- A world map alongside the area map: switch between them with the buttons at
+  the top. Places you know of are named; at a gate, tap a ringed place to
+  travel there.
+- Each kind of place is shaped differently: towns are compact with many
+  shortcuts, mines are long and winding, forests sprawl.
+
+### Changed
+- Existing worlds open as a single location with no roads out of it.
+
+### Removed
+- The temporary "Map test world (60 rooms)" button.
+
 ## [0.3.0-beta.1] - 2026-11-03
 
 ### Added

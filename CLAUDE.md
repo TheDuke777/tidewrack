@@ -8,6 +8,9 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 
 **Tidewrack** is a **text-based, procedurally generated roguelike RPG** in Python + Flet. Android-first, with a possible web build. No tile grid, no line-of-sight, no pathfinding — the world is graphs and data, presented as prose plus a schematic point-crawl map.
 
+### World structure
+**World → Locations → Rooms.** A **world** (one per save slot; `Overworld` in code, to avoid clashing with the ECS `World`) is a graph of **locations** joined by two-way roads. A location is a town, forest, mine, sea cave, dungeon… with its own graph of **rooms**, where events happen (description, look, later combat, shops, foraging). The player travels between locations only from a location's **gate rooms** (town gate, cave mouth, forest edge). Two fog-of-war maps: the area map (rooms here) and the world map (locations; discovered places are named, as if signposted).
+
 ### Hard constraints (non-negotiable)
 - **Fully offline gameplay.** The only network use is optional cloud-save sync. No multiplayer, no leaderboards, no live-ops, no server code of our own.
 - **No ads. No in-app purchases. No premium currency.** One in-game currency (gold). No energy timers, no dark patterns.
@@ -45,10 +48,10 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | Concern | Choice | Notes |
 |---|---|---|
 | UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
-| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war; tap a neighbouring room to move |
-| World structure | Hand-rolled (`core/procgen/dungeon_gen.py`) | Grid-based spanning tree + loops gives map positions directly and stays deterministic; chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 rooms). Revisit for the overworld if needed |
-| Overworld regions | `scipy.spatial.Voronoi` | Verify Pyodide availability if web is pursued |
-| Biomes | `opensimplex` | Coherent noise → biome per region |
+| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there |
+| World structure | Hand-rolled (`core/procgen/grid.py`, `location_gen.py`, `world_gen.py`) | One grid-based spanning tree + loops layout for both rooms and the overworld; gives map positions directly and stays deterministic. Chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 nodes) |
+| Overworld regions | *Later, if they add something:* `scipy.spatial.Voronoi` | Not needed for the grid overworld; heavy compiled dependency (check pypi.flet.dev, and Pyodide if web is pursued) |
+| Biomes | *Later:* `opensimplex` | Coherent noise → biome per region |
 | ECS | In-house (`core/engine/ecs.py`) | Instance-based, insertion-ordered `World`. Chosen over `esper` 3.x, whose state is module-global (bad for tests, multiple slots, save/load) |
 | Names/lore | `markovify` (+ `Faker` stopgap) | Late polish pass |
 | Dice | `d20` | Dice-notation rolls |
@@ -95,7 +98,7 @@ Not used: `tcod` FOV/pathfinding/renderer (tile-grid problems we don't have).
 └──────────────────────────────────────────────┘
 ```
 
-**Event bus** (`core/engine/events.py`) is the spine: the engine emits typed events (`EnemyKilled`, `ItemCrafted`, `NodeDiscovered`, `QuestCompleted`, `PetBonded`, `GoldSpent`, …). Achievements, codex discovery, quest tracking, and tutorial hints are all **subscribers** — they never reach into engine internals.
+**Event bus** (`core/engine/events.py`) is the spine: the engine emits typed events (`EnemyKilled`, `ItemCrafted`, `RoomDiscovered`, `LocationEntered`, `QuestCompleted`, `PetBonded`, `GoldSpent`, …). Achievements, codex discovery, quest tracking, and tutorial hints are all **subscribers** — they never reach into engine internals.
 
 ---
 
@@ -119,8 +122,10 @@ tidewrack/
 ├── art/                             # source artwork (not bundled into the APK)
 ├── src/content/                     # All game content as data, <kind>/<name>.json
 │                                    #   (under src/ because flet build only bundles src/)
-│   ├── dungeons/                    # hand-authored dungeons (first_descent → tutorial later)
-│   ├── roomsets/                    # room archetypes + names that generated dungeons use
+│   ├── worlds/                      # world recipes: location count, start kind, kind weights
+│   ├── roomsets/                    # location kinds (town, forest, mine, sea caves): names,
+│   │                                #   size, layout shape, room archetypes, gate room
+│   ├── dungeons/                    # hand-authored locations (first_descent → tutorial later)
 │   ├── monsters/
 │   ├── items/
 │   │   ├── gear/
@@ -148,9 +153,11 @@ tidewrack/
 │   ├── core/                        # PURE PYTHON — no UI/IO imports
 │   │   ├── engine/                  # ecs.py, components.py, events.py,
 │   │   │                            #   game.py (commands, turn loop, view model)
-│   │   ├── world/                   # dungeon.py (point-crawl map model)
-│   │   ├── procgen/                 # dungeon_gen.py (seeded generator + world_hash);
-│   │   │                            #   later: biomes, names, quests, factions, pets, lore
+│   │   ├── world/                   # location.py (rooms + exits + gates),
+│   │   │                            #   overworld.py (locations + roads)
+│   │   ├── procgen/                 # grid.py (shared layout), location_gen.py,
+│   │   │                            #   world_gen.py (+ world_hash); later: biomes,
+│   │   │                            #   names, quests, factions, pets, lore
 │   │   ├── gear/                    # stat_pipeline.py, compare.py
 │   │   ├── economy/                 # value_model.py, shops.py, crafting.py, cooking.py
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
@@ -215,7 +222,7 @@ tidewrack/
 - Slots live in `$FLET_APP_STORAGE_DATA/saves/` (the app's private dir, kept across updates; `flet run` maps it to `.flet/storage/data`). One file per slot, `slot_<uuid hex>.json.gz`: an **envelope** of `format`, `schema_version`, `generator_version`, `content_version` (content hash), `meta` (name, timestamps, `revision`, picker summary) and `game` (a `GameState`).
 - `GameSession` autosaves after **every** command that produced events. Writes are atomic (temp + fsync + rename); the previous **3** revisions are copied to `saves/backups/` first, and loading falls back to the newest readable backup (the picker flags it).
 - Locally the slot list comes from scanning slot files (no local manifest to drift); `manifest.json` is for cloud sync.
-- A `GameState` **snapshots the dungeon map** and every entity, so saves never depend on current content files (§9).
+- A `GameState` **snapshots the whole world** (every location and room, generated up front at world creation) and every entity, so saves never depend on current content files (§9). A standard 8-location world is ~6 KB gzipped and an autosave takes ~7 ms on desktop; if worlds grow a lot, consider saving locations separately or only on change.
 
 ---
 
@@ -311,7 +318,8 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, roomset, size)`, which uses the seed's `worldgen` substream; layout and naming use separate substreams so content edits to names don't reshape worlds.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds.
+- Every location is generated **at world creation**, never lazily on first visit, so an update can't change places a player hasn't reached yet.
 - `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
 ---
@@ -381,7 +389,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 
 1. **Mobile Google OAuth.** Flet's built-in OAuth supports Google and works on mobile via an in-app web browser, but its documented setup uses a client secret, which would ship inside the app. Confirm PKCE/no-secret flow is possible; and confirm Google accepts the in-app browser flow (Google has restricted OAuth in embedded webviews — verify on a real device). Fallback: Firebase Auth, or a minimal token-exchange function.
 2. **Drive `appDataFolder` from Python on-device** — read/write/list with a thin REST client; test token refresh and offline→online transitions.
-3. **Canvas map performance** — render/update a ~60-node graph with fog of war on a low-end phone. *In progress (v0.3.0):* the world list has a temporary "Map test world (60 rooms)" button for this; remove it (`SPIKE_WORLD_SIZE` in `ui/app.py`) once checked. Generating 60 rooms takes ~8 ms on desktop.
+3. ✅ **Done (v0.3.0).** **Canvas map performance** — a 60-room map with fog of war ran with no lag on a Galaxy S24 Ultra. Caveat: that's not a low-end phone; recheck on one if players report lag. Generating 60 rooms takes ~8 ms on desktop.
 4. **Pyodide dependency check** (only if web is pursued) — verify `scipy`, `pydantic`, `markovify`, `opensimplex`; time worldgen in-browser.
 5. **Share/import plumbing** — file picker, share sheet, clipboard, QR on mobile through Flet.
 6. **Search quality/perf** of the in-app help index on mobile.
@@ -415,7 +423,8 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 1. ✅ **Done (v0.1.0).** **Core skeleton:** ECS + event bus + turn loop + seeded RNG + one hand-authored dungeon. Import-lint test for `core/` purity.
 2. ✅ **Done (v0.1.1).** **Data layer:** pydantic schemas + content loader + content validation tests.
 3. ✅ **Done (v0.2.0).** **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.
-4. **World graph + map:** networkx generation, canvas point-crawl, fog of war. (Spike 3.)
+4. ✅ **Done (v0.3.0).** **World graph + map:** hand-rolled seeded generation, canvas point-crawl, fog of war. (Spike 3.)
+   - **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration.
 5. **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip.
 6. **Combat + quests + codex discovery** (bestiary/quest log first).
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.

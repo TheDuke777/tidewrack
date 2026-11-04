@@ -1,0 +1,12 @@
+{
+  "id": "world.standard",
+  "name": "Standard",
+  "locations": 8,
+  "start": "roomset.harbour_town",
+  "roomsets": {
+    "roomset.sea_caves": 1.0,
+    "roomset.wailing_forest": 1.0,
+    "roomset.old_mine": 0.8,
+    "roomset.harbour_town": 0.5
+  }
+}

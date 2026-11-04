@@ -5,5 +5,8 @@ Separate from the app version. Bump SCHEMA_VERSION when the save format changes
 when the same seed would produce different results (RNG or generation changes).
 """
 
-SCHEMA_VERSION = 2  # 2: dungeon nodes may carry map positions (`pos`)
-GENERATOR_VERSION = 1
+# 2: dungeon nodes may carry map positions (`pos`)
+# 3: a save holds a world of locations (each with rooms) instead of one dungeon
+SCHEMA_VERSION = 3
+# 2: worlds of locations; per-roomset layouts
+GENERATOR_VERSION = 2

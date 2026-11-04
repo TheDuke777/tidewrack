@@ -19,13 +19,14 @@ from dataclasses import dataclass
 
 from pydantic import ValidationError
 
-from tidewrack.core.data.schemas import DungeonSchema, RoomsetSchema
-from tidewrack.core.world.dungeon import DungeonMap
+from tidewrack.core.data.schemas import DungeonSchema, RoomsetSchema, WorldRecipeSchema
+from tidewrack.core.world.location import Location
 
 # kind directory -> (schema, id prefix)
 KINDS = {
     "dungeons": (DungeonSchema, "dungeon"),
     "roomsets": (RoomsetSchema, "roomset"),
+    "worlds": (WorldRecipeSchema, "world"),
 }
 
 
@@ -37,15 +38,19 @@ class ContentError(Exception):
 
 @dataclass(frozen=True)
 class Content:
-    dungeons: dict[str, DungeonMap]
+    dungeons: dict[str, Location]
     roomsets: dict[str, RoomsetSchema]
+    worlds: dict[str, WorldRecipeSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
-    def dungeon(self, dungeon_id: str) -> DungeonMap:
+    def dungeon(self, dungeon_id: str) -> Location:
         return self.dungeons[dungeon_id]
 
     def roomset(self, roomset_id: str) -> RoomsetSchema:
         return self.roomsets[roomset_id]
+
+    def world(self, world_id: str) -> WorldRecipeSchema:
+        return self.worlds[world_id]
 
 
 def load_content(files: Mapping[str, str]) -> Content:
@@ -79,13 +84,26 @@ def load_content(files: Mapping[str, str]) -> Content:
             continue
         loaded[kind][model.id] = model
 
+    problems += _broken_references(loaded)
     if problems:
         raise ContentError(problems)
     return Content(
-        dungeons={i: m.to_map() for i, m in loaded["dungeons"].items()},
+        dungeons={i: m.to_location() for i, m in loaded["dungeons"].items()},
         roomsets=loaded["roomsets"],
+        worlds=loaded["worlds"],
         content_hash=content_hash(files),
     )
+
+
+def _broken_references(loaded: dict[str, dict]) -> list[str]:
+    """IDs one content file uses that no file defines."""
+    problems = []
+    for recipe in loaded["worlds"].values():
+        path = f"worlds/{recipe.id.partition('.')[2]}.json"
+        for roomset_id in [recipe.start, *recipe.roomsets]:
+            if roomset_id not in loaded["roomsets"]:
+                problems.append(f"{path}: unknown roomset {roomset_id!r}")
+    return problems
 
 
 def content_hash(files: Mapping[str, str]) -> str:

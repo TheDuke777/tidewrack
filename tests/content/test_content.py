@@ -15,7 +15,7 @@ BUNDLED = read_content_files()
 def test_bundled_content_is_valid():
     content = load_content(BUNDLED)  # raises ContentError listing every problem
     assert "dungeon.first_descent" in content.dungeons
-    assert len(content.dungeon("dungeon.first_descent").nodes) == 7
+    assert len(content.dungeon("dungeon.first_descent").rooms) == 7
 
 
 def test_content_lives_where_flet_bundles_it():
@@ -49,37 +49,37 @@ def _dungeon_problems(mutate) -> list[str]:
 
 
 def test_rejects_unknown_keys():
-    problems = _dungeon_problems(lambda d: d["nodes"][0].update(descripton="typo"))
-    assert any("nodes.0.descripton" in p and "Extra inputs" in p for p in problems)
+    problems = _dungeon_problems(lambda d: d["rooms"][0].update(descripton="typo"))
+    assert any("rooms.0.descripton" in p and "Extra inputs" in p for p in problems)
 
 
 def test_rejects_missing_fields():
-    problems = _dungeon_problems(lambda d: d["nodes"][0].pop("name"))
-    assert any("nodes.0.name" in p and "required" in p for p in problems)
+    problems = _dungeon_problems(lambda d: d["rooms"][0].pop("name"))
+    assert any("rooms.0.name" in p and "required" in p for p in problems)
 
 
 def test_rejects_dangling_exit():
-    problems = _dungeon_problems(lambda d: d["nodes"][0]["exits"][0].update(to="nowhere"))
-    assert any("unknown node 'nowhere'" in p for p in problems)
+    problems = _dungeon_problems(lambda d: d["rooms"][0]["exits"][0].update(to="nowhere"))
+    assert any("unknown room 'nowhere'" in p for p in problems)
 
 
-def test_rejects_unreachable_node():
+def test_rejects_unreachable_room():
     def strand_shrine(d):
-        stair = next(n for n in d["nodes"] if n["id"] == "cliff_stair")
+        stair = next(n for n in d["rooms"] if n["id"] == "cliff_stair")
         stair["exits"] = [e for e in stair["exits"] if e["to"] != "tide_shrine"]
 
     assert any("tide_shrine: unreachable" in p for p in _dungeon_problems(strand_shrine))
 
 
-def test_rejects_duplicate_node_ids():
-    problems = _dungeon_problems(lambda d: d["nodes"].append(copy.deepcopy(d["nodes"][0])))
-    assert any("duplicate node ids: wrack_cove" in p for p in problems)
+def test_rejects_duplicate_room_ids():
+    problems = _dungeon_problems(lambda d: d["rooms"].append(copy.deepcopy(d["rooms"][0])))
+    assert any("duplicate room ids: wrack_cove" in p for p in problems)
 
 
 def test_rejects_bad_ids():
     assert any(
-        "nodes.0.id" in p
-        for p in _dungeon_problems(lambda d: d["nodes"][0].update(id="Wrack Cove"))
+        "rooms.0.id" in p
+        for p in _dungeon_problems(lambda d: d["rooms"][0].update(id="Wrack Cove"))
     )
     assert any(
         p.startswith("dungeons/first_descent.json: id:")
@@ -108,3 +108,17 @@ def test_reports_every_problem_with_its_path():
         "dungeons/notes.txt",
         "monsters/rat.json",
     ]
+
+
+def test_world_recipes_must_name_existing_roomsets():
+    recipe = json.loads(BUNDLED["worlds/standard.json"])
+    recipe["roomsets"]["roomset.lava_tubes"] = 1.0
+    problems = _problems(dict(BUNDLED, **{"worlds/standard.json": json.dumps(recipe)}))
+    assert problems == ["worlds/standard.json: unknown roomset 'roomset.lava_tubes'"]
+
+
+def test_roomset_sizes_must_make_sense():
+    roomset = json.loads(BUNDLED["roomsets/old_mine.json"])
+    roomset["size"] = [9, 4]
+    problems = _problems(dict(BUNDLED, **{"roomsets/old_mine.json": json.dumps(roomset)}))
+    assert any("roomsets/old_mine.json" in p and "size must satisfy" in p for p in problems)

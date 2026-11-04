@@ -17,15 +17,22 @@ class Name:
 
 @dataclass
 class Position:
-    node: str  # dungeon node id
+    location: str  # location id
+    room: str  # room id within that location
 
 
 @dataclass
 class Explorer:
-    """What an entity knows of the map (drives fog of war)."""
+    """What an entity knows of the world (drives fog of war on both maps).
 
-    visited: set[str] = field(default_factory=set)
-    discovered: set[str] = field(default_factory=set)  # includes visited
+    "Discovered" means known but maybe not visited (seen as an exit or a road);
+    it always includes everything visited. Rooms are keyed by location id.
+    """
+
+    locations_visited: set[str] = field(default_factory=set)
+    locations_discovered: set[str] = field(default_factory=set)
+    rooms_visited: dict[str, set[str]] = field(default_factory=dict)
+    rooms_discovered: dict[str, set[str]] = field(default_factory=dict)
 
 
 @dataclass

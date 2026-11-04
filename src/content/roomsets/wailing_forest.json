@@ -1,0 +1,81 @@
+{
+  "id": "roomset.wailing_forest",
+  "name": "Forest",
+  "location_names": [
+    "The Wailing Pines", "Driftwood Weald", "Mistwood", "The Saltbriar", "Gloamholt",
+    "The Bent Wood", "Hagsmoor Copse"
+  ],
+  "size": [12, 18],
+  "layout": { "spread": 2.0, "loops": 0.35, "corridors": 0.4 },
+  "adjectives": [
+    "Mossy", "Tangled", "Whispering", "Dim", "Wind-Bent", "Ferny", "Misty", "Thorny",
+    "Still", "Leaf-Dark", "Root-Bound", "Dripping"
+  ],
+  "entrance": {
+    "noun": "Forest Edge",
+    "descriptions": [
+      "Where the heath gives out, the pines begin: a dark wall leaning away from the sea wind."
+    ],
+    "features": ["A ribbon tied to a branch, faded to no colour at all."],
+    "ambient": ["The wind moans through the pines behind you.", "A crow watches from a stump."]
+  },
+  "rooms": [
+    {
+      "noun": "Glade",
+      "descriptions": [
+        "A clearing of soft grass, ringed by pines that all lean the same way.",
+        "A sunlit glade, strangely quiet, as if the forest is holding its breath."
+      ],
+      "features": ["A ring of toadstools, perfectly round."],
+      "ambient": ["A bird starts to sing, then stops."]
+    },
+    {
+      "noun": "Path",
+      "weight": 1.8,
+      "descriptions": [
+        "A deer path winds between the trunks, soft with needles.",
+        "The path narrows between banks of fern taller than you are."
+      ],
+      "ambient": ["Something moves in the bracken and is still.", "Needles patter down."]
+    },
+    {
+      "noun": "Hollow",
+      "weight": 0.8,
+      "descriptions": [
+        "The ground drops into a hollow full of mist that does not lift.",
+        "A dip among roots where the air is cold and smells of mushrooms."
+      ],
+      "features": ["An old boot, grown through by a fern."],
+      "ambient": ["The mist curls around your ankles."]
+    },
+    {
+      "noun": "Stream",
+      "weight": 0.7,
+      "descriptions": [
+        "A brown stream chatters over stones on its way to the sea.",
+        "Stepping stones cross a stream stained dark by peat."
+      ],
+      "features": ["A little dam of sticks, too neat to be the water's doing."],
+      "ambient": ["The stream talks to itself."]
+    },
+    {
+      "noun": "Deadfall",
+      "weight": 0.6,
+      "descriptions": [
+        "A storm-felled pine lies across the way, its roots a wall of earth and stone.",
+        "A tangle of fallen trunks you must climb over and under."
+      ],
+      "ambient": ["Wood creaks somewhere overhead."]
+    },
+    {
+      "noun": "Grove",
+      "weight": 0.4,
+      "descriptions": [
+        "A grove of ancient yews, their trunks split and twisted like rope.",
+        "Old oaks stand here among the pines, grey with lichen."
+      ],
+      "features": ["Coins pressed into the bark of the oldest tree, green with age."],
+      "ambient": ["The branches knock together, almost like speech."]
+    }
+  ]
+}

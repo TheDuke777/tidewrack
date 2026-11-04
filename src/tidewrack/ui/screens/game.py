@@ -1,4 +1,4 @@
-"""The game screen: walk the dungeon of the open save slot.
+"""The game screen: explore the rooms of a location and travel between locations.
 
 Reads only Game.view() and sends only commands, through the GameSession so every
 action autosaves (CLAUDE.md §4, §6). Flet re-renders after each event handler
@@ -11,12 +11,15 @@ from collections.abc import Callable
 
 import flet as ft
 
-from tidewrack.core.engine.game import Command, Look, Move, Wait
+from tidewrack.core.engine.game import Command, GameView, Look, Move, Travel, Wait
 from tidewrack.services.session import GameSession
 from tidewrack.ui.map_canvas import MapCanvas
 from tidewrack.version import get_build_info, version_label
 
 LOG_LINES_SHOWN = 40
+
+ROOM_LEGEND = "● visited   ○ unexplored   ◉ you   — tap a ringed room to go there"
+WORLD_LEGEND = "● visited   ○ unexplored   ◉ you   — at a gate, tap a ringed place to travel"
 
 
 class GameScreen:
@@ -24,15 +27,24 @@ class GameScreen:
         self.session = session
         self.version = version_label(get_build_info())
 
-        self.dungeon_name = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
-        self.location = ft.Text(size=26, weight=ft.FontWeight.BOLD)
+        self.where = ft.Text(size=14, color=ft.Colors.ON_SURFACE_VARIANT, expand=True)
+        self.room = ft.Text(size=26, weight=ft.FontWeight.BOLD)
         self.description = ft.Text(size=16)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(expand=True, spacing=6, auto_scroll=True)
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
-        self.map = MapCanvas(on_move=lambda label: self.act(Move(label)))
-        self.map_toggle = ft.IconButton(
-            icon=ft.Icons.MAP, selected_icon=ft.Icons.MAP_OUTLINED, on_click=self._toggle_map
+        self.map = MapCanvas(on_command=self.act)
+        # Which map is showing: the rooms here ("area"), the world, or none.
+        self.map_choice = ft.SegmentedButton(
+            allow_empty_selection=True,
+            show_selected_icon=False,
+            selected=["area"],
+            segments=[
+                ft.Segment(value="area", icon=ft.Icons.MAP_OUTLINED, tooltip="Map of this place"),
+                ft.Segment(value="world", icon=ft.Icons.PUBLIC, tooltip="World map"),
+            ],
+            on_change=lambda _: self.refresh(),
         )
 
         actions = ft.Row(
@@ -53,8 +65,8 @@ class GameScreen:
                     tooltip="Back to worlds",
                     on_click=lambda _: on_back(),
                 ),
-                self.dungeon_name,
-                self.map_toggle,
+                self.where,
+                self.map_choice,
             ],
         )
         self.control = ft.SafeArea(
@@ -67,9 +79,10 @@ class GameScreen:
                     controls=[
                         header,
                         self.map.control,
-                        self.location,
+                        self.room,
                         self.description,
                         self.exits,
+                        self.roads,
                         actions,
                         ft.Divider(),
                         self.log,
@@ -92,16 +105,12 @@ class GameScreen:
     def _wait(self, _: ft.Event) -> None:
         self.act(Wait())
 
-    def _toggle_map(self, _: ft.Event) -> None:
-        self.map.control.visible = not self.map.control.visible
-        self.refresh()
-
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
         view = self.session.game.view()
-        self.dungeon_name.value = f"{self.session.meta.name} · {view.dungeon_name}"
-        self.location.value = view.location
+        self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
+        self.room.value = view.room
         self.description.value = view.description
         self.exits.controls = [
             ft.FilledTonalButton(
@@ -112,16 +121,44 @@ class GameScreen:
             )
             for exit_ in view.exits
         ]
+        self.roads.controls = self._roads(view)
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
-        self.map_toggle.visible = view.map is not None
-        if view.map is None:
-            self.map.control.visible = False
-        else:
-            self.map.show(view.map, view.total_nodes)
-        shown = self.map.control.visible
-        self.map_toggle.selected = not shown
-        self.map_toggle.tooltip = "Hide map" if shown else "Show map"
+
+        # Worlds saved before v0.4 have no world map; the oldest have no room map.
+        area, world = self.map_choice.segments
+        area.disabled, world.disabled = view.map is None, view.world_map is None
+        self.map_choice.visible = not (area.disabled and world.disabled)
+        choice = (self.map_choice.selected or [None])[0]
+        shown = {"area": view.map, "world": view.world_map}.get(choice)
+        self.map.control.visible = shown is not None
+        if shown is not None:
+            on_world = choice == "world"
+            self.map.show(shown, WORLD_LEGEND if on_world else ROOM_LEGEND, labels=on_world)
+
         self.status.value = (
-            f"Turn {view.turn} · Explored {view.visited}/{view.total_nodes} · "
+            f"Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
+            f"Places {view.locations_visited}/{view.total_locations} · "
             f"Seed {view.seed:x} · {self.version}"
         )
+
+    def _roads(self, view: GameView) -> list[ft.Control]:
+        if not view.roads:
+            return []
+        if not view.at_gate:
+            gates = " or ".join(view.gates)
+            return [
+                ft.Text(
+                    f"Roads out of {view.location} leave from {gates}.",
+                    size=14,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                )
+            ]
+        return [
+            ft.FilledButton(
+                content=f"Travel to {road.name} · {road.kind}"
+                + ("" if road.visited else "  (unexplored)"),
+                icon=ft.Icons.SIGNPOST_OUTLINED,
+                on_click=lambda _, to=road.location: self.act(Travel(to)),
+            )
+            for road in view.roads
+        ]

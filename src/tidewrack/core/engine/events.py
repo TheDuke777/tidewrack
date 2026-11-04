@@ -28,7 +28,6 @@ class Event:
 @dataclass(frozen=True)
 class GameStarted(Event):
     seed: int
-    dungeon_id: str
 
 
 @dataclass(frozen=True)
@@ -36,37 +35,60 @@ class TurnEnded(Event):
     turn: int
 
 
-# --- exploration -----------------------------------------------------------------
+# --- travel ----------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
-class NodeEntered(Event):
+class LocationEntered(Event):
     entity: int
-    node_id: str
-    from_node: str | None  # None when placed at the start
+    location: str
+    from_location: str | None  # None when placed at the start
     first_visit: bool
 
 
 @dataclass(frozen=True)
-class NodeDiscovered(Event):
-    """A node became known (seen as an exit), before the player visits it."""
+class LocationDiscovered(Event):
+    """A location became known (one road from somewhere visited)."""
 
-    node_id: str
+    location: str
+
+
+# --- exploration -----------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class RoomEntered(Event):
+    entity: int
+    location: str
+    room: str
+    from_room: str | None  # None on arriving in the location
+    first_visit: bool
+
+
+@dataclass(frozen=True)
+class RoomDiscovered(Event):
+    """A room became known (seen as an exit), before the player visits it."""
+
+    location: str
+    room: str
 
 
 @dataclass(frozen=True)
 class LookedAround(Event):
-    node_id: str
+    location: str
+    room: str
 
 
 @dataclass(frozen=True)
 class Waited(Event):
-    node_id: str
+    location: str
+    room: str
 
 
 @dataclass(frozen=True)
 class AmbientNoticed(Event):
-    node_id: str
+    location: str
+    room: str
     text: str
 
 

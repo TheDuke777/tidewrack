@@ -1,0 +1,72 @@
+{
+  "id": "roomset.old_mine",
+  "name": "Mine",
+  "location_names": [
+    "The Old Lode", "Deepcut Mine", "Coldiron Workings", "The Tinpits", "Grey Adit",
+    "Widow's Shaft"
+  ],
+  "size": [10, 16],
+  "layout": { "spread": 2.4, "loops": 0.08, "corridors": 0.8 },
+  "adjectives": [
+    "Shored", "Collapsed", "Flooded", "Low", "Rusted", "Echoing", "Narrow", "Abandoned",
+    "Timbered", "Black", "Dripping", "Cold"
+  ],
+  "entrance": {
+    "noun": "Mine Head",
+    "descriptions": [
+      "A winding house of grey stone stands over the shaft, roofless, its wheel seized with rust."
+    ],
+    "features": ["A tally board of miners' tokens. Several hooks are still full."],
+    "ambient": ["Wind whistles across the mouth of the shaft.", "Spoil heaps shift and settle."]
+  },
+  "rooms": [
+    {
+      "noun": "Tunnel",
+      "weight": 2.0,
+      "descriptions": [
+        "A tunnel braced with old timbers, some of them bowed under the weight.",
+        "A cramped drift cut through dark rock, chisel marks still sharp."
+      ],
+      "ambient": ["A timber groans.", "Grit trickles from the ceiling."]
+    },
+    {
+      "noun": "Gallery",
+      "weight": 0.7,
+      "descriptions": [
+        "A wide gallery where a seam was followed until it ran out.",
+        "A chamber hollowed out by years of digging, its roof held up by pillars of ore."
+      ],
+      "features": ["A pick, its handle long rotted, still wedged in the rock face."],
+      "ambient": ["Your lamp-shadow stretches across the far wall."]
+    },
+    {
+      "noun": "Shaft",
+      "weight": 0.6,
+      "descriptions": [
+        "A ladder climbs a shaft into darkness; another descends into the sound of water.",
+        "A square shaft drops away beside a ledge barely wide enough to walk."
+      ],
+      "features": ["A rope ladder, half its rungs missing."],
+      "ambient": ["A stone falls, and you never hear it land."]
+    },
+    {
+      "noun": "Sump",
+      "weight": 0.5,
+      "descriptions": [
+        "Water has pooled at the bottom of the workings, black and perfectly still.",
+        "A flooded chamber, with a rusted pump standing knee-deep in it."
+      ],
+      "ambient": ["Water drips into the sump, steady as a clock."]
+    },
+    {
+      "noun": "Stope",
+      "weight": 0.5,
+      "descriptions": [
+        "A tall cavity where ore was taken from above, the roof lost in shadow.",
+        "A steep stope with old stemples jammed across it like a broken ladder."
+      ],
+      "features": ["A miner's candle stub stuck to the wall with clay."],
+      "ambient": ["Somewhere above, something taps on stone."]
+    }
+  ]
+}

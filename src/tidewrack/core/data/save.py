@@ -1,7 +1,7 @@
 """The saved form of a game, validated with pydantic (CLAUDE.md §6, §9).
 
-A GameState is self-contained: it snapshots the dungeon map itself rather than
-referring to content by ID, so a later release that edits or removes content can
+A GameState is self-contained: it snapshots the whole world (every location and
+room) rather than referring to content by ID, so a later release that edits or removes content can
 still load old saves. Versions and slot metadata live in the slot envelope
 (services/storage), not here.
 """
@@ -14,7 +14,7 @@ from typing import Any
 
 from pydantic import Field, TypeAdapter
 
-from tidewrack.core.data.schemas import DungeonSchema, Schema
+from tidewrack.core.data.schemas import OverworldSchema, Schema
 from tidewrack.core.engine.components import COMPONENTS
 
 
@@ -32,7 +32,7 @@ class GameState(Schema):
     seed: int
     turn: int = Field(ge=0)
     log: list[str]
-    dungeon: DungeonSchema
+    world: OverworldSchema
     rng: RngState
     ambient_rng: RngState
     next_entity_id: int = Field(ge=1)

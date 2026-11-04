@@ -1,14 +1,16 @@
 from tidewrack.core.engine.components import Explorer, Position
 from tidewrack.core.engine.events import (
     ActionRejected,
-    NodeDiscovered,
-    NodeEntered,
+    RoomDiscovered,
+    RoomEntered,
     TurnEnded,
 )
 from tidewrack.core.engine.game import Game, Look, Move, Wait
+from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
 
 FIRST_DESCENT = load_bundled_content().dungeon("dungeon.first_descent")
+WORLD = Overworld(FIRST_DESCENT.id, {FIRST_DESCENT.id: FIRST_DESCENT})
 
 # A walk that visits every node of the first dungeon.
 FULL_TOUR = [
@@ -24,7 +26,7 @@ FULL_TOUR = [
 
 
 def new_game(seed: int) -> Game:
-    return Game(seed, FIRST_DESCENT)
+    return Game(seed, WORLD)
 
 
 def _kinds(result):
@@ -37,11 +39,12 @@ def _kinds(result):
 def test_start_state():
     game = new_game(1)
     view = game.view()
-    assert view.location == "Wrack Cove"
+    assert (view.location, view.kind, view.room) == ("The First Descent", "Dungeon", "Wrack Cove")
     assert view.turn == 0
-    assert view.visited == 1
+    assert view.rooms_visited == 1
+    assert view.at_gate and view.roads == ()
     assert all(e.destination is None for e in view.exits)
-    assert game.log[:2] == ["— The First Descent —", "You stand at Wrack Cove."]
+    assert game.log[:2] == ["— The First Descent · Dungeon —", "You stand at Wrack Cove."]
 
 
 def test_move_takes_a_turn_and_reveals_neighbours():
@@ -49,10 +52,10 @@ def test_move_takes_a_turn_and_reveals_neighbours():
     result = game.perform(Move("Descend the cliff stair"))
     assert result.took_turn
     kinds = _kinds(result)
-    assert kinds[0] == "NodeEntered" and kinds[-1] == "TurnEnded"
-    discovered = {e.node_id for e in result.events if isinstance(e, NodeDiscovered)}
+    assert kinds[0] == "RoomEntered" and kinds[-1] == "TurnEnded"
+    discovered = {e.room for e in result.events if isinstance(e, RoomDiscovered)}
     assert discovered == {"tide_shrine", "sea_cave"}  # wrack_cove was already known
-    assert game.world.get(game.player, Position).node == "cliff_stair"
+    assert game.world.get(game.player, Position).room == "cliff_stair"
     assert game.view().turn == 1
 
 
@@ -83,7 +86,7 @@ def test_revisits_are_marked_and_exits_show_known_destinations():
     game = new_game(1)
     game.perform(Move("Descend the cliff stair"))
     result = game.perform(Move("Climb back to the cove"))
-    entered = next(e for e in result.events if isinstance(e, NodeEntered))
+    entered = next(e for e in result.events if isinstance(e, RoomEntered))
     assert not entered.first_visit
     assert "You return to Wrack Cove." in game.log[-2:]  # may be followed by an ambient line
     exits = {e.label: e.destination for e in game.view().exits}
@@ -95,8 +98,8 @@ def test_full_tour_explores_everything():
     for label in FULL_TOUR:
         assert game.perform(Move(label)).took_turn, label
     explorer = game.world.get(game.player, Explorer)
-    assert explorer.visited == set(FIRST_DESCENT.nodes)
-    assert game.view().visited == game.view().total_nodes == 7
+    assert explorer.rooms_visited == {FIRST_DESCENT.id: set(FIRST_DESCENT.rooms)}
+    assert game.view().rooms_visited == game.view().total_rooms == 7
 
 
 def test_same_seed_and_commands_give_identical_runs():

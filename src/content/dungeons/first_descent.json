@@ -2,7 +2,7 @@
   "id": "dungeon.first_descent",
   "name": "The First Descent",
   "start": "wrack_cove",
-  "nodes": [
+  "rooms": [
     {
       "id": "wrack_cove",
       "name": "Wrack Cove",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import gzip
 import json
 import os
@@ -33,11 +34,11 @@ class SlotSummary(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    dungeon_name: str
-    location: str
+    location: str  # the location's name
+    room: str
     turn: int
-    visited: int
-    total_nodes: int
+    locations_visited: int
+    total_locations: int
 
 
 class SlotMeta(BaseModel):
@@ -70,6 +71,17 @@ class SaveStore(Protocol):
     def delete(self, slot_id: str) -> None: ...
 
 
+def _listing_envelope(envelope: dict[str, Any]) -> dict[str, Any]:
+    """The envelope upgraded to the current format, so old slots list correctly.
+    A slot from a newer app is listed as-is if possible; opening it explains."""
+    from tidewrack.services.storage.migrations import NewerSaveError, migrate  # circular
+
+    try:
+        return migrate(copy.deepcopy(envelope))
+    except NewerSaveError:
+        return envelope
+
+
 # --- file backend ------------------------------------------------------------------
 
 
@@ -95,8 +107,8 @@ class FileSaveStore:
             slot_id = path.name.removeprefix("slot_").removesuffix(".json.gz")
             try:
                 loaded = self.load(slot_id)
-                meta = SlotMeta.model_validate(loaded.envelope["meta"])
-            except (SaveError, KeyError, ValidationError):
+                meta = SlotMeta.model_validate(_listing_envelope(loaded.envelope)["meta"])
+            except (SaveError, KeyError, TypeError, ValueError, ValidationError):
                 continue  # unreadable everywhere; nothing to show
             listings.append(SlotListing(meta, loaded.from_backup))
         return sorted(listings, key=lambda s: s.meta.updated_at, reverse=True)

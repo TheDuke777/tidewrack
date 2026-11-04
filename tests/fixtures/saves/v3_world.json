@@ -1,0 +1,1069 @@
+{
+ "content_version": "b198372182a26020729f93c0ba4a2c4c4da91fb7e5106a8f0a1ad0d52952653f",
+ "format": "tidewrack.slot",
+ "game": {
+  "ambient_rng": {
+   "s": [
+    1868613589603643871,
+    2972798092731546053,
+    9215705541335882837,
+    6526727124349684539
+   ],
+   "seed": 6143843289695912333
+  },
+  "entities": [
+   {
+    "components": {
+     "Explorer": {
+      "locations_discovered": [
+       "loc_00",
+       "loc_01",
+       "loc_02"
+      ],
+      "locations_visited": [
+       "loc_00",
+       "loc_01"
+      ],
+      "rooms_discovered": {
+       "loc_00": [
+        "room_00",
+        "room_01",
+        "room_02",
+        "room_04"
+       ],
+       "loc_01": [
+        "room_00",
+        "room_01",
+        "room_02"
+       ]
+      },
+      "rooms_visited": {
+       "loc_00": [
+        "room_00",
+        "room_01",
+        "room_04"
+       ],
+       "loc_01": [
+        "room_00"
+       ]
+      }
+     },
+     "Name": {
+      "text": "You"
+     },
+     "Player": {},
+     "Position": {
+      "location": "loc_01",
+      "room": "room_00"
+     }
+    },
+    "id": 1
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_03"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 2
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_04"
+     },
+     "Scenery": {
+      "text": "A rain barrel with a dead crab floating in it."
+     }
+    },
+    "id": 3
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_00",
+      "room": "room_06"
+     },
+     "Scenery": {
+      "text": "A figurehead over the hearth, her painted eyes following the door."
+     }
+    },
+    "id": 4
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A tally board of miners' tokens. Several hooks are still full."
+     }
+    },
+    "id": 5
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_01",
+      "room": "room_09"
+     },
+     "Scenery": {
+      "text": "A miner's candle stub stuck to the wall with clay."
+     }
+    },
+    "id": 6
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_00"
+     },
+     "Scenery": {
+      "text": "A tally board of miners' tokens. Several hooks are still full."
+     }
+    },
+    "id": 7
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_06"
+     },
+     "Scenery": {
+      "text": "A miner's candle stub stuck to the wall with clay."
+     }
+    },
+    "id": 8
+   },
+   {
+    "components": {
+     "Position": {
+      "location": "loc_02",
+      "room": "room_13"
+     },
+     "Scenery": {
+      "text": "A miner's candle stub stuck to the wall with clay."
+     }
+    },
+    "id": 9
+   }
+  ],
+  "log": [
+   "\u2014 Cragmouth \u00b7 Town \u2014",
+   "You stand at The Town Gate.",
+   "You make your way to Quiet Market.",
+   "Nothing else here catches your eye.",
+   "You make your way to Windy Street.",
+   "You return to Quiet Market.",
+   "You return to The Town Gate.",
+   "Someone calls a greeting from a window, then thinks better of it.",
+   "You take the road to The Tinpits.",
+   "\u2014 The Tinpits \u00b7 Mine \u2014",
+   "You stand at The Mine Head.",
+   "Time passes.",
+   "Spoil heaps shift and settle."
+  ],
+  "next_entity_id": 10,
+  "rng": {
+   "s": [
+    5843011988881251843,
+    7620229681788273117,
+    3728128964537905102,
+    1906953110644082044
+   ],
+   "seed": 20261103
+  },
+  "seed": 20261103,
+  "turn": 6,
+  "world": {
+   "locations": [
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_00",
+     "kind": "Town",
+     "name": "Cragmouth",
+     "pos": [
+      0.4983,
+      0.8813
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "A cart rattles past and away down the road.",
+        "Someone calls a greeting from a window, then thinks better of it."
+       ],
+       "description": "A gate of grey driftwood, bound with iron and left open. Roads leave from here along the coast and inland.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_01"
+        }
+       ],
+       "features": [],
+       "id": "room_00",
+       "name": "The Town Gate",
+       "pos": [
+        0.8745,
+        0.8245
+       ]
+      },
+      {
+       "ambient": [
+        "A trader shouts a price, then a lower one.",
+        "Coins clink somewhere nearby."
+       ],
+       "description": "A cobbled square where traders call prices into the wind.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_04"
+        },
+        {
+         "label": "Go south",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Quiet Market",
+       "pos": [
+        0.8319,
+        0.6068
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "Tall narrow houses lean together over the street, their upper floors almost touching.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_03"
+        },
+        {
+         "label": "Go east",
+         "to": "room_01"
+        },
+        {
+         "label": "Go south",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Quiet Street",
+       "pos": [
+        0.5834,
+        0.6037
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "A street of fish-scale shingles and blue doors, every one of them shut.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_05"
+        },
+        {
+         "label": "Go south",
+         "to": "room_02"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_03",
+       "name": "Sloping Street",
+       "pos": [
+        0.6733,
+        0.4137
+       ]
+      },
+      {
+       "ambient": [
+        "A shutter bangs somewhere above you.",
+        "Gulls squabble on a rooftop."
+       ],
+       "description": "Tall narrow houses lean together over the street, their upper floors almost touching.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A rain barrel with a dead crab floating in it."
+       ],
+       "id": "room_04",
+       "name": "Windy Street",
+       "pos": [
+        0.9281,
+        0.327
+       ]
+      },
+      {
+       "ambient": [
+        "Somebody laughs too loudly at a corner table.",
+        "The fire spits salt."
+       ],
+       "description": "A low-beamed tavern, warm and smoky, its walls hung with things the sea gave back.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_05",
+       "name": "Salt-Stained Tavern",
+       "pos": [
+        0.588,
+        0.0805
+       ]
+      },
+      {
+       "ambient": [
+        "Somebody laughs too loudly at a corner table.",
+        "The fire spits salt."
+       ],
+       "description": "A tavern built from a ship's timbers; the floor still slopes like a deck.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_03"
+        }
+       ],
+       "features": [
+        "A figurehead over the hearth, her painted eyes following the door."
+       ],
+       "id": "room_06",
+       "name": "Fish-Smelling Tavern",
+       "pos": [
+        0.3722,
+        0.4203
+       ]
+      },
+      {
+       "ambient": [
+        "Somebody laughs too loudly at a corner table.",
+        "The fire spits salt."
+       ],
+       "description": "A low-beamed tavern, warm and smoky, its walls hung with things the sea gave back.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_07",
+       "name": "Sloping Tavern",
+       "pos": [
+        0.6099,
+        0.9134
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_01",
+     "kind": "Mine",
+     "name": "The Tinpits",
+     "pos": [
+      0.4988,
+      0.5319
+     ],
+     "roads": [
+      "loc_02",
+      "loc_00"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "Wind whistles across the mouth of the shaft.",
+        "Spoil heaps shift and settle."
+       ],
+       "description": "A winding house of grey stone stands over the shaft, roofless, its wheel seized with rust.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_01"
+        },
+        {
+         "label": "Go west",
+         "to": "room_02"
+        }
+       ],
+       "features": [
+        "A tally board of miners' tokens. Several hooks are still full."
+       ],
+       "id": "room_00",
+       "name": "The Mine Head",
+       "pos": [
+        0.8584,
+        0.8845
+       ]
+      },
+      {
+       "ambient": [
+        "Water drips into the sump, steady as a clock."
+       ],
+       "description": "Water has pooled at the bottom of the workings, black and perfectly still.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Narrow Sump",
+       "pos": [
+        0.9258,
+        0.6876
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_00"
+        },
+        {
+         "label": "Go west",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Cold Tunnel",
+       "pos": [
+        0.7357,
+        0.8799
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_04"
+        },
+        {
+         "label": "Go east",
+         "to": "room_02"
+        }
+       ],
+       "features": [],
+       "id": "room_03",
+       "name": "Low Tunnel",
+       "pos": [
+        0.5257,
+        0.866
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_05"
+        },
+        {
+         "label": "Go south",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_04",
+       "name": "Shored Tunnel",
+       "pos": [
+        0.5329,
+        0.6661
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_06"
+        },
+        {
+         "label": "Go south",
+         "to": "room_04"
+        }
+       ],
+       "features": [],
+       "id": "room_05",
+       "name": "Timbered Tunnel",
+       "pos": [
+        0.4908,
+        0.463
+       ]
+      },
+      {
+       "ambient": [
+        "Water drips into the sump, steady as a clock."
+       ],
+       "description": "A flooded chamber, with a rusted pump standing knee-deep in it.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go south",
+         "to": "room_07"
+        },
+        {
+         "label": "Go west",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_06",
+       "name": "Rusted Sump",
+       "pos": [
+        0.6692,
+        0.5212
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_07",
+       "name": "Flooded Tunnel",
+       "pos": [
+        0.6865,
+        0.726
+       ]
+      },
+      {
+       "ambient": [
+        "Your lamp-shadow stretches across the far wall."
+       ],
+       "description": "A wide gallery where a seam was followed until it ran out.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go south",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_08",
+       "name": "Echoing Gallery",
+       "pos": [
+        0.6905,
+        0.2663
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere above, something taps on stone."
+       ],
+       "description": "A steep stope with old stemples jammed across it like a broken ladder.",
+       "exits": [
+        {
+         "label": "Go west",
+         "to": "room_08"
+        }
+       ],
+       "features": [
+        "A miner's candle stub stuck to the wall with clay."
+       ],
+       "id": "room_09",
+       "name": "Dripping Stope",
+       "pos": [
+        0.8615,
+        0.2753
+       ]
+      }
+     ],
+     "start": "room_00"
+    },
+    {
+     "gates": [
+      "room_00"
+     ],
+     "id": "loc_02",
+     "kind": "Mine",
+     "name": "Widow's Shaft",
+     "pos": [
+      0.5685,
+      0.1189
+     ],
+     "roads": [
+      "loc_01"
+     ],
+     "rooms": [
+      {
+       "ambient": [
+        "Wind whistles across the mouth of the shaft.",
+        "Spoil heaps shift and settle."
+       ],
+       "description": "A winding house of grey stone stands over the shaft, roofless, its wheel seized with rust.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_01"
+        }
+       ],
+       "features": [
+        "A tally board of miners' tokens. Several hooks are still full."
+       ],
+       "id": "room_00",
+       "name": "The Mine Head",
+       "pos": [
+        0.3772,
+        0.9265
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_02"
+        },
+        {
+         "label": "Go east",
+         "to": "room_11"
+        },
+        {
+         "label": "Go west",
+         "to": "room_00"
+        }
+       ],
+       "features": [],
+       "id": "room_01",
+       "name": "Timbered Tunnel",
+       "pos": [
+        0.4767,
+        0.9535
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_01"
+        },
+        {
+         "label": "Go west",
+         "to": "room_03"
+        }
+       ],
+       "features": [],
+       "id": "room_02",
+       "name": "Flooded Tunnel",
+       "pos": [
+        0.507,
+        0.7558
+       ]
+      },
+      {
+       "ambient": [
+        "Water drips into the sump, steady as a clock."
+       ],
+       "description": "Water has pooled at the bottom of the workings, black and perfectly still.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_02"
+        },
+        {
+         "label": "Go west",
+         "to": "room_04"
+        }
+       ],
+       "features": [],
+       "id": "room_03",
+       "name": "Collapsed Sump",
+       "pos": [
+        0.3311,
+        0.8072
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_08"
+        },
+        {
+         "label": "Go east",
+         "to": "room_03"
+        },
+        {
+         "label": "Go south",
+         "to": "room_05"
+        },
+        {
+         "label": "Go west",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_04",
+       "name": "Black Tunnel",
+       "pos": [
+        0.2103,
+        0.7691
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere above, something taps on stone."
+       ],
+       "description": "A steep stope with old stemples jammed across it like a broken ladder.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_04"
+        },
+        {
+         "label": "Go west",
+         "to": "room_07"
+        }
+       ],
+       "features": [],
+       "id": "room_05",
+       "name": "Collapsed Stope",
+       "pos": [
+        0.2153,
+        0.9183
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere above, something taps on stone."
+       ],
+       "description": "A tall cavity where ore was taken from above, the roof lost in shadow.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_14"
+        },
+        {
+         "label": "Go east",
+         "to": "room_04"
+        },
+        {
+         "label": "Go south",
+         "to": "room_07"
+        }
+       ],
+       "features": [
+        "A miner's candle stub stuck to the wall with clay."
+       ],
+       "id": "room_06",
+       "name": "Shored Stope",
+       "pos": [
+        0.0572,
+        0.7707
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_06"
+        },
+        {
+         "label": "Go east",
+         "to": "room_05"
+        }
+       ],
+       "features": [],
+       "id": "room_07",
+       "name": "Dripping Tunnel",
+       "pos": [
+        0.0709,
+        0.9174
+       ]
+      },
+      {
+       "ambient": [
+        "Water drips into the sump, steady as a clock."
+       ],
+       "description": "Water has pooled at the bottom of the workings, black and perfectly still.",
+       "exits": [
+        {
+         "label": "Go east",
+         "to": "room_09"
+        },
+        {
+         "label": "Go south",
+         "to": "room_04"
+        }
+       ],
+       "features": [],
+       "id": "room_08",
+       "name": "Low Sump",
+       "pos": [
+        0.2366,
+        0.6631
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_10"
+        },
+        {
+         "label": "Go west",
+         "to": "room_08"
+        }
+       ],
+       "features": [],
+       "id": "room_09",
+       "name": "Rusted Tunnel",
+       "pos": [
+        0.3305,
+        0.6154
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_09"
+        }
+       ],
+       "features": [],
+       "id": "room_10",
+       "name": "Collapsed Tunnel",
+       "pos": [
+        0.3538,
+        0.5185
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_12"
+        },
+        {
+         "label": "Go west",
+         "to": "room_01"
+        }
+       ],
+       "features": [],
+       "id": "room_11",
+       "name": "Low Tunnel",
+       "pos": [
+        0.6138,
+        0.9562
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A cramped drift cut through dark rock, chisel marks still sharp.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_13"
+        },
+        {
+         "label": "Go south",
+         "to": "room_11"
+        }
+       ],
+       "features": [],
+       "id": "room_12",
+       "name": "Narrow Tunnel",
+       "pos": [
+        0.6557,
+        0.7895
+       ]
+      },
+      {
+       "ambient": [
+        "Somewhere above, something taps on stone."
+       ],
+       "description": "A tall cavity where ore was taken from above, the roof lost in shadow.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_12"
+        }
+       ],
+       "features": [
+        "A miner's candle stub stuck to the wall with clay."
+       ],
+       "id": "room_13",
+       "name": "Narrow Stope",
+       "pos": [
+        0.6545,
+        0.615
+       ]
+      },
+      {
+       "ambient": [
+        "A timber groans.",
+        "Grit trickles from the ceiling."
+       ],
+       "description": "A tunnel braced with old timbers, some of them bowed under the weight.",
+       "exits": [
+        {
+         "label": "Go north",
+         "to": "room_15"
+        },
+        {
+         "label": "Go south",
+         "to": "room_06"
+        }
+       ],
+       "features": [],
+       "id": "room_14",
+       "name": "Cold Tunnel",
+       "pos": [
+        0.1006,
+        0.6659
+       ]
+      },
+      {
+       "ambient": [
+        "Water drips into the sump, steady as a clock."
+       ],
+       "description": "A flooded chamber, with a rusted pump standing knee-deep in it.",
+       "exits": [
+        {
+         "label": "Go south",
+         "to": "room_14"
+        }
+       ],
+       "features": [],
+       "id": "room_15",
+       "name": "Black Sump",
+       "pos": [
+        0.0604,
+        0.4892
+       ]
+      }
+     ],
+     "start": "room_00"
+    }
+   ],
+   "start": "loc_00"
+  }
+ },
+ "generator_version": 2,
+ "meta": {
+  "created_at": "2026-11-03T14:00:00+00:00",
+  "name": "World 3",
+  "revision": 8,
+  "slot_id": "00000000000000000000000000000003",
+  "summary": {
+   "location": "The Tinpits",
+   "locations_visited": 2,
+   "room": "The Mine Head",
+   "total_locations": 3,
+   "turn": 6
+  },
+  "updated_at": "2026-11-03T14:08:00+00:00"
+ },
+ "schema_version": 3
+}

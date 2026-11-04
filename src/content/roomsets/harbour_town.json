@@ -1,0 +1,93 @@
+{
+  "id": "roomset.harbour_town",
+  "name": "Town",
+  "location_names": [
+    "Saltmere", "Gullhaven", "Wrackport", "Brinewick", "Kelpford", "Low Harrow",
+    "Fathom Rest", "Cragmouth"
+  ],
+  "size": [8, 11],
+  "layout": { "spread": 1.4, "loops": 0.5, "corridors": 0.2 },
+  "adjectives": [
+    "Crooked", "Tarred", "Narrow", "Sloping", "Lantern-Lit", "Weathered", "Salt-Stained",
+    "Cobbled", "Quiet", "Windy", "Fish-Smelling", "Shuttered"
+  ],
+  "entrance": {
+    "noun": "Town Gate",
+    "descriptions": [
+      "A gate of grey driftwood, bound with iron and left open. Roads leave from here along the coast and inland."
+    ],
+    "features": [
+      "A signpost whose arms have been repainted so often the letters stand out in relief.",
+      "A gatekeeper's stool, empty, with a half-mended net draped over it."
+    ],
+    "ambient": [
+      "A cart rattles past and away down the road.",
+      "Someone calls a greeting from a window, then thinks better of it."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Street",
+      "weight": 2.0,
+      "descriptions": [
+        "Tall narrow houses lean together over the street, their upper floors almost touching.",
+        "A street of fish-scale shingles and blue doors, every one of them shut."
+      ],
+      "features": ["A rain barrel with a dead crab floating in it."],
+      "ambient": ["A shutter bangs somewhere above you.", "Gulls squabble on a rooftop."]
+    },
+    {
+      "noun": "Market",
+      "weight": 0.8,
+      "descriptions": [
+        "Trestle tables under patched awnings. Most stalls sell fish; one sells only rope.",
+        "A cobbled square where traders call prices into the wind."
+      ],
+      "features": [
+        "A scale with brass weights stamped with three different harbour marks.",
+        "A chalk board listing today's catch, half of it crossed out."
+      ],
+      "ambient": ["A trader shouts a price, then a lower one.", "Coins clink somewhere nearby."]
+    },
+    {
+      "noun": "Quay",
+      "weight": 0.8,
+      "descriptions": [
+        "Stone steps go down into green water. Boats knock against the quay on their ropes.",
+        "A long quay of black stone, slick with weed below the high-water line."
+      ],
+      "features": ["A bollard worn into a waist by centuries of rope."],
+      "ambient": ["A boat creaks against its fenders.", "The tide slaps at the steps."]
+    },
+    {
+      "noun": "Tavern",
+      "weight": 0.5,
+      "descriptions": [
+        "A low-beamed tavern, warm and smoky, its walls hung with things the sea gave back.",
+        "A tavern built from a ship's timbers; the floor still slopes like a deck."
+      ],
+      "features": ["A figurehead over the hearth, her painted eyes following the door."],
+      "ambient": ["Somebody laughs too loudly at a corner table.", "The fire spits salt."]
+    },
+    {
+      "noun": "Chapel",
+      "weight": 0.4,
+      "descriptions": [
+        "A whitewashed chapel to a sea saint nobody can quite name.",
+        "A small chapel whose windows are bottle-glass, green and brown and blue."
+      ],
+      "features": ["Votive boats, folded from paper, crowd the altar rail."],
+      "ambient": ["A candle gutters, though the air is still."]
+    },
+    {
+      "noun": "Smithy",
+      "weight": 0.4,
+      "descriptions": [
+        "An open-fronted smithy hung with anchors, hooks and chain.",
+        "A forge glows in the back of a soot-black workshop."
+      ],
+      "features": ["An anvil with a gull's footprints pressed into the soot on it."],
+      "ambient": ["A hammer rings, stops, rings again."]
+    }
+  ]
+}
