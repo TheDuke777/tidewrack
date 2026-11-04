@@ -14,20 +14,22 @@ def test_tap_hides_and_restores_the_same_size():
 def test_dragging_resizes_within_bounds():
     split = LogSplit(visible=True, share=0.4)
     split.start_drag()
-    split.drag(-0.2)  # up: a bigger log
+    split.drag_to(-0.2)  # up: a bigger log
     assert split.share == pytest.approx(0.6)
-    split.drag(-5)
+    split.drag_to(-0.1)  # back down a little: positions are from the drag's start
+    assert split.share == pytest.approx(0.5)
+    split.drag_to(-5)
     assert split.share == MAX_LOG_SHARE
     split.start_drag()
-    split.drag(MAX_LOG_SHARE - 0.08)  # down to just above the hide point
+    split.drag_to(MAX_LOG_SHARE - 0.08)  # down to just above the hide point
     assert split.visible and split.share == MIN_LOG_SHARE
 
 
 def test_dragging_to_the_bottom_hides_and_dragging_up_shows_again():
     split = LogSplit(visible=True, share=0.4)
     split.start_drag()
-    split.drag(0.4 - HIDE_LOG_BELOW / 2)
+    split.drag_to(0.4 - HIDE_LOG_BELOW / 2)
     assert not split.visible
     split.start_drag()
-    split.drag(-0.25)
+    split.drag_to(-0.25)
     assert split.visible and split.share == pytest.approx(0.25)

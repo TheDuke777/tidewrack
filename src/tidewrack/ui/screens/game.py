@@ -29,6 +29,8 @@ WORLD_LEGEND = "● visited   ○ unexplored   ◉ you   — at a gate, tap a ri
 
 MIN_LOG_SHARE, MAX_LOG_SHARE = 0.1, 0.8  # same bounds as Settings.log_share
 HIDE_LOG_BELOW = 0.06  # dragging the log smaller than this hides it
+LOG_BAR_HEIGHT = 36
+DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are absolute
 
 
 @dataclass
@@ -37,20 +39,22 @@ class LogSplit:
 
     visible: bool
     share: float  # the log's fraction while visible; kept while hidden
-    _dragged: float = 0.0  # the share the drag has reached, possibly below the minimum
+    _start: float = 0.0  # the log's share when the drag began (0 if hidden)
 
     def toggle(self) -> None:
         self.visible = not self.visible
 
     def start_drag(self) -> None:
-        self._dragged = self.share if self.visible else 0.0
+        self._start = self.share if self.visible else 0.0
 
-    def drag(self, fraction: float) -> None:
-        """Move the bar by `fraction` of the area's height (negative = up = bigger log)."""
-        self._dragged = min(MAX_LOG_SHARE, self._dragged - fraction)
-        self.visible = self._dragged >= HIDE_LOG_BELOW
+    def drag_to(self, offset: float) -> None:
+        """Put the bar `offset` (a fraction of the area's height) from where the drag
+        began; negative = up = bigger log. Absolute, not incremental, so throttled
+        or dropped touch events can't make the bar lag behind the finger."""
+        reached = min(MAX_LOG_SHARE, self._start - offset)
+        self.visible = reached >= HIDE_LOG_BELOW
         if self.visible:
-            self.share = max(MIN_LOG_SHARE, self._dragged)
+            self.share = max(MIN_LOG_SHARE, reached)
 
     def expands(self) -> tuple[int, int]:
         """Flet `expand` weights for (details, log)."""
@@ -118,13 +122,13 @@ class GameScreen:
         )
         log_bar = ft.GestureDetector(
             mouse_cursor=ft.MouseCursor.RESIZE_ROW,
-            drag_interval=16,
+            drag_interval=DRAG_INTERVAL,
             on_tap=lambda _: self._toggle_log(),
-            on_vertical_drag_start=lambda _: self.split.start_drag(),
+            on_vertical_drag_start=self._log_drag_started,
             on_vertical_drag_update=self._drag_log,
-            on_vertical_drag_end=lambda _: self._save_split(),
+            on_vertical_drag_end=self._log_drag_ended,
             content=ft.Container(
-                height=36,
+                height=LOG_BAR_HEIGHT,
                 border=ft.Border.only(top=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
                 content=ft.Row(
                     spacing=8,
@@ -138,6 +142,7 @@ class GameScreen:
             ),
         )
         self._panes_height = 400.0  # until the first size report
+        self._drag_start_y = 0.0
         self.panes = ft.Column(
             expand=True,
             spacing=0,
@@ -190,10 +195,23 @@ class GameScreen:
         self.split.toggle()
         self._save_split()
 
+    def _log_drag_started(self, e: ft.DragStartEvent) -> None:
+        self._drag_start_y = e.global_position.y
+        self.split.start_drag()
+
     def _drag_log(self, e: ft.DragUpdateEvent) -> None:
-        delta = e.primary_delta if e.primary_delta is not None else e.local_delta.y
-        self.split.drag(delta / max(self._panes_height, 1.0))
+        self._follow_finger(e.global_position.y)
         self._apply_split()
+
+    def _log_drag_ended(self, e: ft.DragEndEvent) -> None:
+        if e.global_position is not None:
+            self._follow_finger(e.global_position.y)
+        self._save_split()
+
+    def _follow_finger(self, y: float) -> None:
+        # The bar itself doesn't stretch; only the two panes share the drag.
+        shared = max(self._panes_height - LOG_BAR_HEIGHT, 1.0)
+        self.split.drag_to((y - self._drag_start_y) / shared)
 
     def _panes_resized(self, e: ft.LayoutSizeChangeEvent) -> None:
         self._panes_height = e.height
