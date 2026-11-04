@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-04
+
 ### Added
 - Tapping another place on the world map when you're not at a gate now tells
   you where you can leave from, instead of doing nothing.
