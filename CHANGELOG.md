@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0-beta.1] - 2026-11-04
+
 ### Added
 - Gear. You start with a Driftwood Club and a Patched Coat, and every new world
   has gear lying in its rooms: cutlasses, harpoons, bucklers, lanterns, helms,
