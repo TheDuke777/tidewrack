@@ -48,7 +48,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 | Concern | Choice | Notes |
 |---|---|---|
 | UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
-| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there |
+| Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there. Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
 | World structure | Hand-rolled (`core/procgen/grid.py`, `location_gen.py`, `world_gen.py`) | One grid-based spanning tree + loops layout for both rooms and the overworld; gives map positions directly and stays deterministic. Chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 nodes) |
 | Overworld regions | *Later, if they add something:* `scipy.spatial.Voronoi` | Not needed for the grid overworld; heavy compiled dependency (check pypi.flet.dev, and Pyodide if web is pursued) |
 | Biomes | *Later:* `opensimplex` | Coherent noise → biome per region |
@@ -177,7 +177,8 @@ tidewrack/
 │   │   │                            #   conflict.py  (onedrive/ later, same interface)
 │   │   ├── auth/                    # OAuth wrappers, token storage
 │   │   ├── share/                   # world/save export + import codec, validation
-│   │   └── settings/                # settings model + persistence
+│   │   └── settings/                # Settings model + SettingsStore (app-wide settings.json
+│   │                                #   beside saves/; UI prefs such as the log split)
 │   └── ui/
 │       ├── app.py                   # navigation shell (slot picker ⇄ game)
 │       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)

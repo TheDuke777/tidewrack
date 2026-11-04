@@ -18,6 +18,7 @@ from tidewrack.services.storage.store import (
     SlotListing,
     SlotMeta,
     SlotSummary,
+    data_dir,
     saves_dir,
 )
 
@@ -29,5 +30,6 @@ __all__ = [
     "SlotListing",
     "SlotMeta",
     "SlotSummary",
+    "data_dir",
     "saves_dir",
 ]

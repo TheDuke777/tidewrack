@@ -9,6 +9,7 @@ import flet as ft
 from tidewrack.core.data.loader import Content
 from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.session import GameSession, next_world_name
+from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
 from tidewrack.ui.screens.game import GameScreen
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
@@ -23,9 +24,12 @@ def new_seed() -> int:
 
 
 class App:
-    def __init__(self, page: ft.Page, store: SaveStore, content: Content) -> None:
+    def __init__(
+        self, page: ft.Page, store: SaveStore, settings: SettingsStore, content: Content
+    ) -> None:
         self.page = page
         self.store = store
+        self.settings = settings
         self.content = content
 
     def _show(self, control: ft.Control) -> None:
@@ -50,7 +54,7 @@ class App:
         )
 
     def show_game(self, session: GameSession) -> None:
-        self._show(GameScreen(session, on_back=self.show_picker).control)
+        self._show(GameScreen(session, self.settings, on_back=self.show_picker).control)
         if session.from_backup:
             self._notify(
                 "The latest save was unreadable, so this world was restored from a backup."

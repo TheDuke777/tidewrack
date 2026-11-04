@@ -4,12 +4,19 @@ Draws one MapView from Game.view(): the rooms of this location or the locations
 of the world, only as far as the player knows them. State is shown by shape as
 well as colour (§11): filled = visited, hollow = seen but unvisited, large dot
 inside a ring = you, extra outer ring = one step away (tap it to go there).
+
+Pinch to zoom and drag to pan. Zooming spreads the map out rather than
+magnifying it, so dots and labels stay readable on big maps; the view is handled
+here (Viewport) rather than by Flet's InteractiveViewer so taps, "centre on me"
+and following the player all use the same coordinates.
 """
 
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+import time
+from collections.abc import Callable, Hashable
+from dataclasses import dataclass
 
 import flet as ft
 import flet.canvas as cv
@@ -25,9 +32,44 @@ LABEL_WIDTH = 96  # px; place names wrap onto a second line beyond this
 LABEL_SIZE = 11
 CHAR_WIDTH = 0.58 * LABEL_SIZE  # rough average glyph width, for estimating label boxes
 LINE_HEIGHT = 1.3 * LABEL_SIZE
+MAX_ZOOM = 4.0
+FOCUS_ZOOM = 2.0  # "centre on me" zooms in at least this far
+FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
+REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
 
 Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # left, top, right, bottom
+
+
+@dataclass
+class Viewport:
+    """Zoom and pan: screen = content * zoom + offset. At zoom 1 the whole map fits."""
+
+    zoom: float = 1.0
+    ox: float = 0.0
+    oy: float = 0.0
+
+    def to_screen(self, p: Point) -> Point:
+        return (p[0] * self.zoom + self.ox, p[1] * self.zoom + self.oy)
+
+    def to_content(self, p: Point) -> Point:
+        return ((p[0] - self.ox) / self.zoom, (p[1] - self.oy) / self.zoom)
+
+    def place(self, anchor: Point, screen: Point, zoom: float, size: Point) -> None:
+        """Zoom to `zoom` with content point `anchor` under `screen`, kept in bounds."""
+        self.zoom = min(MAX_ZOOM, max(1.0, zoom))
+        w, h = size
+        # The content (w*zoom by h*zoom) must always cover the view: no empty gutters.
+        self.ox = min(0.0, max(w - w * self.zoom, screen[0] - anchor[0] * self.zoom))
+        self.oy = min(0.0, max(h - h * self.zoom, screen[1] - anchor[1] * self.zoom))
+
+    def centre_on(self, anchor: Point, size: Point, zoom: float | None = None) -> None:
+        self.place(anchor, (size[0] / 2, size[1] / 2), zoom or self.zoom, size)
+
+    def shows(self, p: Point, size: Point, margin: float) -> bool:
+        x, y = self.to_screen(p)
+        mx, my = size[0] * margin, size[1] * margin
+        return mx <= x <= size[0] - mx and my <= y <= size[1] - my
 
 
 class MapCanvas:
@@ -36,10 +78,45 @@ class MapCanvas:
         self.view: MapView | None = None
         self.labels = False
         self.width, self.height = DEFAULT_WIDTH, MAP_HEIGHT
-        self._points: dict[str, tuple[float, float]] = {}
+        self.viewport = Viewport()
+        self._key: Hashable = None
+        self._base: dict[str, Point] = {}  # node positions at zoom 1
+        self._points: dict[str, Point] = {}  # on screen
+        self._gesture: tuple[float, Point] | None = None  # zoom and anchor at start
+        self._last_draw = 0.0
 
         self.canvas = cv.Canvas(expand=True, on_resize=self._resized, resize_interval=100)
         self.legend = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.fit_button = ft.IconButton(
+            icon=ft.Icons.ZOOM_OUT_MAP,
+            icon_size=20,
+            tooltip="Show the whole map",
+            visible=False,
+            on_click=lambda _: self._fit(),
+        )
+        buttons = ft.Container(
+            right=4,
+            top=4,
+            content=ft.Row(
+                spacing=0,
+                controls=[
+                    self.fit_button,
+                    ft.IconButton(
+                        icon=ft.Icons.MY_LOCATION,
+                        icon_size=20,
+                        tooltip="Centre on me",
+                        on_click=lambda _: self._centre_on_me(),
+                    ),
+                ],
+            ),
+        )
+        gestures = ft.GestureDetector(
+            content=self.canvas,
+            on_tap_up=self._tapped,  # not tap_down: that would fire at the start of a pan
+            on_scale_start=self._gesture_started,
+            on_scale_update=self._gesture_moved,
+            on_scale_end=self._gesture_ended,
+        )
         self.control = ft.Column(
             spacing=4,
             controls=[
@@ -47,22 +124,43 @@ class MapCanvas:
                     height=MAP_HEIGHT,
                     border_radius=12,
                     bgcolor=BACKGROUND,
-                    content=ft.GestureDetector(content=self.canvas, on_tap_down=self._tapped),
+                    clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+                    content=ft.Stack(expand=True, controls=[gestures, buttons]),
                 ),
                 self.legend,
             ],
         )
 
-    def show(self, view: MapView, legend: str, labels: bool = False) -> None:
-        """Draw `view`; with `labels`, known node names are written under them."""
+    def show(self, view: MapView, legend: str, key: Hashable, labels: bool = False) -> None:
+        """Draw `view`; with `labels`, known node names are written beside them.
+
+        A new `key` (another map, or another location) resets the zoom; otherwise
+        the view follows the player if they walk off the edge of it.
+        """
+        if key != self._key:
+            self.viewport, self._key = Viewport(), key
         self.view, self.labels = view, labels
         self.legend.value = legend
+        self._layout()
+        here = self._current()
+        if here is not None and not self.viewport.shows(here, self._size, FOLLOW_MARGIN):
+            self.viewport.centre_on(here, self._size)
         self._draw()
+
+    @property
+    def _size(self) -> Point:
+        return (self.width, self.height)
+
+    def _current(self) -> Point | None:
+        assert self.view is not None
+        return next((self._base[n.id] for n in self.view.nodes if n.state == "current"), None)
 
     # --- events ------------------------------------------------------------------
 
     def _resized(self, e: cv.CanvasResizeEvent) -> None:
         self.width, self.height = e.width, e.height
+        self.viewport = Viewport()
+        self._layout()
         self._draw()
 
     def _tapped(self, e: ft.TapEvent) -> None:
@@ -80,20 +178,57 @@ class MapCanvas:
         if best is not None:
             self.on_command(best)
 
+    def _gesture_started(self, e: ft.ScaleStartEvent) -> None:
+        focal = (e.local_focal_point.x, e.local_focal_point.y)
+        self._gesture = (self.viewport.zoom, self.viewport.to_content(focal))
+
+    def _gesture_moved(self, e: ft.ScaleUpdateEvent) -> None:
+        if self._gesture is None:
+            return
+        zoom, anchor = self._gesture
+        focal = (e.local_focal_point.x, e.local_focal_point.y)
+        self.viewport.place(anchor, focal, zoom * (e.scale or 1.0), self._size)
+        if time.monotonic() - self._last_draw >= REDRAW_INTERVAL:
+            self._draw()
+
+    def _gesture_ended(self, _: ft.ScaleEndEvent) -> None:
+        self._gesture = None
+        self._draw()
+
+    def _centre_on_me(self) -> None:
+        here = self._current() if self.view else None
+        if here is not None:
+            self.viewport.centre_on(here, self._size, max(self.viewport.zoom, FOCUS_ZOOM))
+            self._draw()
+
+    def _fit(self) -> None:
+        self.viewport = Viewport()
+        self._draw()
+
     # --- drawing -----------------------------------------------------------------
 
     def _radius(self) -> float:
-        # Roughly a third of a grid cell, clamped so small maps don't get huge dots.
+        # Roughly a third of a grid cell, clamped so small maps don't get huge dots;
+        # grows a little when zoomed in, much less than the map spreads out.
         side = math.ceil(math.sqrt((self.view.size if self.view else 1) * 1.8))
-        return max(4.0, min(10.0, min(self.width, self.height) / side * 0.28))
+        base = max(4.0, min(10.0, min(self.width, self.height) / side * 0.28))
+        return min(12.0, base * self.viewport.zoom**0.3)
+
+    def _layout(self) -> None:
+        if self.view is None:
+            return
+        w, h = self.width, self.height
+        self._base = {
+            n.id: (PAD + n.x * (w - 2 * PAD), PAD + n.y * (h - 2 * PAD)) for n in self.view.nodes
+        }
 
     def _draw(self) -> None:
         if self.view is None:
             return
-        w, h, r = self.width, self.height, self._radius()
-        self._points = {
-            n.id: (PAD + n.x * (w - 2 * PAD), PAD + n.y * (h - 2 * PAD)) for n in self.view.nodes
-        }
+        self._last_draw = time.monotonic()
+        self.fit_button.visible = self.viewport.zoom > 1.0
+        r = self._radius()
+        self._points = {i: self.viewport.to_screen(p) for i, p in self._base.items()}
         path = ft.Paint(color=ft.Colors.OUTLINE, stroke_width=2, style=ft.PaintingStyle.STROKE)
         shapes: list[cv.Shape] = [
             cv.Line(*self._points[a], *self._points[b], paint=path) for a, b in self.view.edges

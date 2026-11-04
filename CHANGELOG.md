@@ -19,6 +19,12 @@ All notable changes to this project are documented here. The format follows
   travel there.
 - Each kind of place is shaped differently: towns are compact with many
   shortcuts, mines are long and winding, forests sprawl.
+- Pinch to zoom and drag to pan either map. The map follows you as you walk,
+  "centre on me" jumps back to where you are, and "show the whole map" zooms
+  back out.
+- Tap the Log bar to hide or show the log, or drag it to resize it (drag it
+  all the way down to hide it). While hidden, the bar shows the newest line.
+  This choice is remembered for every world.
 
 ### Changed
 - Existing worlds open as a single location with no roads out of it.

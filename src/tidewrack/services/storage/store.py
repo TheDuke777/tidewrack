@@ -14,12 +14,16 @@ SLOT_FORMAT = "tidewrack.slot"
 BACKUPS_KEPT = 3
 
 
-def saves_dir() -> Path:
-    """Where slots live: the app's private data dir on a device (and under
-    `flet run`), or a per-user dev folder when run as a plain script."""
+def data_dir() -> Path:
+    """The app's private data dir on a device (and under `flet run`), or a
+    per-user dev folder when run as a plain script."""
     data = os.environ.get("FLET_APP_STORAGE_DATA")
-    base = Path(data) if data else Path.home() / ".local" / "share" / "tidewrack"
-    return base / "saves"
+    return Path(data) if data else Path.home() / ".local" / "share" / "tidewrack"
+
+
+def saves_dir() -> Path:
+    """Where slots live."""
+    return data_dir() / "saves"
 
 
 class SaveError(Exception):
