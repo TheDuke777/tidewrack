@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0-beta.2] - 2026-11-04
+
 ### Added
 - A navigation bar at the bottom switches between Explore and Inventory.
 - Filter your pack by slot, affix or set, and select several items to drop at
