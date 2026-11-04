@@ -108,7 +108,7 @@ class GameScreen:
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
-        self.map = MapCanvas(on_command=self.act)
+        self.map = MapCanvas(on_command=self.act, on_blocked=self.notify)
         # Which map is showing: the rooms here ("area"), the world, or none.
         self.map_choice = ft.SegmentedButton(
             allow_empty_selection=True,

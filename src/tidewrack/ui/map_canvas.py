@@ -80,8 +80,13 @@ class Viewport:
 
 
 class MapCanvas:
-    def __init__(self, on_command: Callable[[Command], None]) -> None:
+    def __init__(
+        self,
+        on_command: Callable[[Command], None],
+        on_blocked: Callable[[str], None] = lambda _: None,
+    ) -> None:
         self.on_command = on_command
+        self.on_blocked = on_blocked  # told why a tapped place can't be reached yet
         self.view: MapView | None = None
         self.labels = False
         self.width, self.height = DEFAULT_WIDTH, MAP_HEIGHT
@@ -176,14 +181,18 @@ class MapCanvas:
         tx, ty = e.local_position.x, e.local_position.y
         best, best_distance = None, max(MIN_TOUCH_RADIUS, self._radius() * 2.5)
         for node in self.view.nodes:
-            if node.command is None:
+            if node.command is None and node.blocked is None:
                 continue
             x, y = self._points[node.id]
             distance = math.hypot(x - tx, y - ty)
             if distance <= best_distance:
-                best, best_distance = node.command, distance
-        if best is not None:
-            self.on_command(best)
+                best, best_distance = node, distance
+        if best is None:
+            return
+        if best.command is not None:
+            self.on_command(best.command)
+        elif best.blocked is not None:
+            self.on_blocked(best.blocked)
 
     def _gesture_started(self, e: ft.ScaleStartEvent) -> None:
         focal = (e.local_focal_point.x, e.local_focal_point.y)

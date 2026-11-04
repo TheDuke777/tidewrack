@@ -237,6 +237,7 @@ class MapNode:
     items: bool = False  # a visited room with items left lying in it (area maps)
     quest: bool = False  # where an active quest sends you (a seen bounty, a target place)
     charted: bool = False  # every room visited (world maps)
+    blocked: str | None = None  # why you can't go there from here yet (tap to be told)
 
 
 @dataclass(frozen=True)
@@ -548,10 +549,7 @@ class Game:
                     took_turn = True
             case Travel(location=destination_id):
                 if position.room not in location.gates:
-                    gates = " or ".join(location.room(g).name for g in location.gates)
-                    self.bus.emit(
-                        ActionRejected(f"You can only leave {location.name} from {gates}.")
-                    )
+                    self.bus.emit(ActionRejected(_leave_from(location)))
                 elif destination_id not in location.roads:
                     self.bus.emit(ActionRejected("No road leads there from here."))
                 else:
@@ -901,6 +899,7 @@ class Game:
                 visited=explorer.locations_visited,
                 discovered=explorer.locations_discovered,
                 commands={to: Travel(to) for to in location.roads} if at_gate else {},
+                blocked={} if at_gate else dict.fromkeys(location.roads, _leave_from(location)),
                 names_on_discovery=True,  # signposts name the places a road leads
                 kinds={loc.id: loc.kind for loc in self.overworld.locations.values()},
                 quests=quest_places,
@@ -1081,6 +1080,11 @@ class Game:
         del self.log[:-LOG_LIMIT]
 
 
+def _leave_from(location: Location) -> str:
+    gates = " or ".join(location.room(g).name for g in location.gates)
+    return f"You can only leave {location.name} from {gates}."
+
+
 def _and(names: Iterable[str]) -> str:
     """ "a", "a and b", "a, b and c"."""
     names = list(names)
@@ -1103,6 +1107,7 @@ def _fog_map(
     items: set[str] = frozenset(),  # type: ignore[assignment]
     quests: set[str] = frozenset(),  # type: ignore[assignment]
     charted: set[str] = frozenset(),  # type: ignore[assignment]
+    blocked: dict[str, str] | None = None,
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -1124,6 +1129,7 @@ def _fog_map(
                 items=node_id in items,
                 quest=node_id in quests,
                 charted=node_id in charted,
+                blocked=(blocked or {}).get(node_id),
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

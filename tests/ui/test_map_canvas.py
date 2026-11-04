@@ -100,3 +100,32 @@ def test_gates_and_kinds_are_marked():
     assert not any(n.gate for n in view.world_map.nodes)
     assert kinds_legend(view.world_map).startswith("⌂ Town")
     assert label("Saltmere", "Town") == "⌂ Saltmere" and label("Hold", None) == "Hold"
+
+
+def test_tapping_a_place_away_from_a_gate_says_why_you_cant_go():
+    from types import SimpleNamespace
+
+    from tidewrack.core.engine.game import Game, Move
+    from tidewrack.core.procgen.world_gen import generate_world
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.ui.map_canvas import MapCanvas
+
+    content = load_bundled_content()
+    world = generate_world(7, content.world("world.standard"), content.roomsets)
+    town = world.location(world.start)
+    game = Game(7, world)
+    at_gate = {n.id: n for n in game.view().world_map.nodes}
+    assert all(at_gate[r].blocked is None and at_gate[r].command for r in town.roads)
+
+    game.perform(Move(town.room(town.start).exits[0].label))
+    nodes = {n.id: n for n in game.view().world_map.nodes}
+    reason = f"You can only leave {town.name} from {town.room(town.start).name}."
+    assert all(nodes[r].blocked == reason and nodes[r].command is None for r in town.roads)
+    assert nodes[town.id].blocked is None  # where you are
+
+    commands, told = [], []
+    canvas = MapCanvas(on_command=commands.append, on_blocked=told.append)
+    canvas.show(game.view().world_map, "", key="world", labels=True)
+    x, y = canvas._points[town.roads[0]]
+    canvas._tapped(SimpleNamespace(local_position=SimpleNamespace(x=x, y=y)))
+    assert told == [reason] and commands == []
