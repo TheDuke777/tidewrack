@@ -32,7 +32,7 @@ class GameScreen:
         self.description = ft.Text(size=16)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
-        self.log = ft.ListView(expand=True, spacing=6, auto_scroll=True)
+        self.log = ft.ListView(expand=2, spacing=6, auto_scroll=True)
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
         self.map = MapCanvas(on_command=self.act)
         # Which map is showing: the rooms here ("area"), the world, or none.
@@ -58,6 +58,14 @@ class GameScreen:
                 ),
             ],
         )
+        # The room text and buttons scroll on their own, under a fixed map, and the
+        # log below scrolls separately (it follows the newest line).
+        self.details = ft.ListView(
+            expand=3,
+            spacing=12,
+            controls=[self.room, self.description, self.exits, self.roads, actions],
+        )
+        self._shown_room: tuple[str, str] | None = None
         header = ft.Row(
             controls=[
                 ft.IconButton(
@@ -79,12 +87,8 @@ class GameScreen:
                     controls=[
                         header,
                         self.map.control,
-                        self.room,
-                        self.description,
-                        self.exits,
-                        self.roads,
-                        actions,
-                        ft.Divider(),
+                        self.details,
+                        ft.Divider(height=1),
                         self.log,
                         self.status,
                     ],
@@ -112,6 +116,9 @@ class GameScreen:
         self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
         self.room.value = view.room
         self.description.value = view.description
+        if self._shown_room not in (None, (view.location, view.room)):
+            self._scroll_details_to_top()
+        self._shown_room = (view.location, view.room)
         self.exits.controls = [
             ft.FilledTonalButton(
                 content=exit_.label
@@ -140,6 +147,15 @@ class GameScreen:
             f"Places {view.locations_visited}/{view.total_locations} · "
             f"Seed {view.seed:x} · {self.version}"
         )
+
+    def _scroll_details_to_top(self) -> None:
+        """A new room starts at its name, not wherever the last one was scrolled to."""
+        try:
+            page = self.control.page
+        except RuntimeError:  # not on screen yet
+            return
+        if page is not None:
+            page.run_task(self.details.scroll_to, offset=0)
 
     def _roads(self, view: GameView) -> list[ft.Control]:
         if not view.roads:

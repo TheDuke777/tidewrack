@@ -22,6 +22,12 @@ PAD = 20
 DEFAULT_WIDTH = 360  # until the first resize event reports the real size
 MIN_TOUCH_RADIUS = 24  # px; generous, since dots can be small on big maps
 LABEL_WIDTH = 96  # px; place names wrap onto a second line beyond this
+LABEL_SIZE = 11
+CHAR_WIDTH = 0.58 * LABEL_SIZE  # rough average glyph width, for estimating label boxes
+LINE_HEIGHT = 1.3 * LABEL_SIZE
+
+Point = tuple[float, float]
+Box = tuple[float, float, float, float]  # left, top, right, bottom
 
 
 class MapCanvas:
@@ -108,20 +114,27 @@ class MapCanvas:
                 ]
             if node.command is not None:
                 shapes.append(cv.Circle(x, y, r + 5, paint=_ring(ft.Colors.TERTIARY, 1.5)))
-            if self.labels and node.name:
-                shapes.append(
-                    cv.Text(
-                        x,
-                        y + r + 7,
-                        node.name,
-                        style=ft.TextStyle(size=11, color=ft.Colors.ON_SURFACE),
-                        alignment=ft.Alignment.TOP_CENTER,
-                        text_align=ft.TextAlign.CENTER,
-                        max_width=LABEL_WIDTH,
-                        max_lines=2,
-                    )
-                )
+        if self.labels:
+            shapes += self._labels(r)
         self.canvas.shapes = shapes
+
+    def _labels(self, r: float) -> list[cv.Shape]:
+        assert self.view is not None
+        names = {n.id: n.name for n in self.view.nodes if n.name}
+        spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
+        return [
+            cv.Text(
+                x,
+                y,
+                names[node_id],
+                style=ft.TextStyle(size=LABEL_SIZE, color=ft.Colors.ON_SURFACE),
+                alignment=ft.Alignment.TOP_CENTER,
+                text_align=ft.TextAlign.CENTER,
+                max_width=LABEL_WIDTH,
+                max_lines=2,
+            )
+            for node_id, (x, y) in spots.items()
+        ]
 
 
 def _fill(color: str) -> ft.Paint:
@@ -130,3 +143,74 @@ def _fill(color: str) -> ft.Paint:
 
 def _ring(color: str, width: float) -> ft.Paint:
     return ft.Paint(color=color, stroke_width=width, style=ft.PaintingStyle.STROKE)
+
+
+# --- label placement ---------------------------------------------------------------
+
+
+def place_labels(
+    points: dict[str, Point],
+    names: dict[str, str],
+    edges: tuple[tuple[str, str], ...],
+    radius: float,
+    width: float,
+    height: float,
+) -> dict[str, Point]:
+    """Where to draw each name: the top-centre point of its label.
+
+    Each label tries below, above, right and left of its dot (in that order of
+    preference) and takes the spot that least overlaps the dots, the paths, the
+    labels already placed and the edges of the map. Text sizes are estimates, so
+    this avoids most collisions rather than guaranteeing none.
+    """
+    pad = radius + 6
+    taken: list[Box] = [(x - pad, y - pad, x + pad, y + pad) for x, y in points.values()]
+    segments = [(points[a], points[b]) for a, b in edges if a in points and b in points]
+    spots = {}
+    for node_id, name in names.items():
+        x, y = points[node_id]
+        w, h = _label_size(name)
+        gap = radius + 7
+        candidates: list[Box] = [
+            (x - w / 2, y + gap, x + w / 2, y + gap + h),  # below
+            (x - w / 2, y - gap - h, x + w / 2, y - gap),  # above
+            (x + gap, y - h / 2, x + gap + w, y + h / 2),  # right
+            (x - gap - w, y - h / 2, x - gap, y + h / 2),  # left
+        ]
+        box = min(
+            candidates,
+            key=lambda b: (_collision(b, taken, segments, width, height), candidates.index(b)),
+        )
+        taken.append(box)
+        spots[node_id] = ((box[0] + box[2]) / 2, box[1])
+    return spots
+
+
+def _label_size(name: str) -> Point:
+    text_width = len(name) * CHAR_WIDTH
+    lines = 1 if text_width <= LABEL_WIDTH else 2
+    return min(text_width, LABEL_WIDTH), lines * LINE_HEIGHT
+
+
+def _collision(
+    box: Box, taken: list[Box], segments: list[tuple[Point, Point]], width: float, height: float
+) -> float:
+    cost = sum(_overlap(box, other) for other in taken)
+    for (ax, ay), (bx, by) in segments:  # sample along each path
+        cost += 40 * sum(
+            _inside(box, ax + (bx - ax) * t / 12, ay + (by - ay) * t / 12) for t in range(13)
+        )
+    left, top, right, bottom = box
+    area = (right - left) * (bottom - top)
+    cost += 4 * (area - _overlap(box, (0, 0, width, height)))  # off the map
+    return cost
+
+
+def _overlap(a: Box, b: Box) -> float:
+    w = min(a[2], b[2]) - max(a[0], b[0])
+    h = min(a[3], b[3]) - max(a[1], b[1])
+    return w * h if w > 0 and h > 0 else 0.0
+
+
+def _inside(box: Box, x: float, y: float) -> bool:
+    return box[0] <= x <= box[2] and box[1] <= y <= box[3]

@@ -22,6 +22,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 - Existing worlds open as a single location with no roads out of it.
+- The map stays put while the room text and buttons scroll beneath it; the log
+  scrolls on its own below them.
+- Place names on the world map move above or beside their dot when they would
+  otherwise run into another place or a road.
 
 ### Removed
 - The temporary "Map test world (60 rooms)" button.
