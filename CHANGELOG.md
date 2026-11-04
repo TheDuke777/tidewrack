@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Pinch to zoom and drag to pan either map. The map follows you as you walk,
+  "centre on me" jumps back to where you are, and "show the whole map" zooms
+  back out.
+- Tap the Log bar to hide or show the log, or drag it to resize it (drag it
+  all the way down to hide it). While hidden, the bar shows the newest line.
+  This choice is remembered for every world.
+
+### Changed
+- The map stays put while the room text and buttons scroll beneath it; the log
+  scrolls on its own below them.
+- Place names on the world map move above or beside their dot when they would
+  otherwise run into another place or a road.
+
 ## [0.3.0-beta.2] - 2026-11-03
 
 ### Added
@@ -19,19 +33,9 @@ All notable changes to this project are documented here. The format follows
   travel there.
 - Each kind of place is shaped differently: towns are compact with many
   shortcuts, mines are long and winding, forests sprawl.
-- Pinch to zoom and drag to pan either map. The map follows you as you walk,
-  "centre on me" jumps back to where you are, and "show the whole map" zooms
-  back out.
-- Tap the Log bar to hide or show the log, or drag it to resize it (drag it
-  all the way down to hide it). While hidden, the bar shows the newest line.
-  This choice is remembered for every world.
 
 ### Changed
 - Existing worlds open as a single location with no roads out of it.
-- The map stays put while the room text and buttons scroll beneath it; the log
-  scrolls on its own below them.
-- Place names on the world map move above or beside their dot when they would
-  otherwise run into another place or a road.
 
 ### Removed
 - The temporary "Map test world (60 rooms)" button.
