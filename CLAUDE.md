@@ -425,7 +425,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 2. ✅ **Done (v0.1.1).** **Data layer:** pydantic schemas + content loader + content validation tests.
 3. ✅ **Done (v0.2.0).** **Local persistence:** `SaveStore`, multiple local slots, autosave, schema versioning, slot picker UI.
 4. ✅ **Done (v0.3.0).** **World graph + map:** hand-rolled seeded generation, canvas point-crawl, fog of war. (Spike 3.)
-   - **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration.
+   - ✅ **Done (v0.3.0).** **4b. World → locations → rooms:** overworld of locations (towns, forests, mines, sea caves) joined by roads, travel from gate rooms, area + world maps, save schema v3 with migration; plus pinch-zoom/pan maps, a scrolling game screen and a collapsible, resizable log (first app-wide setting).
 5. **Gear:** stat pipeline + compare + `gear_compare_card` + inventory/equip.
 6. **Combat + quests + codex discovery** (bestiary/quest log first).
 7. **Economy:** value model, shops, crafting, cooking + economy sim/lint.

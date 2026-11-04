@@ -42,18 +42,13 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 - Existing worlds open as a single location with no roads out of it.
 
-### Removed
-- The temporary "Map test world (60 rooms)" button.
-
 ## [0.3.0-beta.1] - 2026-11-03
 
 ### Added
-- Every new world is a freshly generated dungeon: 14 sea-cave rooms with their
-  own names, descriptions and layout, different every time.
+- Every new world is freshly generated, with its own names, descriptions and
+  layout, different every time.
 - A map of the rooms you know, with unexplored rooms shown hollow and your
-  position ringed. Tap a neighbouring room to walk there, or hide the map with
-  the map button.
-- A temporary "Map test world (60 rooms)" button for checking map performance.
+  position ringed. Tap a neighbouring room to walk there.
 
 ### Changed
 - Exits are now named by compass direction ("Go north") in generated worlds.

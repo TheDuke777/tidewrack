@@ -9,7 +9,7 @@ A text-based, procedurally generated roguelike RPG for Android, built in Python 
 
 ## Concept
 
-Every world is generated from systems and data: dungeons, quests, factions, lore, and companions. Runs end, but progress carries forward through an ascension/prestige loop with scaling difficulty and scaling achievements. There's no tile grid — the game is read and chosen — but a schematic map keeps the world easy to understand without drawing your own.
+Every world is generated from systems and data: a map of towns, forests, mines and caves joined by roads, each with its own rooms to explore — and later quests, factions, lore, and companions. Runs end, but progress carries forward through an ascension/prestige loop with scaling difficulty and scaling achievements. There's no tile grid — the game is read and chosen — but a schematic map keeps the world easy to understand without drawing your own.
 
 ## Principles
 
@@ -21,9 +21,8 @@ Every world is generated from systems and data: dungeons, quests, factions, lore
 
 ## Planned features
 
-- **Multiple worlds / save slots** with optional Google sign-in and cloud sync across devices
+- **Cloud sync** of your worlds across devices, with optional Google sign-in
 - **World sharing** — export/import worlds (and full save backups) between friends
-- **Point-crawl map** with fog of war, drawn automatically
 - **Discoverable pets** with roles (fighter, scout, forager, hauler, support) and a bond system
 - **Achievements with scaling tiers** that grow as you prestige
 - **Gear comparison** showing base and total stat differences — plus the effect on your character — at a glance
@@ -35,11 +34,13 @@ Every world is generated from systems and data: dungeons, quests, factions, lore
 
 ## Status
 
-Release pipeline is live (signed APKs via GitHub Releases + Komi Store); game systems are next. See [`CLAUDE.md`](./CLAUDE.md) for the full architecture, feature specs, risks, and build order.
+Early and playable as an explorer: generate a world, walk its rooms, and travel between its locations on two fog-of-war maps (pinch to zoom, tap to move). Worlds save automatically into multiple local slots, with backups. Gear, combat and everything else are still to come.
+
+Release pipeline is live (signed APKs via GitHub Releases + Komi Store). See [`CLAUDE.md`](./CLAUDE.md) for the full architecture, feature specs, risks, and build order.
 
 ## Tech stack
 
-Python · Flet · networkx · scipy · opensimplex · esper (ECS) · markovify · pydantic
+Python · Flet · pydantic, with a small in-house ECS and seeded generators (no NumPy/SciPy). Later: markovify (names/lore), opensimplex (biomes).
 
 ## Install & updates
 
