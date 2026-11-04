@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0-beta.3] - 2026-11-04
+
 ### Changed
 - A fight now takes over the Explore screen: the map hides until it's over, so
   you can't miss that one has started.
