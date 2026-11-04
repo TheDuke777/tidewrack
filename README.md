@@ -34,7 +34,7 @@ Every world is generated from systems and data: a map of towns, forests, mines a
 
 ## Status
 
-Early and playable as an explorer: generate a world, walk its rooms, and travel between its locations on two fog-of-war maps (pinch to zoom, tap to move). Worlds save automatically into multiple local slots, with backups. Gear is in: find it in rooms, compare it against what you have on, and equip it across six slots. Fight beasts, people and spirits round by round, and track what you've learned about them in the Codex. Take quests from town notice boards (or find them in the wild) for gear rewards. Shops, crafting and everything else are still to come.
+Early and playable as an explorer: generate a world, walk its rooms, and travel between its locations on two fog-of-war maps (pinch to zoom, tap to move). Worlds save automatically into multiple local slots, with backups. Gear is in: find it in rooms, compare it against what you have on, and equip it across six slots. Fight beasts, people and spirits round by round, and track what you've learned about them in the Codex; wandering enemies slowly come back. Take quests from town notice boards (or find them in the wild) for gear rewards. Shops, crafting and everything else are still to come.
 
 Release pipeline is live (signed APKs via GitHub Releases + Komi Store). See [`CLAUDE.md`](./CLAUDE.md) for the full architecture, feature specs, risks, and build order.
 
