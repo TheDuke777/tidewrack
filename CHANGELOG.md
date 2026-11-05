@@ -6,6 +6,31 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Materials: hides, shells, ore, timber, sailcloth and rarer finds. Beasts drop
+  them at last, people and spirits drop some too, and wild places have them
+  lying about: walking into the room gathers them. They go in a satchel shown
+  on the Inventory tab.
+- Markets. Every town has one, selling common materials and buying any back.
+- Crafting at the smithy, on a new Craft tab:
+  - Upgrades: most gear can now be upgraded (+1, +2, +3 on weapons) for
+    materials and a fee that grows with each level.
+  - Recipes: make a specific piece of gear at its best roll. You start knowing
+    four; more turn up as pages out in the world and as extra quest rewards,
+    including one that makes affixed gear.
+- The cards show what each craft or upgrade needs and what you have, with
+  short materials marked "✗ short".
+
+### Changed
+- Gear you sell stays on the smithy's shelf to buy back, but only the last 6
+  pieces; older ones are gone. Shelves from earlier versions are cleared down
+  the same way.
+- Gear is worth a bit more (and costs a bit more in shops) when it can still
+  be upgraded.
+- Worlds from earlier versions get markets, crafting and the four starting
+  recipes, and their gear becomes upgradable. They have nothing new to gather
+  or find, but enemies that come back drop materials.
+
 ## [0.7.0] - 2026-11-04
 
 ### Added

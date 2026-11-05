@@ -3,5 +3,8 @@
   "name": "Storm Lantern",
   "slot": "off_hand",
   "base": { "hp": 3 },
-  "rolls": { "hp": [0, 2] }
+  "rolls": { "hp": [0, 2] },
+  "max_upgrade": 2,
+  "upgrade_step": { "hp": 2 },
+  "upgrade_materials": { "material.iron_ore": 1, "material.spider_silk": 1 }
 }

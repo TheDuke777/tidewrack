@@ -13,5 +13,8 @@
       0,
       2
     ]
-  }
+  },
+  "materials": [
+    { "material": "material.hide", "chance": 0.8, "count": [1, 2] }
+  ]
 }

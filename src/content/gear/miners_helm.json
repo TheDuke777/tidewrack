@@ -3,5 +3,8 @@
   "name": "Miner's Helm",
   "slot": "head",
   "base": { "def": 1, "hp": 2 },
-  "rolls": { "hp": [0, 2] }
+  "rolls": { "hp": [0, 2] },
+  "max_upgrade": 2,
+  "upgrade_step": { "def": 1 },
+  "upgrade_materials": { "material.iron_ore": 1, "material.hide": 1 }
 }

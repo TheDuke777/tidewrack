@@ -55,6 +55,44 @@ def _check_range(name: str, low: int, high: int) -> None:
         raise ValueError(f"{name} must satisfy 0 <= min <= max, not [{low}, {high}]")
 
 
+# --- materials and recipes (step 7b) ------------------------------------------------
+
+Counts = dict[str, Annotated[int, Field(ge=1, le=50)]]  # material id -> how many
+
+
+class MaterialSchema(Schema):
+    """Something crafting uses: hides, ore, timber. Held as counts, not items."""
+
+    id: content_id("material")
+    name: Text
+    description: Text
+    value: int = Field(ge=1, le=100)  # gold; prices derive from it like gear's
+
+
+class RecipeSchema(Schema):
+    """How to craft one piece of gear at a smithy. Known recipes are taught to every
+    new world's player; the rest are found (a page in a room, or a quest's extra
+    reward). The fee is worked out from what it makes (core.economy.value_model)."""
+
+    id: content_id("recipe")
+    makes: content_id("gear")
+    affix: content_id("affix") | None = None  # crafted with this affix
+    materials: Counts = Field(min_length=1)
+    known: bool = False
+
+
+class MaterialDropSchema(Schema):
+    material: content_id("material")
+    chance: Unit
+    count: tuple[int, int] = (1, 1)
+
+    @model_validator(mode="after")
+    def _check(self) -> MaterialDropSchema:
+        if not 1 <= self.count[0] <= self.count[1]:
+            raise ValueError(f"count must satisfy 1 <= min <= max, not {list(self.count)}")
+        return self
+
+
 # --- gear ----------------------------------------------------------------------------
 
 
@@ -69,6 +107,7 @@ class GearSchema(Schema):
     rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
     max_upgrade: int = Field(default=0, ge=0, le=10)
     upgrade_step: StatBlock = {}  # added per upgrade level
+    upgrade_materials: Counts = {}  # for each level, times the level being reached
     set: content_id("gearset") | None = None
     effects: list[Text] = []
 
@@ -82,6 +121,8 @@ class GearSchema(Schema):
             raise ValueError("two-handed gear must have slot main_hand")
         if self.max_upgrade and not any(self.upgrade_step.values()):
             raise ValueError("upgradable gear needs a non-zero upgrade_step")
+        if self.max_upgrade and not self.upgrade_materials:
+            raise ValueError("upgradable gear needs upgrade_materials")
         return self
 
 
@@ -134,6 +175,7 @@ class EnemySchema(Schema):
     rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
     loot: LootSchema = LootSchema()
     gold: tuple[int, int] = (0, 0)  # inclusive range it carries (people have purses)
+    materials: list[MaterialDropSchema] = []  # hides, shells, scraps (each rolled)
 
     @property
     def plural_name(self) -> str:
@@ -162,6 +204,15 @@ class EncountersSchema(Schema):
     pool: Weights = {}  # enemy id -> relative weight
 
 
+class GatheringSchema(Schema):
+    """Materials lying about a roomset's locations (ore, driftwood), gathered when
+    you walk in; placed when the world is made."""
+
+    chance: Unit = 0.0  # per room (gate rooms never have any)
+    materials: Weights = {}  # material id -> relative weight
+    count: tuple[int, int] = (1, 2)
+
+
 class FindsSchema(Schema):
     """Gear lying about a roomset's locations, placed when the world is made."""
 
@@ -188,14 +239,24 @@ class ShopSchema(Schema):
     gear: Weights = {}  # gear id -> relative weight, for stock and wares
     buys_gear: bool = False
     inn: bool = False  # sells a night's rest (a full heal)
+    materials: list[content_id("material")] = []  # always for sale (never run out)
+    buys_materials: bool = False
+    crafts: bool = False  # upgrades gear and crafts from recipes
 
     @model_validator(mode="after")
     def _check(self) -> ShopSchema:
         _check_range("stock", *self.stock)
         if (self.stock[1] or self.wares) and not self.gear:
             raise ValueError("a shop with stock or wares needs gear to sell")
-        if not (self.gear or self.buys_gear or self.inn):
-            raise ValueError("a shop must sell gear, buy gear or be an inn")
+        if not (
+            self.gear
+            or self.buys_gear
+            or self.inn
+            or self.materials
+            or self.buys_materials
+            or self.crafts
+        ):
+            raise ValueError("a shop must trade gear or materials, craft, or be an inn")
         return self
 
 
@@ -232,6 +293,7 @@ class RoomsetSchema(Schema):
     entrance: ArchetypeSchema  # the gate room travellers arrive in and leave from
     rooms: list[ArchetypeSchema] = Field(min_length=1)
     finds: FindsSchema = FindsSchema()
+    gathering: GatheringSchema = GatheringSchema()
     enemies: EncountersSchema = EncountersSchema()
     shops: list[content_id("shop")] = []  # one of each in every location of this kind
 
@@ -305,6 +367,7 @@ class QuestsRecipeSchema(Schema):
     per_board: int = Field(default=0, ge=0, le=10)  # posted on each town's notice board
     found: int = Field(default=0, ge=0, le=10)  # left as clues out in the world
     reward_affix_chance: Unit = 1.0
+    recipe_chance: Unit = 0.0  # each found recipe: a quest's extra reward, else a page
 
 
 # --- world recipes -------------------------------------------------------------------

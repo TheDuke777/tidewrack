@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import uuid
 from collections.abc import Callable, Iterable, Mapping
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
@@ -22,8 +23,11 @@ from tidewrack.core.engine.components import (
     Bounty,
     Clue,
     Enemy,
+    MaterialStack,
     Quest,
     QuestItem,
+    Recipe,
+    RecipePage,
     Shop,
     Spawner,
 )
@@ -32,6 +36,11 @@ from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
 from tidewrack.core.procgen.enemy_gen import generate_enemies
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
+from tidewrack.core.procgen.material_gen import (
+    generate_gathering,
+    generate_recipes,
+    known_recipes,
+)
 from tidewrack.core.procgen.quest_gen import generate_quests
 from tidewrack.core.procgen.shop_gen import generate_shops
 from tidewrack.core.procgen.world_gen import generate_world
@@ -78,11 +87,13 @@ class GameSession:
         clock: Clock = utc_now,
     ) -> GameSession:
         """Generate a fresh world from a recipe (layout, kit, finds, enemies,
-        quests and shops) in a new slot."""
+        quests, shops, materials and recipes) in a new slot."""
         recipe = content.world(recipe_id)
         world = generate_world(seed, recipe, content.roomsets)
         enemies, spawners = generate_enemies(seed, world, content)
         plan = generate_quests(seed, world, content, recipe, enemies, spawners)
+        recipes = generate_recipes(seed, world, content, recipe, plan.quests)
+        quests = [replace(q, recipe=recipes.rewards.get(q.quest_id)) for q in plan.quests]
         return cls.new(
             store,
             content,
@@ -95,11 +106,14 @@ class GameSession:
             finds=generate_finds(seed, world, content),
             enemies=enemies,
             spawners=spawners,
-            quests=plan.quests,
+            quests=quests,
             bounties=plan.bounties,
             quest_things=plan.placed,
             gold=recipe.gold,
             shops=generate_shops(seed, world, content),
+            gathering=generate_gathering(seed, world, content),
+            recipes=known_recipes(content),
+            recipe_pages=recipes.pages,
         )
 
     @classmethod
@@ -124,6 +138,9 @@ class GameSession:
         gold: int = 0,
         shops: Iterable[tuple[str, str, Shop, Iterable[Item]]] = (),
         economy: EconomyRules = STANDARD_ECONOMY,
+        gathering: Iterable[tuple[str, str, MaterialStack]] = (),
+        recipes: Iterable[Recipe] = (),
+        recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
     ) -> GameSession:
         """Start a world in a new slot (saved immediately)."""
         game = Game(
@@ -141,6 +158,9 @@ class GameSession:
             gold,
             shops,
             economy,
+            gathering,
+            recipes,
+            recipe_pages,
         )
         now = clock()
         meta = SlotMeta(

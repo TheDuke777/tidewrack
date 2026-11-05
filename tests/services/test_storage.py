@@ -283,7 +283,7 @@ def test_v7_saves_get_gold_and_town_shops_from_their_own_snapshots(tmp_path):
     assert shops.gold(game) == 10
     towns = [loc for loc in game.overworld.locations.values() if loc.kind == "Town"]
     found = [s for _, (s,) in game.world.query(Shop)]
-    assert sorted(s.name for s in found) == ["Smithy", "Tavern"] * len(towns)
+    assert sorted(s.name for s in found) == sorted(["Market", "Smithy", "Tavern"] * len(towns))
     smithy = next(s for s in found if s.buys_gear)
     assert smithy.wares and all(not i.affixes and not i.roll for i in smithy.wares)
     for _, (spawner,) in game.world.query(Spawner):
@@ -302,3 +302,75 @@ def test_v8_fixture_keeps_its_gold_shops_and_purchases(tmp_path):
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert shops.gold(session.game) == 3
     assert "You sell the Miner's Helm to the Smithy for 3 gold." in session.game.log
+
+
+def test_v8_saves_get_a_satchel_recipes_markets_and_upgrades(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import Enemy, Item, Quest, Shop, Spawner
+
+    envelope = json.loads((FIXTURES / "v8_economy.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert crafting.held(game) == {}
+    assert sorted(crafting.known(game)) == sorted(
+        r for r, schema in CONTENT.recipes.items() if schema.known
+    )
+    towns = [loc for loc in game.overworld.locations.values() if loc.kind == "Town"]
+    found = [s for _, (s,) in game.world.query(Shop)]
+    assert sum(s.name == "Market" for s in found) == len(towns)
+    market = next(s for s in found if s.name == "Market")
+    assert market.materials and market.buys_materials
+    smithy = next(s for s in found if s.name == "Smithy")
+    assert smithy.crafts and "gear.cutlass" in smithy.upgrades
+    # Only what's stocked past a shop's cap counts as sold gear; this shelf was full
+    # but not over (the Miner's Helm sold back in v8 stays as ordinary stock).
+    assert smithy.buyback == []
+    assert all(not e.materials for _, (e,) in game.world.query(Enemy))
+    assert all(q.recipe is None for _, (q,) in game.world.query(Quest))
+    templates = [t for _, (s,) in game.world.query(Spawner) for t in s.templates]
+    assert any(t.materials for t in templates)
+    # Gear v9 made upgradable is upgradable in old worlds too.
+    club = next(i for _, (i,) in game.world.query(Item) if i.gear_id == "gear.driftwood_club")
+    assert club.max_upgrade == 2 and club.upgrade_step == {"atk": 1}
+
+
+def test_v9_fixture_keeps_its_materials_crafts_and_upgrades(tmp_path):
+    from tidewrack.core.economy import crafting
+
+    envelope = json.loads((FIXTURES / "v9_crafting.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert {k: v.count for k, v in crafting.held(game).items()} == {
+        "material.iron_ore": 1,
+        "material.timber": 1,
+    }
+    names = [i.name for i in game.inventory().pack] + [
+        s.item.name for s in game.inventory().slots if s.item
+    ]
+    assert "Cutlass" in names and "Driftwood Club +1" in names
+    assert "The smith makes you a Cutlass for 17 gold." in game.log
+
+
+def test_an_overfull_v8_smithy_keeps_only_the_newest_sold_gear(tmp_path):
+    from tidewrack.core.engine.components import Shop, Stocked
+
+    envelope = json.loads((FIXTURES / "v8_economy.json").read_text(encoding="utf-8"))
+    game = envelope["game"]
+    shop_id = next(e["id"] for e in game["entities"] if "Shop" in e["components"])
+    item = next(
+        e["components"]["Item"]
+        for e in game["entities"]
+        if e["components"].get("Stocked", {}).get("shop") == shop_id
+    )
+    extra = list(range(game["next_entity_id"], game["next_entity_id"] + 27))
+    for entity in extra:  # 27 more on a shelf that holds 4: like selling a lot of loot
+        game["entities"].append(
+            {"id": entity, "components": {"Item": dict(item), "Stocked": {"shop": shop_id}}}
+        )
+    game["next_entity_id"] = extra[-1] + 1
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    world = session.game.world
+    shop = world.get(shop_id, Shop)
+    on_shelf = [e for e, (s,) in world.query(Stocked) if s.shop == shop_id]
+    assert shop.buyback == extra[-6:]
+    assert len(on_shelf) == shop.cap + 6

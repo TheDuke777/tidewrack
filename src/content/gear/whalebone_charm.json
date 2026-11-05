@@ -3,5 +3,8 @@
   "name": "Whalebone Charm",
   "slot": "trinket",
   "base": { "hp": 4 },
-  "rolls": { "hp": [0, 2] }
+  "rolls": { "hp": [0, 2] },
+  "max_upgrade": 2,
+  "upgrade_step": { "hp": 2 },
+  "upgrade_materials": { "material.crab_shell": 2 }
 }

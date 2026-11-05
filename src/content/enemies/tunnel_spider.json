@@ -20,5 +20,8 @@
       "gear.miners_helm": 1,
       "gear.storm_lantern": 1
     }
-  }
+  },
+  "materials": [
+    { "material": "material.spider_silk", "chance": 0.7, "count": [1, 2] }
+  ]
 }

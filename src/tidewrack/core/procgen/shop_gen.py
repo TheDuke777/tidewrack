@@ -31,6 +31,7 @@ from tidewrack.core.engine.components import Shop
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import make_item
+from tidewrack.core.procgen.material_gen import make_material, stacks
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location
 from tidewrack.core.world.overworld import Overworld
@@ -94,9 +95,22 @@ def generate_shops(seed: int, world: Overworld, content: Content) -> list[Placed
                 inn=schema.inn,
                 cap=schema.stock[1],
                 wares=wares,
+                materials=[make_material(content.materials[m]) for m in schema.materials],
+                buys_materials=schema.buys_materials,
+                crafts=schema.crafts,
+                upgrades=upgrade_table(content) if schema.crafts else {},
             )
             placed.append(PlacedShop(location.id, shop_room(location, schema.room), shop, stock))
     return placed
+
+
+def upgrade_table(content: Content) -> dict[str, list]:
+    """Every upgradable gear's materials per level, for a smithy that crafts."""
+    return {
+        g.id: stacks(g.upgrade_materials, content)
+        for _, g in sorted(content.gear.items())
+        if g.max_upgrade
+    }
 
 
 def shops_hash(shops: Iterable[PlacedShop]) -> str:

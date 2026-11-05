@@ -63,7 +63,7 @@ def test_shops_show_as_buttons_until_opened(tmp_path):
     session, shell, _, _ = _shell(tmp_path)
     explore = shell.explore
     labels = [b.content for b in _buttons(explore.entrances, "")]
-    assert "Smithy · 3 for sale · buys gear" in labels
+    assert "Smithy · 3 for sale · buys gear · crafts" in labels
     assert explore.shops.controls == [] and explore.map.control.visible
     [smithy] = _buttons(explore.entrances, "Smithy")
     smithy.on_click(None)
@@ -80,7 +80,7 @@ def test_the_smithy_lists_wares_and_buying_toasts(tmp_path):
     session, shell, toasts, _ = _shell(tmp_path)
     shell.explore.open("Smithy")
     shops = shell.explore.shops
-    assert _tabs(shell) == ["Buy (3)", "Sell (0)"]
+    assert _tabs(shell) == ["Buy (3)", "Sell (0)", "Craft"]
     assert any(t.endswith(" · 10 gold") for t in _texts(shell.explore.panel_heading))
     buys = _buttons(shops, "Buy · ")
     assert len(buys) == 3
@@ -95,7 +95,7 @@ def test_the_smithy_lists_wares_and_buying_toasts(tmp_path):
 def test_selling_inside_the_smithy(tmp_path):
     session, shell, toasts, asked = _shell(tmp_path)
     shell.explore.open("Smithy")
-    _buttons(shell.explore.shops, "Buy · ")[0].on_click(None)
+    _buy_first(shell)
     gold = session.game.view().gold
     assert _buttons(shell.explore.shops, "Sell · ") == []  # on the Buy tab
     shell.explore._shop_tab(["sell"])
@@ -110,7 +110,7 @@ def test_selling_inside_the_smithy(tmp_path):
 def test_selling_from_the_pack_asks_first_and_pays(tmp_path):
     session, shell, toasts, asked = _shell(tmp_path)
     shell.explore.open("Smithy")
-    _buttons(shell.explore.shops, "Buy · ")[0].on_click(None)
+    _buy_first(shell)
     gold = session.game.view().gold
     shell.select(1)
     [sell] = _buttons(shell.inventory.pack, "Sell · ")
@@ -122,7 +122,7 @@ def test_selling_from_the_pack_asks_first_and_pays(tmp_path):
 def test_no_sell_buttons_away_from_a_buyer(tmp_path):
     session, shell, _, _ = _shell(tmp_path)
     shell.explore.open("Smithy")
-    _buttons(shell.explore.shops, "Buy · ")[0].on_click(None)
+    _buy_first(shell)
     town = session.game.overworld.location(session.game.overworld.start)
     shell.explore.act(next(iter(_moves(town))))
     shell.select(1)
@@ -249,3 +249,90 @@ def test_the_buy_tab_filters_and_sorts_by_what_things_cost(tmp_path):
     shell.select(1)
     assert shell.inventory.pack_list.choices.sort_by == "name"
     assert shell.inventory.pack_list.filters["slot"].value == "all"
+
+
+def _buy_first(shell):
+    """Buy the first ware you can afford."""
+    [b for b in _buttons(shell.explore.shops, "Buy · ") if not b.disabled][0].on_click(None)
+
+
+def _at(shell, pred):
+    """Put the player in the start town room whose shop matches `pred`, and refresh."""
+    game = shell.explore.session.game
+    room = next(p for _, (s, p) in game.world.query(Shop, Position) if pred(s))
+    position = game.world.get(game.player, Position)
+    position.location, position.room = room.location, room.room
+    shell.explore.refresh()
+
+
+def test_the_craft_tab_upgrades_worn_gear_and_crafts_recipes(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack, Wallet
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, toasts, _ = _shell(tmp_path)
+    game = session.game
+    game.world.get(game.player, Wallet).gold = 200
+    for material, n in (("material.iron_ore", 6), ("material.timber", 3)):
+        crafting.add(game, MaterialStack(make_material(CONTENT.materials[material]), n), "test")
+    shell.explore.open("Smithy")
+    shell.explore._shop_tab(["craft"])
+    texts = _texts(shell.explore.shops)
+    assert "Upgrade your gear" in texts and "Recipes (4)" in texts
+    # The worn Driftwood Club can go to +1 (1 timber); its card says so.
+    assert any(t.startswith("Your Driftwood Club (worn)") for t in texts)
+    assert "Seasoned Timber 3/1 ✓" in texts
+    [club] = [
+        card
+        for card in shell.explore.shops.controls
+        if any(t.startswith("Your Driftwood Club") for t in _texts(card))
+    ]
+    [upgrade] = _buttons(club, "Upgrade · ")
+    upgrade.on_click(None)
+    assert toasts[-1].startswith("It's now a Driftwood Club +1")
+    crafts = [b for b in _buttons(shell.explore.shops, "Craft · ") if not b.disabled]
+    assert crafts  # the Cutlass: 3 iron ore and 1 timber
+    crafts[0].on_click(None)
+    assert toasts[-1].endswith("gold fee.") and len(game.inventory().pack) == 1
+    assert shell.explore.shop_tab == "craft"  # stays on the tab
+
+
+def test_short_materials_are_marked_in_words(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    shell.explore._shop_tab(["craft"])
+    texts = _texts(shell.explore.shops)
+    assert "Iron Ore 0/3 ✗ short" in texts
+    assert all(b.disabled for b in _buttons(shell.explore.shops, "Craft · "))
+
+
+def test_the_market_sells_and_buys_materials(tmp_path):
+    session, shell, toasts, asked = _shell(tmp_path)
+    _at(shell, lambda s: s.buys_materials)
+    [market] = _buttons(shell.explore.entrances, "Market · ")
+    assert market.content == "Market · materials"
+    market.on_click(None)
+    assert _tabs(shell) == ["Buy (4)", "Sell (0)"]
+    [buy] = [b for b in _buttons(shell.explore.shops, "Buy 1 · ") if "3 gold" in b.content][:1]
+    buy.on_click(None)
+    assert toasts[-1].startswith("Bought 1 ") and session.game.view().gold < 10
+    shell.explore._shop_tab(["sell"])
+    assert _tabs(shell)[1] == "Sell (1)"
+    [sell_all] = _buttons(shell.explore.shops, "Sell all 1 · ")
+    sell_all.on_click(None)
+    assert asked[-1].startswith("Sell all your ")
+    assert session.game.inventory().materials == ()
+
+
+def test_the_inventory_lists_materials_and_recipes(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    hide = make_material(CONTENT.materials["material.hide"])
+    crafting.add(session.game, MaterialStack(hide, 2), "test")
+    shell.select(1)
+    texts = _texts(shell.inventory.control)
+    assert "Hide × 2" in texts
+    assert any(t.startswith("Buckler, Cutlass") for t in texts)

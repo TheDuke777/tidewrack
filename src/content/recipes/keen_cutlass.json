@@ -1,0 +1,6 @@
+{
+  "id": "recipe.keen_cutlass",
+  "makes": "gear.cutlass",
+  "affix": "affix.keen",
+  "materials": { "material.iron_ore": 4, "material.timber": 1, "material.wisp_essence": 1 }
+}

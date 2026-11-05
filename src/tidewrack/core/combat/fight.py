@@ -17,7 +17,7 @@ from math import ceil
 from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.rules import damage, regen, scaled
-from tidewrack.core.economy import shops
+from tidewrack.core.economy import crafting, shops
 from tidewrack.core.engine.components import (
     Bounty,
     Codex,
@@ -185,6 +185,8 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
         )
     )
     shops.gain(game, enemy.gold, "loot")
+    for stack in enemy.materials:
+        crafting.add(game, stack, "loot")
 
 
 def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:

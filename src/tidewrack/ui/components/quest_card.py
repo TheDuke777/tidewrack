@@ -37,6 +37,8 @@ def kind_chip(kind: str) -> ft.Container:
 
 def reward_text(quest: QuestView) -> str:
     gold = f" + {quest.gold} gold" if quest.gold else ""
+    if quest.recipe:
+        gold += f" + the {quest.recipe} recipe"
     if quest.state == "done":
         return f"Reward: {quest.reward.name}{gold}"
     return f"Reward: {quest.reward.name} ({quest.reward.slot}){gold}"

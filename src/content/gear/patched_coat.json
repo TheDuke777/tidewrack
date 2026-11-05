@@ -2,5 +2,8 @@
   "id": "gear.patched_coat",
   "name": "Patched Coat",
   "slot": "body",
-  "base": { "def": 1 }
+  "base": { "def": 1 },
+  "max_upgrade": 2,
+  "upgrade_step": { "def": 1 },
+  "upgrade_materials": { "material.hide": 1, "material.sailcloth": 1 }
 }

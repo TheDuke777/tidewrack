@@ -1,0 +1,5 @@
+{
+  "id": "recipe.sealskin_boots",
+  "makes": "gear.sealskin_boots",
+  "materials": { "material.hide": 2, "material.eel_skin": 1 }
+}

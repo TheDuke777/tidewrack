@@ -4,5 +4,8 @@
   "slot": "main_hand",
   "two_handed": true,
   "base": { "atk": 6 },
-  "rolls": { "atk": [0, 2] }
+  "rolls": { "atk": [0, 2] },
+  "max_upgrade": 2,
+  "upgrade_step": { "atk": 1 },
+  "upgrade_materials": { "material.iron_ore": 2 }
 }

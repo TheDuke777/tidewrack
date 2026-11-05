@@ -14,7 +14,10 @@ when the same seed would produce different results (RNG or generation changes).
 # 7: enemies return (Spawner cap + templates; respawn RNG stream; return Rules)
 # 8: the economy (Wallet on the player; Shop and Stocked components; gold on
 #    Enemy, EnemyTemplate and Quest; shop RNG stream and EconomyRules in GameState)
-SCHEMA_VERSION = 8
+# 9: crafting (Materials and Recipes on the player; MaterialStack and RecipePage
+#    components; materials on Enemy and EnemyTemplate; a recipe on Quest; Shop
+#    buy-back, materials and crafting fields; more EconomyRules)
+SCHEMA_VERSION = 9
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
@@ -22,4 +25,6 @@ SCHEMA_VERSION = 8
 # 6: new worlds also get quests: notice boards, clues, bounties (procgen/quest_gen.py)
 # 7: spawners also carry enemy templates (with pre-rolled loot) for returning enemies
 # 8: enemies and quests also roll gold; new worlds also get shops (procgen/shop_gen.py)
-GENERATOR_VERSION = 8
+# 9: enemies drop materials; most gear is upgradable; towns get a Market; new
+#    worlds also get gathering and recipes (procgen/material_gen.py)
+GENERATOR_VERSION = 9

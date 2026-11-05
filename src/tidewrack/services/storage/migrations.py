@@ -246,6 +246,263 @@ def _room_named(location: dict, noun: str) -> str:
     return location["start"]
 
 
+# What v9 gave every world, written out so later content changes can't alter this
+# migration: materials, gear upgrade levels, enemy drops, starting recipes and the
+# Market's goods.
+MIGRATED_MATERIALS = {  # id -> (name, description, value)
+    "material.crab_shell": ("Crab Shell", "Plates of shell, harder than they look.", 2),
+    "material.driftwood": (
+        "Driftwood",
+        "Sea-bleached wood, light and hard. Good for hafts and frames.",
+        1,
+    ),
+    "material.eel_skin": ("Eel Skin", "Supple, slick and waterproof.", 4),
+    "material.hide": ("Hide", "A rough hide, scraped and salted.", 2),
+    "material.iron_ore": (
+        "Iron Ore",
+        "Rust-red lumps from the old workings. A smith can make something of it.",
+        2,
+    ),
+    "material.sailcloth": ("Sailcloth", "Tarred canvas, cut from wrecks and old sails.", 2),
+    "material.spider_silk": (
+        "Spider Silk",
+        "Grey cord from the tunnel spiders' webs, strong as wire.",
+        3,
+    ),
+    "material.timber": ("Seasoned Timber", "Straight, dry lengths of forest wood.", 2),
+    "material.wisp_essence": ("Wisp Essence", "A faint cold light caught in a stoppered vial.", 6),
+}
+MIGRATED_UPGRADES = {  # gear id -> (max_upgrade, upgrade_step, materials per level)
+    "gear.boathook": (2, {"atk": 1}, {"material.iron_ore": 1, "material.timber": 1}),
+    "gear.buckler": (2, {"def": 1}, {"material.timber": 1, "material.iron_ore": 1}),
+    "gear.cutlass": (3, {"atk": 1}, {"material.iron_ore": 2}),
+    "gear.driftwood_club": (2, {"atk": 1}, {"material.timber": 1}),
+    "gear.harpoon": (3, {"atk": 1}, {"material.iron_ore": 2}),
+    "gear.miners_helm": (2, {"def": 1}, {"material.iron_ore": 1, "material.hide": 1}),
+    "gear.oilskin_hood": (2, {"def": 1}, {"material.sailcloth": 2}),
+    "gear.patched_coat": (2, {"def": 1}, {"material.hide": 1, "material.sailcloth": 1}),
+    "gear.pick": (2, {"atk": 1}, {"material.iron_ore": 2}),
+    "gear.sealskin_boots": (2, {"def": 1}, {"material.hide": 1, "material.eel_skin": 1}),
+    "gear.storm_lantern": (2, {"hp": 2}, {"material.iron_ore": 1, "material.spider_silk": 1}),
+    "gear.watchmans_coat": (2, {"def": 1}, {"material.hide": 2}),
+    "gear.whalebone_charm": (2, {"hp": 2}, {"material.crab_shell": 2}),
+}
+MIGRATED_DROPS = {  # enemy id -> [(material, chance, low, high)]
+    "enemy.cave_rat": [("material.hide", 0.3, 1, 1)],
+    "enemy.conger_eel": [("material.eel_skin", 0.7, 1, 1)],
+    "enemy.drowned_sailor": [("material.sailcloth", 0.5, 1, 2)],
+    "enemy.shore_crab": [("material.crab_shell", 0.8, 1, 2)],
+    "enemy.smuggler": [("material.sailcloth", 0.5, 1, 2)],
+    "enemy.tunnel_spider": [("material.spider_silk", 0.7, 1, 2)],
+    "enemy.wailing_wisp": [("material.wisp_essence", 0.5, 1, 1)],
+    "enemy.wild_boar": [("material.hide", 0.8, 1, 2)],
+    "enemy.wrecker": [("material.sailcloth", 0.4, 1, 2), ("material.iron_ore", 0.2, 1, 1)],
+}
+MIGRATED_RECIPES = [  # (recipe id, the Item it makes, materials)
+    (
+        "recipe.buckler",
+        {
+            "gear_id": "gear.buckler",
+            "name": "Buckler",
+            "slot": "off_hand",
+            "two_handed": False,
+            "base": {"def": 2},
+            "roll": {"def": 1},
+            "upgrade": 0,
+            "max_upgrade": 2,
+            "upgrade_step": {"def": 1},
+            "affixes": [],
+            "effects": [],
+            "gear_set": None,
+        },
+        {"material.timber": 3, "material.iron_ore": 1},
+    ),
+    (
+        "recipe.cutlass",
+        {
+            "gear_id": "gear.cutlass",
+            "name": "Cutlass",
+            "slot": "main_hand",
+            "two_handed": False,
+            "base": {"atk": 4},
+            "roll": {"atk": 2},
+            "upgrade": 0,
+            "max_upgrade": 3,
+            "upgrade_step": {"atk": 1},
+            "affixes": [],
+            "effects": [],
+            "gear_set": None,
+        },
+        {"material.iron_ore": 3, "material.timber": 1},
+    ),
+    (
+        "recipe.miners_helm",
+        {
+            "gear_id": "gear.miners_helm",
+            "name": "Miner's Helm",
+            "slot": "head",
+            "two_handed": False,
+            "base": {"def": 1, "hp": 2},
+            "roll": {"hp": 2},
+            "upgrade": 0,
+            "max_upgrade": 2,
+            "upgrade_step": {"def": 1},
+            "affixes": [],
+            "effects": [],
+            "gear_set": None,
+        },
+        {"material.iron_ore": 2, "material.hide": 1},
+    ),
+    (
+        "recipe.storm_lantern",
+        {
+            "gear_id": "gear.storm_lantern",
+            "name": "Storm Lantern",
+            "slot": "off_hand",
+            "two_handed": False,
+            "base": {"hp": 3},
+            "roll": {"hp": 2},
+            "upgrade": 0,
+            "max_upgrade": 2,
+            "upgrade_step": {"hp": 2},
+            "affixes": [],
+            "effects": [],
+            "gear_set": None,
+        },
+        {"material.iron_ore": 2, "material.sailcloth": 1},
+    ),
+]
+MIGRATED_MARKET = [
+    "material.driftwood",
+    "material.timber",
+    "material.iron_ore",
+    "material.sailcloth",
+]
+MIGRATED_BUYBACK = 6  # sold gear a smithy keeps (the newest)
+
+
+def _v8_to_v9(envelope: Envelope) -> Envelope:
+    # v9 adds materials and crafting. The player gets an empty satchel and the
+    # starting recipes; enemies get no materials (they're rolled at creation) but
+    # returning enemies' templates get their kind's drops; quests get no recipe.
+    # Gear anywhere in the save that v9 made upgradable becomes upgradable (if it
+    # wasn't), smithies learn upgrades and get a buy-back shelf (anything stocked
+    # past the shop's cap counts as sold gear; only the newest few stay), and every
+    # town gets a Market. Old worlds have nothing to gather and no recipe pages.
+    game = envelope["game"]
+    entities = game["entities"]
+    _upgradable(game)
+    removed: set[int] = set()
+    stocked: dict[int, list[int]] = {}
+    for entity in entities:
+        components = entity["components"]
+        if "Player" in components:
+            components["Materials"] = {"held": {}}
+            components["Recipes"] = {
+                "known": {
+                    rid: {
+                        "recipe_id": rid,
+                        "name": _display_name(item),
+                        "makes": dict(item),
+                        "materials": _stacks(needs),
+                    }
+                    for rid, item, needs in MIGRATED_RECIPES
+                }
+            }
+        if "Enemy" in components:
+            components["Enemy"]["materials"] = []
+        if "Quest" in components:
+            components["Quest"]["recipe"] = None
+        if "Spawner" in components:
+            for enemy in components["Spawner"]["queue"]:
+                enemy["materials"] = []
+            for template in components["Spawner"]["templates"]:
+                template["materials"] = [
+                    {"material": _material(m), "chance": chance, "low": low, "high": high}
+                    for m, chance, low, high in MIGRATED_DROPS.get(template["enemy_id"], [])
+                ]
+        if "Stocked" in components:
+            stocked.setdefault(components["Stocked"]["shop"], []).append(entity["id"])
+    for entity in entities:
+        shop = entity["components"].get("Shop")
+        if shop is None:
+            continue
+        crafts = shop["shop_id"] == "shop.smithy"
+        on_shelf = sorted(stocked.get(entity["id"], []))
+        sold = on_shelf[shop["cap"] :]
+        removed.update(sold[:-MIGRATED_BUYBACK] if MIGRATED_BUYBACK else sold)
+        shop.update(
+            buyback=sold[-MIGRATED_BUYBACK:] if MIGRATED_BUYBACK else [],
+            materials=[],
+            buys_materials=False,
+            crafts=crafts,
+            upgrades={g: _stacks(m) for g, (_, _, m) in MIGRATED_UPGRADES.items()}
+            if crafts
+            else {},
+        )
+    game["entities"] = entities = [e for e in entities if e["id"] not in removed]
+
+    next_id = game["next_entity_id"]
+    for location in game["world"]["locations"]:
+        if location["kind"] != "Town":
+            continue
+        entities.append(
+            {
+                "id": next_id,
+                "components": {
+                    "Shop": {
+                        "shop_id": "shop.market",
+                        "name": "Market",
+                        "buys_gear": False,
+                        "inn": False,
+                        "cap": 0,
+                        "wares": [],
+                        "buyback": [],
+                        "materials": [_material(m) for m in MIGRATED_MARKET],
+                        "buys_materials": True,
+                        "crafts": False,
+                        "upgrades": {},
+                    },
+                    "Position": {
+                        "location": location["id"],
+                        "room": _room_named(location, "Market"),
+                    },
+                },
+            }
+        )
+        next_id += 1
+    game["next_entity_id"] = next_id
+    return envelope
+
+
+def _material(material_id: str) -> dict:
+    name, description, value = MIGRATED_MATERIALS[material_id]
+    return {"material_id": material_id, "name": name, "description": description, "value": value}
+
+
+def _stacks(needs: dict[str, int]) -> list[dict]:
+    return [{"material": _material(m), "count": n} for m, n in needs.items()]
+
+
+def _display_name(item: dict) -> str:
+    prefixes = [a["name"] for a in item["affixes"] if a["prefix"]]
+    suffixes = [a["name"] for a in item["affixes"] if not a["prefix"]]
+    return " ".join([*prefixes, item["name"], *suffixes])
+
+
+def _upgradable(value: Any) -> None:
+    """Every Item snapshot anywhere in `value` that v9 made upgradable, if it wasn't."""
+    if isinstance(value, dict):
+        upgrade = MIGRATED_UPGRADES.get(value.get("gear_id"))
+        if upgrade is not None and "max_upgrade" in value and not value["max_upgrade"]:
+            value["max_upgrade"], value["upgrade_step"] = upgrade[0], dict(upgrade[1])
+        for child in value.values():
+            _upgradable(child)
+    elif isinstance(value, list):
+        for child in value:
+            _upgradable(child)
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -255,6 +512,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     5: _v5_to_v6,
     6: _v6_to_v7,
     7: _v7_to_v8,
+    8: _v8_to_v9,
 }
 
 

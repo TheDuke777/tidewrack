@@ -14,5 +14,8 @@
       "gear.storm_lantern": 1,
       "gear.whalebone_charm": 1
     }
-  }
+  },
+  "materials": [
+    { "material": "material.wisp_essence", "chance": 0.5, "count": [1, 1] }
+  ]
 }

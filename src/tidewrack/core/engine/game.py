@@ -15,6 +15,7 @@ every event in a deterministic order.
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
@@ -32,12 +33,16 @@ from tidewrack.core.data.save import (
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
-from tidewrack.core.economy import shops
+from tidewrack.core.economy import crafting, shops
 from tidewrack.core.economy.value_model import (
     STANDARD_ECONOMY,
     EconomyRules,
     buy_price,
+    craft_fee,
+    material_buy_price,
+    material_sell_price,
     sell_price,
+    upgrade_fee,
     value,
 )
 from tidewrack.core.engine.components import (
@@ -50,11 +55,16 @@ from tidewrack.core.engine.components import (
     Explorer,
     Fighting,
     Health,
+    Materials,
+    MaterialStack,
     Name,
     Player,
     Position,
     Quest,
     QuestItem,
+    Recipe,
+    RecipePage,
+    Recipes,
     Respawn,
     Scenery,
     Shop,
@@ -76,14 +86,19 @@ from tidewrack.core.engine.events import (
     FleeFailed,
     GameStarted,
     ItemBought,
+    ItemCrafted,
     ItemDropped,
     ItemEquipped,
     ItemSold,
     ItemTaken,
     ItemUnequipped,
+    ItemUpgraded,
     LocationDiscovered,
     LocationEntered,
     LookedAround,
+    MaterialsBought,
+    MaterialsGained,
+    MaterialsSold,
     PlayerDefeated,
     QuestAbandoned,
     QuestAccepted,
@@ -92,6 +107,7 @@ from tidewrack.core.engine.events import (
     QuestItemFound,
     QuestProgress,
     QuestReady,
+    RecipeLearned,
     Respawned,
     Rested,
     RoomDiscovered,
@@ -223,6 +239,36 @@ class Rest:
     """Pay for a night at an inn here: back to full health."""
 
 
+@dataclass(frozen=True)
+class BuyMaterials:
+    """Buy materials from a market here (free)."""
+
+    material: str  # material id, from a MaterialView
+    count: int = 1
+
+
+@dataclass(frozen=True)
+class SellMaterials:
+    """Sell materials from your satchel to a market here (free)."""
+
+    material: str
+    count: int = 1
+
+
+@dataclass(frozen=True)
+class Craft:
+    """Make gear from a recipe you know, at a smithy here (free)."""
+
+    recipe: str  # recipe id, from a RecipeView
+
+
+@dataclass(frozen=True)
+class Upgrade:
+    """Raise a carried item one upgrade level, at a smithy here (free)."""
+
+    item: int
+
+
 Command = (
     Move
     | Travel
@@ -241,6 +287,10 @@ Command = (
     | Buy
     | Sell
     | Rest
+    | BuyMaterials
+    | SellMaterials
+    | Craft
+    | Upgrade
 )
 COMBAT_COMMANDS = (Attack, Defend, Flee)
 ALLOWED_IN_COMBAT = (Look, *COMBAT_COMMANDS)
@@ -329,6 +379,56 @@ class InventoryView:
     sheet: StatSheet
     gold: int = 0
     buyer: str | None = None  # the shop here that buys gear (sell from the pack)
+    materials: tuple[MaterialView, ...] = ()  # your satchel, by name
+    recipes: tuple[str, ...] = ()  # names of the recipes you know
+
+
+@dataclass(frozen=True)
+class MaterialView:
+    id: str  # material id, for BuyMaterials / SellMaterials
+    name: str
+    description: str
+    count: int  # how many you have
+    sell_price: int  # what a market pays for one
+
+
+@dataclass(frozen=True)
+class CostView:
+    """One material a craft or upgrade needs."""
+
+    name: str
+    need: int
+    have: int
+
+    @property
+    def enough(self) -> bool:
+        return self.have >= self.need
+
+
+@dataclass(frozen=True)
+class RecipeView:
+    id: str  # for Craft
+    name: str
+    item: ItemView  # what it makes, compared with what you have on
+    materials: tuple[CostView, ...]
+    fee: int
+    can_craft: bool  # enough materials and gold
+
+
+@dataclass(frozen=True)
+class UpgradeView:
+    item: ItemView  # as it is; its id is what Upgrade takes
+    upgraded: ItemView  # one level up
+    materials: tuple[CostView, ...]
+    fee: int
+    can_upgrade: bool
+
+
+@dataclass(frozen=True)
+class MaterialWareView:
+    material: MaterialView
+    price: int  # for one
+    affordable: bool  # at least one
 
 
 @dataclass(frozen=True)
@@ -336,6 +436,7 @@ class WareView:
     item: ItemView  # its id is what Buy takes
     price: int
     affordable: bool
+    sold_by_you: bool = False  # on the buy-back shelf
 
 
 @dataclass(frozen=True)
@@ -344,6 +445,11 @@ class ShopView:
     wares: tuple[WareView, ...]
     buys_gear: bool
     inn_price: int | None  # set at an inn
+    materials: tuple[MaterialWareView, ...] = ()  # a market's (never runs out)
+    buys_materials: bool = False
+    crafts: bool = False
+    recipes: tuple[RecipeView, ...] = ()  # every recipe you know, at a smithy
+    upgrades: tuple[UpgradeView, ...] = ()  # your gear it can upgrade
 
 
 @dataclass(frozen=True)
@@ -368,6 +474,7 @@ class QuestView:
     state: str  # posted, active, ready, done
     reward: ItemView
     gold: int = 0  # paid with the reward
+    recipe: str | None = None  # also taught: what the recipe makes
 
 
 @dataclass(frozen=True)
@@ -427,12 +534,17 @@ class Game:
         gold: int = 0,
         shops: Iterable[tuple[str, str, Shop, Iterable[Item]]] = (),
         economy: EconomyRules = STANDARD_ECONOMY,
+        gathering: Iterable[tuple[str, str, MaterialStack]] = (),
+        recipes: Iterable[Recipe] = (),
+        recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
         each location's wandering enemies in `spawners`, under `rules`; plus the
         world's `quests`, their `bounties` and their items and clues; `gold` to
-        start with; and its `shops` (location, room, shop, stock) under `economy`."""
+        start with; its `shops` (location, room, shop, stock) under `economy`;
+        materials to `gathering`, the `recipes` known from the start, and found
+        `recipe_pages` (location, room, thing)."""
         self._setup(seed, world)
         self.rules = rules
         self.economy = economy
@@ -447,6 +559,8 @@ class Game:
             Codex(),
             Respawn(start.id),
             Wallet(gold),
+            Materials(),
+            Recipes({r.recipe_id: r for r in recipes}),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
@@ -485,6 +599,13 @@ class Game:
             shop_entity = self.world.create(shop, Position(location_id, room_id))
             for item in stock:
                 self.world.create(item, Stocked(shop_entity))
+        for location_id, room_id, thing in [*gathering, *recipe_pages]:
+            location = world.location(location_id)
+            if room_id not in location.rooms or room_id in location.gates:
+                raise ValueError(
+                    f"material or recipe in a gate or unknown room {location_id}/{room_id}"
+                )
+            self.world.create(thing, Position(location_id, room_id))
 
         self.bus.emit(GameStarted(seed))
         self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
@@ -526,6 +647,7 @@ class Game:
         self.bus.subscribe(LocationEntered, self._explore_location)
         self.bus.subscribe(LocationEntered, lambda e: fight.note_town(self, e))
         self.bus.subscribe(RoomEntered, self._explore_room)
+        self.bus.subscribe(RoomEntered, lambda e: crafting.on_room_entered(self, e))
         self.bus.subscribe(RoomEntered, lambda e: questing.on_room_entered(self, e))
         self.bus.subscribe(RoomEntered, lambda e: fight.encounter(self, e))
         self.bus.subscribe(EnemyKilled, lambda e: questing.on_enemy_killed(self, e))
@@ -582,8 +704,16 @@ class Game:
             },
         )
         game.player = game.world.single(Player)[0]
-        if not game.world.has(game.player, Stats, Health, Codex, Respawn, Wallet):
-            raise ValueError("the player is missing Stats, Health, Codex, Respawn or Wallet")
+        if not game.world.has(
+            game.player, Stats, Health, Codex, Respawn, Wallet, Materials, Recipes
+        ):
+            raise ValueError(
+                "the player is missing Stats, Health, Codex, Respawn, Wallet, Materials or Recipes"
+            )
+        for _, (shop,) in game.world.query(Shop):
+            for entity in shop.buyback:
+                if not game.world.has(entity, Item, Stocked):
+                    raise ValueError(f"shop buy-back lists {entity}, which isn't for sale")
         fighting = game.world.try_get(game.player, Fighting)
         if fighting is not None and not game.world.has(fighting.enemy, Enemy, Position):
             raise ValueError("the player is fighting an enemy that isn't there")
@@ -677,6 +807,14 @@ class Game:
                 shops.buy(self, entity)
             case Sell(item=entity):
                 shops.sell(self, entity)
+            case BuyMaterials(material=material_id, count=amount):
+                crafting.buy_materials(self, material_id, amount)
+            case SellMaterials(material=material_id, count=amount):
+                crafting.sell_materials(self, material_id, amount)
+            case Craft(recipe=recipe_id):
+                crafting.craft(self, recipe_id)
+            case Upgrade(item=entity):
+                crafting.upgrade(self, entity)
             case Attack():
                 fight.attack(self)
                 took_turn = True
@@ -876,6 +1014,7 @@ class Game:
             state=quest.state,
             reward=self._item_view(-1, quest.reward),  # not in the world until earned
             gold=quest.gold,
+            recipe=quest.recipe.name if quest.recipe else None,
         )
 
     def quests(self) -> QuestLogView:
@@ -948,7 +1087,69 @@ class Game:
             sheet=self.sheet(),
             gold=shops.gold(self),
             buyer=buyer[1].name if buyer else None,
+            materials=self._materials(),
+            recipes=tuple(r.name for r in crafting.known(self).values()),
         )
+
+    def _materials(self) -> tuple[MaterialView, ...]:
+        stacks = sorted(crafting.held(self).values(), key=lambda s: s.material.name)
+        return tuple(self._material_view(s.material, s.count) for s in stacks)
+
+    def _material_view(self, material, count: int) -> MaterialView:
+        return MaterialView(
+            id=material.material_id,
+            name=material.name,
+            description=material.description,
+            count=count,
+            sell_price=material_sell_price(material, self.economy),
+        )
+
+    def _costs(self, needs: list[MaterialStack]) -> tuple[CostView, ...]:
+        return tuple(
+            CostView(n.material.name, n.count, crafting.count(self, n.material.material_id))
+            for n in needs
+        )
+
+    def _crafting(self, shop: Shop) -> tuple[tuple[RecipeView, ...], tuple[UpgradeView, ...]]:
+        gold = shops.gold(self)
+        recipes = []
+        for recipe in crafting.known(self).values():
+            fee = craft_fee(recipe.makes, self.economy)
+            costs = self._costs(recipe.materials)
+            recipes.append(
+                RecipeView(
+                    id=recipe.recipe_id,
+                    name=recipe.name,
+                    item=self._item_view(-1, recipe.makes),
+                    materials=costs,
+                    fee=fee,
+                    can_craft=fee <= gold and all(c.enough for c in costs),
+                )
+            )
+        upgrades = []
+        carried = [
+            (e, item) for e, (item, c) in self.world.query(Item, Carried) if c.by == self.player
+        ]
+        for entity, item in sorted(
+            carried, key=lambda p: (not self.world.has(p[0], Equipped), p[0])
+        ):
+            needs = crafting.upgrade_needs(self, item, shop)
+            if needs is None:
+                continue
+            fee = upgrade_fee(item, self.economy)
+            costs = self._costs(needs)
+            better = copy.deepcopy(item)
+            better.upgrade += 1
+            upgrades.append(
+                UpgradeView(
+                    item=self._item_view(entity, item),
+                    upgraded=self._item_view(-1, better),
+                    materials=costs,
+                    fee=fee,
+                    can_upgrade=fee <= gold and all(c.enough for c in costs),
+                )
+            )
+        return tuple(recipes), tuple(upgrades)
 
     def _shops(self) -> tuple[ShopView, ...]:
         gold = shops.gold(self)
@@ -957,13 +1158,26 @@ class Game:
             wares = []
             for e, item in shops.wares(self, entity):
                 price = buy_price(item, self.economy)
-                wares.append(WareView(self._item_view(e, item), price, price <= gold))
+                wares.append(
+                    WareView(self._item_view(e, item), price, price <= gold, e in shop.buyback)
+                )
+            materials = []
+            for material in shop.materials:
+                price = material_buy_price(material, self.economy)
+                view = self._material_view(material, crafting.count(self, material.material_id))
+                materials.append(MaterialWareView(view, price, price <= gold))
+            recipes, upgrades = self._crafting(shop) if shop.crafts else ((), ())
             views.append(
                 ShopView(
                     name=shop.name,
                     wares=tuple(wares),
                     buys_gear=shop.buys_gear,
                     inn_price=self.economy.inn_price if shop.inn else None,
+                    materials=tuple(materials),
+                    buys_materials=shop.buys_materials,
+                    crafts=shop.crafts,
+                    recipes=recipes,
+                    upgrades=upgrades,
                 )
             )
         return tuple(views)
@@ -1192,6 +1406,22 @@ class Game:
                 self._say(f"You buy the {name} from the {shop} for {price} gold.")
             case ItemSold(name=name, price=price, shop=shop):
                 self._say(f"You sell the {name} to the {shop} for {price} gold.")
+            case MaterialsGained(name=name, count=n, source=source):
+                if source == "gathered":
+                    self._say(f"You gather {n} {name}.")
+                elif source == "loot":
+                    self._say(f"You take {n} {name}.")
+            case MaterialsBought(name=name, count=n, price=price, shop=shop):
+                self._say(f"You buy {n} {name} at the {shop} for {price} gold.")
+            case MaterialsSold(name=name, count=n, price=price, shop=shop):
+                self._say(f"You sell {n} {name} to the {shop} for {price} gold.")
+            case RecipeLearned(name=name, source=source):
+                how = "You find a recipe" if source == "found" else "You're taught a recipe"
+                self._say(f"{how}: {name}. Any smithy can make it.")
+            case ItemCrafted(name=name, fee=fee):
+                self._say(f"The smith makes you a {name} for {fee} gold.")
+            case ItemUpgraded(name=name, fee=fee):
+                self._say(f"The smith works on it for {fee} gold: it's now a {name}.")
             case AmbientNoticed(text=text):
                 self._say(text)
             case ActionRejected(reason=reason):
@@ -1221,6 +1451,10 @@ class Game:
         for _, shop in shops.shops_here(self):
             if shop.inn:
                 self._say(f"The {shop.name} has beds for {self.economy.inn_price} gold a night.")
+            elif shop.crafts:
+                self._say(f"The {shop.name} is open for trade and takes crafting work.")
+            elif shop.materials or shop.buys_materials:
+                self._say(f"The {shop.name} trades in materials.")
             else:
                 self._say(f"The {shop.name} is open for trade.")
 

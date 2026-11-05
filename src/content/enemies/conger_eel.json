@@ -19,5 +19,8 @@
     "gear": {
       "gear.whalebone_charm": 1
     }
-  }
+  },
+  "materials": [
+    { "material": "material.eel_skin", "chance": 0.7, "count": [1, 1] }
+  ]
 }

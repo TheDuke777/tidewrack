@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.fight import TOWN
-from tidewrack.core.economy import shops
+from tidewrack.core.economy import crafting, shops
 from tidewrack.core.engine.components import (
     Carried,
     Clue,
@@ -138,6 +138,8 @@ def turn_in(game: Game, quest_id: str) -> None:
             QuestCompleted(quest.quest_id, quest.title, quest.reward.display_name, quest.gold)
         )
         shops.gain(game, quest.gold, "quest")
+        if quest.recipe is not None:
+            crafting.learn(game, quest.recipe, "quest")
 
 
 def abandon(game: Game, quest_id: str) -> None:

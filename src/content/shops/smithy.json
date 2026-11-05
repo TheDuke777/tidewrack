@@ -12,5 +12,6 @@
     "gear.sealskin_boots": 1,
     "gear.storm_lantern": 1
   },
-  "buys_gear": true
+  "buys_gear": true,
+  "crafts": true
 }

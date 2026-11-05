@@ -7,7 +7,9 @@ entity with Shop and Position, and its wares for sale are Items with Stocked.
 
 Prices all come from core.economy.value_model under the world's EconomyRules.
 Buying and selling are free actions; resting at an inn takes a turn. Gear you
-sell joins that shop's wares, so you can buy it back (at the full price).
+sell goes on that shop's buy-back shelf (at the full price): only the newest
+EconomyRules.buyback pieces stay, older ones are gone for good. The shelf doesn't
+count towards restocking, which only tops up the shop's own stock.
 """
 
 from __future__ import annotations
@@ -49,7 +51,7 @@ def gain(game: Game, amount: int, source: str) -> None:
         game.bus.emit(GoldGained(amount, source))
 
 
-def _pay(game: Game, amount: int, on: str) -> None:
+def pay(game: Game, amount: int, on: str) -> None:
     game.world.get(game.player, Wallet).gold -= amount
     game.bus.emit(GoldSpent(amount, on))
 
@@ -90,8 +92,11 @@ def buy(game: Game, entity: int) -> None:
             ActionRejected(f"The {item.display_name} costs {price} gold; you have {gold(game)}.")
         )
         return
-    _pay(game, price, "gear")
+    pay(game, price, "gear")
     game.world.remove(entity, Stocked)
+    shop = here[stocked.shop]
+    if entity in shop.buyback:
+        shop.buyback.remove(entity)
     game.world.add(entity, Carried(game.player))
     game.bus.emit(
         ItemBought(entity, item.gear_id, item.display_name, price, here[stocked.shop].name)
@@ -113,6 +118,10 @@ def sell(game: Game, entity: int) -> None:
         price = sell_price(item, game.economy)
         game.world.remove(entity, Carried)
         game.world.add(entity, Stocked(shop_entity))
+        shop.buyback.append(entity)
+        for old in shop.buyback[: -game.economy.buyback or None]:
+            game.world.destroy(old)
+        del shop.buyback[: -game.economy.buyback or None]
         game.bus.emit(ItemSold(entity, item.gear_id, item.display_name, price, shop.name))
         gain(game, price, "sale")
 
@@ -129,7 +138,7 @@ def rest(game: Game) -> bool:
     elif gold(game) < price:
         game.bus.emit(ActionRejected(f"A bed costs {price} gold; you have {gold(game)}."))
     else:
-        _pay(game, price, "rest")
+        pay(game, price, "rest")
         health.damage = 0
         game.bus.emit(Rested(location.id, price))
         return True
@@ -144,6 +153,6 @@ def restock_system(game: Game) -> None:
     if game.turn % game.economy.restock_every:
         return
     for entity, (shop,) in game.world.query(Shop):
-        if shop.wares and len(wares(game, entity)) < shop.cap:
+        if shop.wares and len(wares(game, entity)) - len(shop.buyback) < shop.cap:
             ware = copy.deepcopy(game.shop_rng.choice(shop.wares))
             game.world.create(ware, Stocked(entity))

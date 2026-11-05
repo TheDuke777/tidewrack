@@ -20,5 +20,8 @@
       "gear.sealskin_boots": 1,
       "gear.whalebone_charm": 1
     }
-  }
+  },
+  "materials": [
+    { "material": "material.crab_shell", "chance": 0.8, "count": [1, 2] }
+  ]
 }

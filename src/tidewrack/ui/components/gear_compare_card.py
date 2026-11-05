@@ -88,7 +88,11 @@ def notes(item: ItemView) -> list[str]:
     return lines
 
 
-def gear_compare_card(item: ItemView, actions: Sequence[ft.Control] = ()) -> ft.Card:
+def gear_compare_card(
+    item: ItemView,
+    actions: Sequence[ft.Control] = (),
+    details: Sequence[ft.Control] = (),  # e.g. what crafting it costs, above the actions
+) -> ft.Card:
     comparison = item.comparison
     header = ft.Row(
         vertical_alignment=ft.CrossAxisAlignment.START,
@@ -118,6 +122,7 @@ def gear_compare_card(item: ItemView, actions: Sequence[ft.Control] = ()) -> ft.
         )
         body.append(ft.Text(f"You: {impact_line(comparison)}", size=13))
     body += [ft.Text(line, size=13, color=ft.Colors.ON_SURFACE_VARIANT) for line in notes(item)]
+    body += list(details)
     if actions:
         body.append(ft.Row(wrap=True, spacing=8, run_spacing=8, controls=list(actions)))
     return ft.Card(

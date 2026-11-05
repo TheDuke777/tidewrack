@@ -1,0 +1,5 @@
+{
+  "id": "recipe.whalebone_charm",
+  "makes": "gear.whalebone_charm",
+  "materials": { "material.crab_shell": 3, "material.spider_silk": 2 }
+}

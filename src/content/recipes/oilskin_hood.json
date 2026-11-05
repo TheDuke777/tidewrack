@@ -1,0 +1,5 @@
+{
+  "id": "recipe.oilskin_hood",
+  "makes": "gear.oilskin_hood",
+  "materials": { "material.sailcloth": 3, "material.hide": 1 }
+}

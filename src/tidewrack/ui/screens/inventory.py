@@ -52,6 +52,8 @@ class InventoryScreen:
         self._buyer: str | None = None  # the shop here that buys gear
 
         self.sheet = ft.Column(spacing=4)
+        self.materials = ft.Column(spacing=4)
+        self.recipes = ft.Column(spacing=4)
         self.equipped = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.pack_list = PackList(
             choices if choices is not None else PackChoices(),
@@ -76,6 +78,10 @@ class InventoryScreen:
                                 _heading("Equipped"),
                                 self.equipped,
                                 self.pack_list.control,
+                                _heading("Materials"),
+                                self.materials,
+                                _heading("Recipes you know"),
+                                self.recipes,
                             ],
                         ),
                     ],
@@ -143,6 +149,21 @@ class InventoryScreen:
         self.sheet.controls = self._sheet(view)
         self.equipped.controls = [self._slot(slot) for slot in view.slots]
         self.pack_list.show(view.pack)
+        self.materials.controls = [
+            ft.Column(
+                spacing=0,
+                controls=[
+                    ft.Text(f"{m.name} × {m.count}", size=15, weight=ft.FontWeight.BOLD),
+                    _muted(m.description),
+                ],
+            )
+            for m in view.materials
+        ] or [_muted("None yet. Defeated beasts, wild places and markets all have some.")]
+        self.recipes.controls = (
+            [ft.Text(", ".join(view.recipes) + ". Craft them at any smithy.", size=14)]
+            if view.recipes
+            else [_muted("None yet.")]
+        )
 
     def _sheet(self, view: InventoryView) -> list[ft.Control]:
         total = view.sheet.total

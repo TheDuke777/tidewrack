@@ -25,5 +25,9 @@
   "gold": [
     2,
     6
+  ],
+  "materials": [
+    { "material": "material.sailcloth", "chance": 0.4, "count": [1, 2] },
+    { "material": "material.iron_ore", "chance": 0.2, "count": [1, 1] }
   ]
 }

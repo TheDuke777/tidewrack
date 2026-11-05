@@ -1,0 +1,7 @@
+{
+  "id": "shop.market",
+  "name": "Market",
+  "room": "Market",
+  "materials": ["material.driftwood", "material.timber", "material.iron_ore", "material.sailcloth"],
+  "buys_materials": true
+}

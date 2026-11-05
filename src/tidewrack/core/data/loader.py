@@ -25,7 +25,9 @@ from tidewrack.core.data.schemas import (
     EnemySchema,
     GearSchema,
     GearSetSchema,
+    MaterialSchema,
     QuestTemplateSchema,
+    RecipeSchema,
     RoomsetSchema,
     ShopSchema,
     WorldRecipeSchema,
@@ -39,6 +41,8 @@ KINDS = {
     "enemies": (EnemySchema, "enemy"),
     "gear": (GearSchema, "gear"),
     "gearsets": (GearSetSchema, "gearset"),
+    "materials": (MaterialSchema, "material"),
+    "recipes": (RecipeSchema, "recipe"),
     "quests": (QuestTemplateSchema, "quest"),
     "roomsets": (RoomsetSchema, "roomset"),
     "shops": (ShopSchema, "shop"),
@@ -63,6 +67,8 @@ class Content:
     enemies: dict[str, EnemySchema]
     quests: dict[str, QuestTemplateSchema]
     shops: dict[str, ShopSchema]
+    materials: dict[str, MaterialSchema]
+    recipes: dict[str, RecipeSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -119,6 +125,8 @@ def load_content(files: Mapping[str, str]) -> Content:
         enemies=loaded["enemies"],
         quests=loaded["quests"],
         shops=loaded["shops"],
+        materials=loaded["materials"],
+        recipes=loaded["recipes"],
         content_hash=content_hash(files),
     )
 
@@ -144,6 +152,9 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         if roomset.finds.chance and not roomset.finds.gear:
             problems.append(f"{path}: finds.chance is set but finds.gear is empty")
         check(path, roomset.enemies.pool, "enemies", "enemy")
+        check(path, roomset.gathering.materials, "materials", "material")
+        if roomset.gathering.chance and not roomset.gathering.materials:
+            problems.append(f"{path}: gathering.chance is set but gathering.materials is empty")
         check(path, roomset.shops, "shops", "shop")
         if len(set(roomset.shops)) != len(roomset.shops):
             problems.append(f"{path}: a shop is listed more than once")
@@ -156,11 +167,28 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         names.setdefault(roomset.name, roomset.id)
     for enemy in loaded["enemies"].values():
         check(_path("enemies", enemy.id), enemy.loot.gear, "gear", "gear")
+        check(
+            _path("enemies", enemy.id),
+            [d.material for d in enemy.materials],
+            "materials",
+            "material",
+        )
     for shop in loaded["shops"].values():
         check(_path("shops", shop.id), shop.gear, "gear", "gear")
+        check(_path("shops", shop.id), shop.materials, "materials", "material")
     for gear in loaded["gear"].values():
         if gear.set is not None:
             check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")
+        check(_path("gear", gear.id), gear.upgrade_materials, "materials", "material")
+    for recipe in loaded["recipes"].values():
+        path = _path("recipes", recipe.id)
+        check(path, [recipe.makes], "gear", "gear")
+        check(path, recipe.materials, "materials", "material")
+        if recipe.affix is not None:
+            check(path, [recipe.affix], "affixes", "affix")
+            gear, affix = loaded["gear"].get(recipe.makes), loaded["affixes"].get(recipe.affix)
+            if gear and affix and gear.slot not in affix.slots:
+                problems.append(f"{path}: {recipe.affix} can't go on {gear.slot} gear")
     types: dict[str, str] = {}
     for quest in loaded["quests"].values():
         if quest.type in types:

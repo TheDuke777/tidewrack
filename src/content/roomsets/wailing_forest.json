@@ -82,6 +82,7 @@
     "chance": 0.2,
     "gear": { "gear.cutlass": 1, "gear.harpoon": 1, "gear.storm_lantern": 1, "gear.sealskin_boots": 1, "gear.oilskin_hood": 1, "gear.whalebone_charm": 1 }
   },
+  "gathering": { "chance": 0.25, "materials": { "material.timber": 3, "material.hide": 1 }, "count": [1, 2] },
   "enemies": {
     "placed_chance": 0.2,
     "wandering_chance": 0.12,

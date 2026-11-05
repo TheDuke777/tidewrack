@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner
 from tidewrack.core.gear.stats import STATS
+from tidewrack.core.procgen.material_gen import roll_template_drops
 from tidewrack.core.rng import Rng
 
 if TYPE_CHECKING:
@@ -35,6 +36,7 @@ def from_template(rng: Rng, template: EnemyTemplate, loot_factor: float) -> Enem
         loot.append(copy.deepcopy(rng.choice(template.loot)))
     low, high = template.gold
     gold = rng.randint(low, high) if high else 0
+    materials = roll_template_drops(rng, template.materials)
     return Enemy(
         enemy_id=template.enemy_id,
         name=template.name,
@@ -44,6 +46,7 @@ def from_template(rng: Rng, template: EnemyTemplate, loot_factor: float) -> Enem
         drops=list(template.drops),
         loot=loot,
         gold=gold,
+        materials=materials,
     )
 
 

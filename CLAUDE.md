@@ -131,10 +131,10 @@ tidewrack/
 │   ├── gearsets/                    # set bonuses by pieces worn
 │   ├── enemies/                     # beasts, people, spirits: stats, rolls, loot table
 │   ├── consumables/                 # (later; the loader only allows flat <kind>/<name>.json,
-│   ├── materials/                   #   so no items/ parent dir) incl. cooking ingredients
-│   ├── recipes/
-│   │   ├── crafting/
-│   │   └── cooking/
+│   ├── materials/                   #   so no items/ parent dir) hides, ore, timber, … (7b);
+│   │                                #   cooking ingredients later (7c)
+│   ├── recipes/                     # crafting recipes (7b): makes, affix, materials, known
+│   │                                #   (cooking gets its own flat kind in 7c, e.g. meals/)
 │   ├── shops/                       # shop archetypes, stock rules
 │   ├── pets/
 │   ├── factions/
@@ -161,7 +161,8 @@ tidewrack/
 │   │   │                            #   world_gen.py (+ world_hash), gear_gen.py (kit +
 │   │   │                            #   finds), enemy_gen.py (placed + wanderer queues),
 │   │   │                            #   quest_gen.py (boards, clues, bounties, rewards),
-│   │   │                            #   shop_gen.py (town shops: room or gate, stock);
+│   │   │                            #   shop_gen.py (town shops: room or gate, stock),
+│   │   │                            #   material_gen.py (gathering, drops, recipes);
 │   │   │                            #   later: biomes, names, factions, pets, lore
 │   │   ├── gear/                    # stats.py (STATS), item.py (Item snapshot, SLOTS),
 │   │   │                            #   stat_pipeline.py, compare.py
@@ -170,8 +171,9 @@ tidewrack/
 │   │   │                            #   coming back)
 │   │   ├── quests/                  # quests.py (accept, turn in, progress subscribers)
 │   │   ├── economy/                 # value_model.py (value, prices, EconomyRules),
-│   │   │                            #   shops.py (buy, sell, inn, restock); later
-│   │   │                            #   crafting.py (7b), cooking.py (7c)
+│   │   │                            #   shops.py (buy, sell, inn, restock, buy-back),
+│   │   │                            #   crafting.py (satchel, markets, craft, upgrade);
+│   │   │                            #   later cooking.py (7c)
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
 │   │   ├── codex/                   # foes.py (Foes section: reveal by kills); later
 │   │   │                            #   lore/quest-log models, help index + search, glossary
@@ -337,8 +339,13 @@ Each system owns a distinct role so none makes the others pointless:
 **Built (step 7a):**
 - **Value** (`core/economy/value_model.py`): stats at `STAT_VALUES` gold a point (`core/gear/stats.py`; a new stat needs one), plus a quarter of what remaining upgrades would add, ×1.2 in a set, at least 1. Prices are worked out when shown, never stored: buy = value × `buy_factor`, sell = value × `sell_factor` (capped below buy). These and `inn_price`, `restock_every` are the world's `EconomyRules`, a snapshot in `GameState` like `Rules`.
 - **Gold:** one `Wallet` on the player; the recipe's `gold` to start. Enemies carry a rolled `gold` (content `gold` range; beasts none), bounties × `strength`, returning wanderers roll it from their template. Every gain/spend emits `GoldGained`/`GoldSpent` (not narrated; for achievements).
-- **Shops** (`shops/<name>.json`, listed by roomset `shops`): each town gets one of each, in the first room whose name ends with the shop's `room` noun, else at the gate (`procgen/shop_gen.py`, its own `shops` substream, `shops_hash`). A `Shop` entity has a `Position`; wares for sale are Items with `Stocked`. Stock is plain copies (no affix, rolls in the lower half), so rewards and best finds always beat it (rule 4, linted). Shops restock one ware every `restock_every` turns up to `cap` from pre-rolled `wares` on the saved `shop_rng`. Gear you sell joins the shop's wares. Buy/Sell are free; Rest at an inn costs a turn and `inn_price`. **UI:** a board or shop is one button in the room that opens a full-screen panel like a fight (`GameScreen.opened`, UI state only; moving or a fight closes it); the Smithy panel has Buy/Sell tabs (`GameScreen.shop_tab`, back to Buy on each open), and the Inventory tab sells too. Both sell lists are a `PackList` sharing one `PackChoices` (filters + sort) per open world; Buy tabs are a `PackList` (no select mode, sorted by buy price) sharing a second one. Market (materials, 7b) and Tavern food (7c) come later.
-- **Sim/lint:** `sim/economy_sim.py` totals a world's income (start, enemy, quest gold, selling everything) against its shops' stock, and flags arbitrage and top-roll shop items; `tests/sim/` runs a quick pass, `tests/core/test_economy.py` the content lint. Standard worlds: about 380 gold of income against about 100 of first stock, so gold piles up until crafting (7b) adds a sink.
+- **Shops** (`shops/<name>.json`, listed by roomset `shops`): each town gets one of each, in the first room whose name ends with the shop's `room` noun, else at the gate (`procgen/shop_gen.py`, its own `shops` substream, `shops_hash`). A `Shop` entity has a `Position`; wares for sale are Items with `Stocked`. Stock is plain copies (no affix, rolls in the lower half), so rewards and best finds always beat it (rule 4, linted). Shops restock one ware every `restock_every` turns up to `cap` from pre-rolled `wares` on the saved `shop_rng`. Gear you sell goes on the shop's buy-back shelf (`Shop.buyback`, only the newest `EconomyRules.buyback` stay; it doesn't count towards `cap`). Buy/Sell are free; Rest at an inn costs a turn and `inn_price`. **UI:** a board or shop is one button in the room that opens a full-screen panel like a fight (`GameScreen.opened`, UI state only; moving or a fight closes it); the Smithy panel has Buy/Sell tabs (`GameScreen.shop_tab`, back to Buy on each open), and the Inventory tab sells too. Both sell lists are a `PackList` sharing one `PackChoices` (filters + sort) per open world; Buy tabs are a `PackList` (no select mode, sorted by buy price) sharing a second one. Tavern food comes in 7c.
+- **Sim/lint:** `sim/economy_sim.py` totals a world's income (start, enemy, quest gold, selling everything) against its shops' stock, and flags arbitrage and top-roll shop items; `tests/sim/` runs a quick pass, `tests/core/test_economy.py` the content lint. Standard worlds (7a): about 380 gold of income against about 100 of first stock, so gold piled up until crafting.
+
+**Built (step 7b):**
+- **Materials** (`materials/<name>.json`, `material.<name>`: name, description, `value`) are counts, not items: a `Material` snapshot in `MaterialStack`s, held in the player's `Materials` satchel. Sources: enemy `materials` drops (rolled with the enemy at creation, and from `EnemyTemplate.materials` for returning ones; the codex lists them with gear drops), roomset `gathering` (`MaterialStack` + `Position` in non-gate rooms outside towns, gathered on entering the room; `procgen/material_gen.py`, its own `gathering` substream, `gathering_hash`), and every town's **Market** (`shops/market.json`: `materials` it always sells, `buys_materials`). Market price = value × `buy_factor` × `material_markup`; it pays value × `sell_factor` (capped below).
+- **Crafting** (`core/economy/crafting.py`) needs a shop that `crafts` (the Smithy; a third **Craft** tab). Upgrades: gear `upgrade_materials` (per level, × the level reached) are snapshotted into each crafting Smithy's `Shop.upgrades` (gear id → stacks), so items need no new fields; fee = value one level adds × `upgrade_fee` × level. Most gear is upgradable now (weapons to +3, the rest +2). Recipes (`recipes/<name>.json`, `recipe.<name>`: `makes`, optional `affix`, `materials`, `known`) are `Recipe` snapshots (the `Item` they make, best roll + affix, plus materials) in the player's `Recipes`; fee = made item's value × `craft_fee`. `known` recipes are taught at world creation; each other one turns up once per world (`recipes` substream, `recipes_hash`): as a quest's extra reward (`Quest.recipe`, at the world recipe's `quests.recipe_chance`) or a `RecipePage` in a wild non-gate room, learned on entering. All crafting actions are free.
+- **Sim/lint:** income now includes materials (about 480 a standard world); the sim also reports crafting fees. The lint flags any craft or upgrade that sells for more than its fee plus its materials' sale value, and any smithy-sold gear whose cheapest copy costs no more than crafting it (rule 2).
 
 ### 8.7 Prestige pacing ("not too fast, not too slow")
 Goal: the first prestige feels earned within a few sessions, later prestiges never feel like a grind wall, and every prestige brings something new.
@@ -361,7 +368,7 @@ Goal: the first prestige feels earned within a few sessions, later prestiges nev
 - Every save/share payload carries: `schema_version`, `content_version`, `generator_version`.
 - Worlds are **snapshotted**, not regenerated on load, so generator changes don't alter existing saves.
 - `services/storage/migrations.py` upgrades old saves (`MIGRATIONS[n]`: envelope v`n` → v`n+1`); `tests/services/test_storage.py` opens and plays every fixture in `tests/fixtures/saves/` (one per released schema). Newer-than-supported saves are refused with a clear message. Component class names are part of the save format (`components.COMPONENTS`): renaming one needs a migration.
-- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Enemies come from the separate `enemies` substream (`enemies_hash`), quests from the separate `quests` substream (`quests_hash`), and shops from the separate `shops` substream (`shops_hash`). Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit, finds, enemies, quests and shops together.
+- Golden-seed tests: seed X + generator version Y must produce a stable world hash (`tests/core/test_procgen.py`, via `world_hash`). New worlds come from `generate_world(seed, recipe, roomsets)`, which uses the seed's `worldgen` substream; the overworld layout, location kinds, location names and each location (`location.<id>`) get their own substreams, and inside a location layout and naming are separate, so content edits to names don't reshape worlds. Gear finds come from the seed's separate `gear` substream (one sub-substream per location), pinned by their own golden hash (`finds_hash`), so they never reshape a world. Enemies come from the separate `enemies` substream (`enemies_hash`), quests from the separate `quests` substream (`quests_hash`), shops from the separate `shops` substream (`shops_hash`), gathering from `gathering` (`gathering_hash`) and found recipes from `recipes` (`recipes_hash`). Session entry point: `GameSession.generate(store, content, recipe_id, name, seed)` builds the world, kit, finds, enemies, quests, shops, gathering and recipes together.
 - Every location is generated **at world creation**, never lazily on first visit, so an update can't change places a player hasn't reached yet.
 - `tests/services/test_storage.py` also requires a fixture save for **every** schema version up to the current one.
 
@@ -477,7 +484,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
    - ✅ **Done (v0.6.1).** **6c. Enemies return:** wanderer queues refill slowly (one per location every 30 turns up to the starting size; rate and loot factor in `Rules`; rolled from a saved stream and enemy templates snapshotted into each `Spawner`), so late culls stay possible and worlds don't empty out. Save schema v7 (migration builds templates from snapshots), generator v7. v0.6.2: world-map taps away from a gate say where you can leave from.
 7. **Economy**, in three parts (decided at the start of step 7):
    - ✅ **Done (v0.7.0).** **7a. Gold, value model, shops** (betas 1–4 added full-screen board/shop panels, Smithy Buy/Sell tabs with filters and sort): `Wallet`, enemy/quest gold, Smithy + Tavern in every town, buy/sell (bulk sell in the Inventory's select mode), paid inn rest (replaces free town rest), restocking, quest abandoning, area-map ¤ mark, economy sim + lint. Save schema v8 (migration gives old worlds gold and shops from their own snapshots), generator v8.
-   - **7b. Materials + crafting:** `materials/` and `recipes/crafting/`, Market shops, upgrades (raise `Item.upgrade`), targeted gear; lint that buying a craftable costs more than its materials (rule 2). The gold sink 7a lacks. Also (decided): a **buy-back shelf**, so gear you sell no longer piles up on a smithy's shelf for good; only the last few sold items (≈5–8) stay, the oldest leaving first.
+   - **7b. Materials + crafting (built, unreleased):** materials (enemy drops, gathering, Market), Smithy Craft tab with upgrades and recipes (4 known, 6 found as pages or quest rewards), buy-back shelf (last 6 sold), crafting lint (rule 2 + no craft/upgrade profit loops). Save schema v9 (migration: satchel, starting recipes, Markets, upgrade tables, gear made upgradable, overfull shelves trimmed), generator v9.
    - **7c. Cooking:** foraged/bought ingredients, Tavern food, short meal buffs (incl. a regen source).
    - Still open for step 8: world size/content density for the §8.7 pacing bands; the Settings About section and status-row toggle wait for step 10.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.

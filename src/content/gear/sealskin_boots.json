@@ -4,5 +4,8 @@
   "slot": "feet",
   "base": { "def": 1 },
   "rolls": { "def": [0, 1] },
+  "max_upgrade": 2,
+  "upgrade_step": { "def": 1 },
+  "upgrade_materials": { "material.hide": 1, "material.eel_skin": 1 },
   "set": "gearset.drowned_watch"
 }

@@ -1,0 +1,6 @@
+{
+  "id": "recipe.cutlass",
+  "makes": "gear.cutlass",
+  "materials": { "material.iron_ore": 3, "material.timber": 1 },
+  "known": true
+}

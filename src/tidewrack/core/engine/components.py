@@ -8,6 +8,46 @@ from tidewrack.core.gear.item import Item
 
 
 @dataclass
+class Material:
+    """A kind of crafting material (step 7b): a snapshot, so saves never need content."""
+
+    material_id: str
+    name: str
+    description: str = ""
+    value: int = 1  # gold, before the world's EconomyRules
+
+
+@dataclass
+class MaterialStack:
+    """Some of one material. As a component with a Position it lies in a room and
+    is gathered when you walk in; it's also how enemies, recipes and the player's
+    Materials hold amounts."""
+
+    material: Material
+    count: int = 1
+
+
+@dataclass
+class MaterialDrop:
+    """What a returning enemy kind may drop, rolled when it comes back."""
+
+    material: Material
+    chance: float
+    low: int = 1
+    high: int = 1
+
+
+@dataclass
+class Recipe:
+    """How to craft one piece of gear at a smithy: a snapshot, output included."""
+
+    recipe_id: str
+    name: str  # what it makes, e.g. "Keen Cutlass"
+    makes: Item  # copied for each craft
+    materials: list[MaterialStack] = field(default_factory=list)
+
+
+@dataclass
 class Player:
     """Tag: the entity the person controls."""
 
@@ -85,6 +125,7 @@ class Enemy:
     drops: list[str] = field(default_factory=list)  # names of what its kind can drop
     loot: list[Item] = field(default_factory=list)  # what this one will drop
     gold: int = 0  # what it carries (rolled at creation), yours if you win
+    materials: list[MaterialStack] = field(default_factory=list)  # yours if you win
 
 
 @dataclass
@@ -120,6 +161,7 @@ class EnemyTemplate:
     loot: list[Item] = field(default_factory=list)  # pre-rolled pieces it may drop
     weight: float = 1.0  # how often it's picked
     gold: list[int] = field(default_factory=lambda: [0, 0])  # [min, max] it carries
+    materials: list[MaterialDrop] = field(default_factory=list)
 
 
 @dataclass
@@ -188,6 +230,7 @@ class Quest:
     progress: int = 0  # cull: defeated since accepting
     achieved: bool = False  # bounty beaten or item recovered (counts before accepting)
     gold: int = 0  # paid on turning in, with the reward item
+    recipe: Recipe | None = None  # also taught on turning in
 
 
 @dataclass
@@ -215,10 +258,34 @@ class Wallet:
 
 
 @dataclass
+class Materials:
+    """The player's satchel of crafting materials, by material id."""
+
+    held: dict[str, MaterialStack] = field(default_factory=dict)
+
+
+@dataclass
+class Recipes:
+    """The recipes the player knows, in the order learned."""
+
+    known: dict[str, Recipe] = field(default_factory=dict)
+
+
+@dataclass
+class RecipePage:
+    """A recipe lying in a room, learned when you walk in."""
+
+    recipe: Recipe
+
+
+@dataclass
 class Shop:
     """A shop in a town room (with a Position). Its wares for sale are Items with
     Stocked; it restocks slowly from `wares`, pre-rolled at world creation, up to
-    `cap` (core.economy.shops). An inn sells a night's rest instead."""
+    `cap` (core.economy.shops). An inn sells a night's rest instead. Gear you sell
+    goes on a buy-back shelf (`buyback`, oldest first) that only keeps the last
+    few. A market sells `materials` (never runs out); a smithy that `crafts`
+    upgrades gear for the materials in `upgrades` and makes gear from recipes."""
 
     shop_id: str  # its content definition, e.g. "shop.smithy"
     name: str  # "Smithy"
@@ -226,6 +293,12 @@ class Shop:
     inn: bool = False  # you can pay to rest here
     cap: int = 0  # restocking stops at this many wares
     wares: list[Item] = field(default_factory=list)  # what restocking picks from
+    buyback: list[int] = field(default_factory=list)  # entities of gear you sold here
+    materials: list[Material] = field(default_factory=list)  # for sale
+    buys_materials: bool = False
+    crafts: bool = False
+    upgrades: dict[str, list[MaterialStack]] = field(default_factory=dict)  # gear id ->
+    # materials for one upgrade level (times the level being reached)
 
 
 @dataclass
@@ -262,5 +335,9 @@ COMPONENTS: dict[str, type] = {
         Wallet,
         Shop,
         Stocked,
+        MaterialStack,
+        Materials,
+        Recipes,
+        RecipePage,
     )
 }

@@ -1,0 +1,5 @@
+{
+  "id": "recipe.harpoon",
+  "makes": "gear.harpoon",
+  "materials": { "material.iron_ore": 4, "material.timber": 2, "material.eel_skin": 1 }
+}

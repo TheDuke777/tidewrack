@@ -279,6 +279,58 @@ class ItemSold(Event):
 
 
 @dataclass(frozen=True)
+class MaterialsGained(Event):
+    """Materials into the satchel: gathered, dropped by an enemy, or bought."""
+
+    material_id: str
+    name: str
+    count: int
+    source: str  # "gathered", "loot", "bought"
+
+
+@dataclass(frozen=True)
+class MaterialsSold(Event):
+    material_id: str
+    name: str
+    count: int
+    price: int  # for them all
+    shop: str
+
+
+@dataclass(frozen=True)
+class MaterialsBought(Event):
+    material_id: str
+    name: str
+    count: int
+    price: int  # for them all
+    shop: str
+
+
+@dataclass(frozen=True)
+class RecipeLearned(Event):
+    recipe_id: str
+    name: str
+    source: str  # "found", "quest"
+
+
+@dataclass(frozen=True)
+class ItemCrafted(Event):
+    item: int
+    gear_id: str
+    name: str
+    fee: int
+
+
+@dataclass(frozen=True)
+class ItemUpgraded(Event):
+    item: int
+    gear_id: str
+    name: str  # with its new level
+    level: int
+    fee: int
+
+
+@dataclass(frozen=True)
 class ActionRejected(Event):
     reason: str
 

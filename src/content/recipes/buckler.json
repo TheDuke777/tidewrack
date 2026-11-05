@@ -1,0 +1,6 @@
+{
+  "id": "recipe.buckler",
+  "makes": "gear.buckler",
+  "materials": { "material.timber": 3, "material.iron_ore": 1 },
+  "known": true
+}

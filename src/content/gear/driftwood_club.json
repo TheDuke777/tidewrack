@@ -3,5 +3,8 @@
   "name": "Driftwood Club",
   "slot": "main_hand",
   "base": { "atk": 2 },
-  "rolls": { "atk": [0, 1] }
+  "rolls": { "atk": [0, 1] },
+  "max_upgrade": 2,
+  "upgrade_step": { "atk": 1 },
+  "upgrade_materials": { "material.timber": 1 }
 }

@@ -5,5 +5,6 @@
   "base": { "atk": 4 },
   "rolls": { "atk": [0, 2] },
   "max_upgrade": 3,
-  "upgrade_step": { "atk": 1 }
+  "upgrade_step": { "atk": 1 },
+  "upgrade_materials": { "material.iron_ore": 2 }
 }

@@ -24,6 +24,7 @@ from tidewrack.core.data.schemas import EnemySchema
 from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import roll_item
+from tidewrack.core.procgen.material_gen import drop_table, roll_drops
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.overworld import Overworld
 
@@ -50,16 +51,24 @@ def make_enemy(rng: Rng, schema: EnemySchema, content: Content) -> Enemy:
         gear_id = rng.weighted_choice(choices, [schema.loot.gear[g] for g in choices])
         loot.append(roll_item(rng, content.gear[gear_id], content, LOOT_AFFIX_CHANCE))
     gold = rng.randint(*schema.gold) if schema.gold[1] else 0  # beasts don't use a draw
+    materials = roll_drops(rng, schema.materials, content)
     return Enemy(
         enemy_id=schema.id,
         name=schema.name,
         category=schema.category,
         description=schema.description,
         stats=stats,
-        drops=sorted({content.gear[g].name for g in schema.loot.gear}),
+        drops=drop_names(schema, content),
         loot=loot,
         gold=gold,
+        materials=materials,
     )
+
+
+def drop_names(schema: EnemySchema, content: Content) -> list[str]:
+    """What the codex lists a kind as dropping: gear, then materials."""
+    gear = sorted({content.gear[g].name for g in schema.loot.gear})
+    return gear + [content.materials[d.material].name for d in schema.materials]
 
 
 def generate_enemies(
@@ -112,11 +121,12 @@ def make_template(rng: Rng, schema: EnemySchema, weight: float, content: Content
         description=schema.description,
         stats=dict(schema.stats),
         rolls={s: list(r) for s, r in schema.rolls.items()},
-        drops=sorted({content.gear[g].name for g in schema.loot.gear}),
+        drops=drop_names(schema, content),
         loot_chance=schema.loot.chance,
         loot=loot,
         weight=weight,
         gold=list(schema.gold),
+        materials=drop_table(schema.materials, content),
     )
 
 

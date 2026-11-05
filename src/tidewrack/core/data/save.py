@@ -46,6 +46,10 @@ class EconomyState(Schema):
     sell_factor: float = Field(default=STANDARD_ECONOMY.sell_factor, ge=0)
     inn_price: int = Field(default=STANDARD_ECONOMY.inn_price, ge=0)
     restock_every: int = Field(default=STANDARD_ECONOMY.restock_every, ge=1)
+    material_markup: float = Field(default=STANDARD_ECONOMY.material_markup, ge=1)
+    craft_fee: float = Field(default=STANDARD_ECONOMY.craft_fee, ge=0)
+    upgrade_fee: float = Field(default=STANDARD_ECONOMY.upgrade_fee, ge=0)
+    buyback: int = Field(default=STANDARD_ECONOMY.buyback, ge=0)
 
 
 class EntityState(Schema):

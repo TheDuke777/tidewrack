@@ -104,7 +104,8 @@ def test_the_board_hides_away_from_the_gate(tmp_path):
     first_exit = session.game.view().exits[0].label
     explore.act(Move(first_exit))  # anything that moves you closes it
     assert explore.opened is None and explore.board.controls == []
-    assert explore.exits.visible and explore.entrances.controls == []
+    assert explore.exits.visible
+    assert not [b for b in explore.entrances.controls if b.content.startswith("Notice board")]
 
 
 def test_map_marks():

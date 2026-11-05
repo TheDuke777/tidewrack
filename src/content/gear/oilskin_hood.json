@@ -3,5 +3,8 @@
   "name": "Oilskin Hood",
   "slot": "head",
   "base": { "def": 1 },
+  "max_upgrade": 2,
+  "upgrade_step": { "def": 1 },
+  "upgrade_materials": { "material.sailcloth": 2 },
   "set": "gearset.drowned_watch"
 }

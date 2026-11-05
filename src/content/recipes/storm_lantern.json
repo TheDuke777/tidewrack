@@ -1,0 +1,6 @@
+{
+  "id": "recipe.storm_lantern",
+  "makes": "gear.storm_lantern",
+  "materials": { "material.iron_ore": 2, "material.sailcloth": 1 },
+  "known": true
+}

@@ -20,11 +20,23 @@ from dataclasses import dataclass
 
 import flet as ft
 
-from tidewrack.core.engine.events import ActionRejected, ItemBought, ItemSold, QuestCompleted
+from tidewrack.core.engine.events import (
+    ActionRejected,
+    ItemBought,
+    ItemCrafted,
+    ItemSold,
+    ItemUpgraded,
+    MaterialsBought,
+    MaterialsSold,
+    QuestCompleted,
+)
 from tidewrack.core.engine.game import (
     AcceptQuest,
     Buy,
+    BuyMaterials,
     Command,
+    CostView,
+    Craft,
     Equip,
     GameView,
     ItemView,
@@ -32,10 +44,12 @@ from tidewrack.core.engine.game import (
     Move,
     Rest,
     Sell,
+    SellMaterials,
     ShopView,
     Take,
     Travel,
     TurnInQuest,
+    Upgrade,
     Wait,
 )
 from tidewrack.services.session import GameSession
@@ -70,7 +84,8 @@ LOG_BAR_HEIGHT = 36
 DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are absolute
 
 BOARD = "board"  # GameScreen.opened for the notice board; a shop is opened by its name
-BUY_TAB, SELL_TAB = "buy", "sell"
+BUY_TAB, SELL_TAB, CRAFT_TAB = "buy", "sell", "craft"
+BULK = 5  # "Buy 5" at a market
 
 
 def _confirm_now(_title: str, _message: str, _action: str, then: Callable[[], None]) -> None:
@@ -147,6 +162,7 @@ class GameScreen:
         # A shop's wares on its Buy tab: filters and sort of their own, kept while open.
         self._prices: dict[int, int] = {}  # ware item id -> what it costs
         self._affordable: set[int] = set()
+        self._sold: set[int] = set()  # wares on the buy-back shelf
         self.buy_list = PackList(
             shop_choices if shop_choices is not None else PackChoices(),
             actions=self._buy_actions,
@@ -437,10 +453,14 @@ class GameScreen:
             parts = []
             if shop.inn_price is not None:
                 parts.append(f"beds {shop.inn_price} gold")
-            if shop.wares or shop.inn_price is None:
+            if shop.materials or shop.buys_materials:
+                parts.append("materials")
+            elif shop.wares or shop.inn_price is None:
                 parts.append(f"{len(shop.wares)} for sale")
             if shop.buys_gear:
                 parts.append("buys gear")
+            if shop.crafts:
+                parts.append("crafts")
             buttons.append(
                 ft.FilledTonalButton(
                     content=f"{shop.name} · " + " · ".join(parts),
@@ -521,44 +541,171 @@ class GameScreen:
                     on_click=lambda _: self._act_and_tell(Rest()),
                 ),
             ]
+        if shop.materials or shop.buys_materials:
+            return controls + self._market(view, shop)
         pack = self.session.game.inventory().pack if shop.buys_gear else ()
         if shop.buys_gear:
-            # Buy and Sell tabs, so a shelf full of your old gear doesn't bury the
-            # sell list (and the other way round).
-            controls.append(
-                ft.SegmentedButton(
-                    selected=[self.shop_tab],
-                    show_selected_icon=False,
-                    segments=[
-                        ft.Segment(
-                            value=BUY_TAB,
-                            label=f"Buy ({len(shop.wares)})",
-                            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
-                        ),
-                        ft.Segment(
-                            value=SELL_TAB,
-                            label=f"Sell ({len(pack)})",
-                            icon=ft.Icons.SELL_OUTLINED,
-                        ),
-                    ],
-                    on_change=lambda e: self._shop_tab(e.control.selected),
-                )
-            )
+            # Tabs, so a shelf full of your old gear doesn't bury the sell list (and
+            # the other way round), and crafting has room of its own.
+            tabs = [
+                (BUY_TAB, f"Buy ({len(shop.wares)})", ft.Icons.SHOPPING_BAG_OUTLINED),
+                (SELL_TAB, f"Sell ({len(pack)})", ft.Icons.SELL_OUTLINED),
+            ]
+            if shop.crafts:
+                tabs.append((CRAFT_TAB, "Craft", ft.Icons.HANDYMAN_OUTLINED))
+            controls.append(self._tabs(tabs))
         if shop.buys_gear and self.shop_tab == SELL_TAB:
             self._buyer = shop.name
             self.sell_list.show(pack)
             controls.append(self.sell_list.control)
             return controls
+        if shop.crafts and self.shop_tab == CRAFT_TAB:
+            return controls + self._craft(view, shop)
         if shop.wares or shop.inn_price is None:
             self._prices = {w.item.id: w.price for w in shop.wares}
             self._affordable = {w.item.id for w in shop.wares if w.affordable}
+            self._sold = {w.item.id for w in shop.wares if w.sold_by_you}
             self.buy_list.show(w.item for w in shop.wares)
             controls.append(self.buy_list.control)
         return controls
 
+    def _tabs(self, tabs: list[tuple[str, str, ft.IconData]]) -> ft.SegmentedButton:
+        if self.shop_tab not in {value for value, _, _ in tabs}:
+            self.shop_tab = BUY_TAB
+        return ft.SegmentedButton(
+            selected=[self.shop_tab],
+            show_selected_icon=False,
+            segments=[ft.Segment(value=v, label=label, icon=icon) for v, label, icon in tabs],
+            on_change=lambda e: self._shop_tab(e.control.selected),
+        )
+
+    # --- crafting at a smithy ------------------------------------------------------
+
+    def _craft(self, view: GameView, shop: ShopView) -> list[ft.Control]:
+        """Upgrades for the gear you carry, then every recipe you know."""
+        materials = self.session.game.inventory().materials
+        have = ", ".join(f"{m.name} {m.count}" for m in materials) or "none yet"
+        controls: list[ft.Control] = [
+            _muted(f"Your materials: {have}. Markets sell the common ones."),
+            _heading("Upgrade your gear"),
+        ]
+        if not shop.upgrades:
+            controls.append(_muted("Nothing you carry can be upgraded further here."))
+        for up in shop.upgrades:
+            controls.append(
+                gear_compare_card(
+                    up.upgraded,
+                    [
+                        ft.FilledButton(
+                            content=f"Upgrade · {up.fee} gold",
+                            icon=ft.Icons.UPGRADE,
+                            disabled=not up.can_upgrade,
+                            on_click=lambda _, i=up.item.id: self._act_and_tell(Upgrade(i)),
+                        )
+                    ],
+                    details=[
+                        _muted(
+                            f"Your {up.item.name}"
+                            + (" (worn)" if up.item.equipped else "")
+                            + ", one level up."
+                        ),
+                        _costs(up.materials),
+                    ],
+                )
+            )
+        controls.append(_heading(f"Recipes ({len(shop.recipes)})"))
+        if not shop.recipes:
+            controls.append(_muted("You don't know any recipes yet."))
+        for recipe in shop.recipes:
+            controls.append(
+                gear_compare_card(
+                    recipe.item,
+                    [
+                        ft.FilledButton(
+                            content=f"Craft · {recipe.fee} gold",
+                            icon=ft.Icons.HANDYMAN_OUTLINED,
+                            disabled=not recipe.can_craft,
+                            on_click=lambda _, r=recipe.id: self._act_and_tell(Craft(r)),
+                        )
+                    ],
+                    details=[_costs(recipe.materials)],
+                )
+            )
+        controls.append(_muted("Find more recipes out in the world, or earn them from quests."))
+        return controls
+
+    # --- a market --------------------------------------------------------------------
+
+    def _market(self, view: GameView, shop: ShopView) -> list[ft.Control]:
+        held = self.session.game.inventory().materials
+        tabs = [(BUY_TAB, f"Buy ({len(shop.materials)})", ft.Icons.SHOPPING_BAG_OUTLINED)]
+        if shop.buys_materials:
+            tabs.append((SELL_TAB, f"Sell ({len(held)})", ft.Icons.SELL_OUTLINED))
+        controls: list[ft.Control] = [self._tabs(tabs)]
+        if self.shop_tab == SELL_TAB:
+            if not held:
+                controls.append(_muted("You have no materials to sell."))
+            for material in held:
+                total = material.sell_price * material.count
+                controls.append(
+                    _material_card(
+                        material.name,
+                        material.description,
+                        f"You have {material.count} · {material.sell_price} gold each",
+                        [
+                            ft.FilledTonalButton(
+                                content=f"Sell 1 · {material.sell_price} gold",
+                                icon=ft.Icons.SELL_OUTLINED,
+                                on_click=lambda _, m=material.id: self._act_and_tell(
+                                    SellMaterials(m, 1)
+                                ),
+                            ),
+                            ft.OutlinedButton(
+                                content=f"Sell all {material.count} · {total} gold",
+                                on_click=lambda _, m=material, s=shop.name: self._sell_all_of(m, s),
+                            ),
+                        ],
+                    )
+                )
+            return controls
+        for ware in shop.materials:
+            m = ware.material
+            controls.append(
+                _material_card(
+                    m.name,
+                    m.description,
+                    f"You have {m.count} · {ware.price} gold each",
+                    [
+                        ft.FilledButton(
+                            content=f"Buy 1 · {ware.price} gold",
+                            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                            disabled=not ware.affordable,
+                            on_click=lambda _, i=m.id: self._act_and_tell(BuyMaterials(i, 1)),
+                        ),
+                        ft.OutlinedButton(
+                            content=f"Buy {BULK} · {ware.price * BULK} gold",
+                            disabled=ware.price * BULK > view.gold,
+                            on_click=lambda _, i=m.id: self._act_and_tell(BuyMaterials(i, BULK)),
+                        ),
+                    ],
+                )
+            )
+        if shop.materials:
+            controls.append(_muted("Rarer materials come from what you defeat and find."))
+        return controls
+
+    def _sell_all_of(self, material, shop: str) -> None:
+        total = material.sell_price * material.count
+        self.confirm(
+            f"Sell all your {material.name}?",
+            f"The {shop} pays {total} gold for {material.count}. Buying them back costs more.",
+            f"Sell for {total} gold",
+            lambda: self._act_and_tell(SellMaterials(material.id, material.count)),
+        )
+
     def _buy_actions(self, item: ItemView) -> list[ft.Control]:
         price, affordable = self._prices[item.id], item.id in self._affordable
-        label = f"Buy · {price} gold"
+        label = f"{'Buy back' if item.id in self._sold else 'Buy'} · {price} gold"
         return [
             ft.FilledButton(
                 content=label if affordable else f"{label} (not enough)",
@@ -611,6 +758,16 @@ class GameScreen:
             if isinstance(event, ItemBought):
                 self.notify(f"{event.name} added to your pack for {event.price} gold.")
                 return
+            if isinstance(event, ItemCrafted):
+                self.notify(f"{event.name} added to your pack, for a {event.fee} gold fee.")
+                return
+            if isinstance(event, ItemUpgraded):
+                self.notify(f"It's now a {event.name}, for a {event.fee} gold fee.")
+                return
+            if isinstance(event, MaterialsBought | MaterialsSold):
+                verb = "Bought" if isinstance(event, MaterialsBought) else "Sold"
+                self.notify(f"{verb} {event.count} {event.name} for {event.price} gold.")
+                return
 
     def _turn_in(self, quest: str) -> None:
         result = self.session.perform(TurnInQuest(quest))
@@ -662,3 +819,47 @@ class GameScreen:
             )
             for road in view.roads
         ]
+
+
+def _heading(text: str) -> ft.Text:
+    return ft.Text(text, size=16, weight=ft.FontWeight.BOLD)
+
+
+def _muted(text: str) -> ft.Text:
+    return ft.Text(text, size=13, color=ft.Colors.ON_SURFACE_VARIANT)
+
+
+def _costs(costs: tuple[CostView, ...]) -> ft.Row:
+    """What a craft or upgrade needs, with what you have: "Iron Ore 1/2 ✗ short".
+    Short materials are marked in words and with ✗, not only in colour."""
+    return ft.Row(
+        wrap=True,
+        spacing=12,
+        run_spacing=2,
+        controls=[ft.Text("Needs:", size=13, weight=ft.FontWeight.BOLD)]
+        + [
+            ft.Text(
+                f"{c.name} {c.have}/{c.need} " + ("✓" if c.enough else "✗ short"),
+                size=13,
+                color=None if c.enough else ft.Colors.ERROR,
+            )
+            for c in costs
+        ],
+    )
+
+
+def _material_card(name: str, description: str, line: str, actions: list[ft.Control]) -> ft.Card:
+    return ft.Card(
+        content=ft.Container(
+            padding=12,
+            content=ft.Column(
+                spacing=6,
+                controls=[
+                    ft.Text(name, size=17, weight=ft.FontWeight.BOLD),
+                    _muted(description),
+                    ft.Text(line, size=14),
+                    ft.Row(wrap=True, spacing=8, run_spacing=8, controls=actions),
+                ],
+            ),
+        )
+    )

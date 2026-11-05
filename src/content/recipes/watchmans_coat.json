@@ -1,0 +1,5 @@
+{
+  "id": "recipe.watchmans_coat",
+  "makes": "gear.watchmans_coat",
+  "materials": { "material.hide": 3, "material.sailcloth": 2 }
+}

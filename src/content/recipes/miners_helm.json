@@ -1,0 +1,6 @@
+{
+  "id": "recipe.miners_helm",
+  "makes": "gear.miners_helm",
+  "materials": { "material.iron_ore": 2, "material.hide": 1 },
+  "known": true
+}

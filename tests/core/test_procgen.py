@@ -6,6 +6,13 @@ from tidewrack.core.procgen.enemy_gen import enemies_hash, generate_enemies
 from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate_kit
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
+from tidewrack.core.procgen.material_gen import (
+    gathering_hash,
+    generate_gathering,
+    generate_recipes,
+    known_recipes,
+    recipes_hash,
+)
 from tidewrack.core.procgen.quest_gen import generate_quests, quests_hash
 from tidewrack.core.procgen.shop_gen import generate_shops, shop_room, shops_hash
 from tidewrack.core.procgen.world_gen import generate_world, world_hash
@@ -27,33 +34,41 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 8
+    assert GENERATOR_VERSION == 9
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 8
+    assert GENERATOR_VERSION == 9
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 8
+    assert GENERATOR_VERSION == 9
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 8
+    assert GENERATOR_VERSION == 9
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
+
+
+def test_golden_gathering_and_recipes():
+    assert GENERATOR_VERSION == 9
+    world = new_world(20261103)
+    assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
+    plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
+    assert recipes_hash(known_recipes(CONTENT), plan) == GOLDEN_RECIPES
 
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 8
+    assert GENERATOR_VERSION == 9
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
@@ -63,11 +78,13 @@ def quests_for(seed: int):
     return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
 
 
-GOLDEN_QUESTS = "636cab77bd79452f8f76b17e6de3070d763faf8318f75a14ae0912064f7c0b87"
+GOLDEN_QUESTS = "e9e97b050b1db166e1b94486d57967751ca8eaf8ee8888c9305a805a79b9e9c6"
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
-GOLDEN_ENEMIES = "842ba17ad3cc135e63cf11a80f0cd1cd703afd56e62df4527b82eda37b622c45"
-GOLDEN_SHOPS = "fda89aead248be9e52e4f54084fb7a6b7a62736fdf1434968c27d895e143a8f8"
-GOLDEN_FINDS = "ad3e543e3e78e20f6f9c99679912e3051e93fab9d463a8fe525fe5ae11c4763b"
+GOLDEN_ENEMIES = "7f340c1a7ab883b9a03faaf4020b999f34589f4ac93f985bcc67873fe5a5c5e3"
+GOLDEN_SHOPS = "51b179d8a68c453859b566af12f388c5189812a1b5f2823769c7d6c821e1636c"
+GOLDEN_GATHERING = "03f505be7c4e4c4f2ff691608a5bb58baa9febbfc1aba9b12898e8a9315b1663"
+GOLDEN_RECIPES = "ce495be58b95ae42769dde1ff4e97ed4b0b718ac67c62fd30012ef4b9108f896"
+GOLDEN_FINDS = "3497af4ed6ebf32c1744084326575d128310b5061dd52117f6069b6d4ee0e506"
 
 
 # --- worlds ------------------------------------------------------------------------
@@ -398,10 +415,14 @@ def test_every_town_has_each_shop_in_its_room_or_at_its_gate():
         shops = generate_shops(seed, world, CONTENT)
         assert shops == generate_shops(seed, world, CONTENT)
         towns = [loc for loc in world.locations.values() if loc.kind == "Town"]
-        assert len(shops) == 2 * len(towns)
+        assert len(shops) == 3 * len(towns)
         for town in towns:
             here = [s for s in shops if s.location == town.id]
-            assert sorted(s.shop.shop_id for s in here) == ["shop.smithy", "shop.tavern"]
+            assert sorted(s.shop.shop_id for s in here) == [
+                "shop.market",
+                "shop.smithy",
+                "shop.tavern",
+            ]
             for placed in here:
                 noun = CONTENT.shops[placed.shop.shop_id].room
                 named = [r for r in town.rooms.values() if noun in r.name.split()]
@@ -446,3 +467,55 @@ def test_shops_dont_change_anything_else():
     generate_shops(20261103, world, CONTENT)
     assert world_hash(world) == GOLDEN_STANDARD
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
+
+
+# --- materials and recipes ---------------------------------------------------------
+
+
+def test_gathering_lies_in_wild_rooms_and_is_deterministic():
+    for seed in range(10):
+        world = new_world(seed)
+        placed = generate_gathering(seed, world, CONTENT)
+        assert placed == generate_gathering(seed, world, CONTENT)
+        assert placed
+        for g in placed:
+            location = world.location(g.location)
+            assert location.kind != "Town" and g.room not in location.gates
+            assert g.stack.count >= 1 and g.stack.material.material_id in CONTENT.materials
+
+
+def test_every_found_recipe_turns_up_once_on_a_quest_or_as_a_page():
+    found = sorted(r for r, schema in CONTENT.recipes.items() if not schema.known)
+    saw_quest = saw_page = False
+    for seed in range(20):
+        world = new_world(seed)
+        quests = quests_for(seed).quests
+        plan = generate_recipes(seed, world, CONTENT, RECIPE, quests)
+        placed = [r.recipe_id for r in plan.rewards.values()]
+        placed += [p.page.recipe.recipe_id for p in plan.pages]
+        assert sorted(placed) == found
+        assert set(plan.rewards) <= {q.quest_id for q in quests}
+        saw_quest |= bool(plan.rewards)
+        saw_page |= bool(plan.pages)
+        for page in plan.pages:
+            location = world.location(page.location)
+            assert location.kind != "Town" and page.room not in location.gates
+    assert saw_quest and saw_page
+
+
+def test_crafted_gear_has_its_best_roll_and_known_recipes_are_the_basics():
+    known = {r.recipe_id: r for r in known_recipes(CONTENT)}
+    assert set(known) == {r for r, s in CONTENT.recipes.items() if s.known}
+    cutlass = known["recipe.cutlass"].makes
+    assert cutlass.roll == {"atk": 2} and cutlass.affixes == []
+    keen = [r for r in CONTENT.recipes.values() if r.affix]
+    assert keen, "at least one found recipe makes affixed gear"
+
+
+def test_materials_and_recipes_dont_change_anything_else():
+    world = new_world(20261103)
+    generate_gathering(20261103, world, CONTENT)
+    generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
+    assert world_hash(world) == GOLDEN_STANDARD
+    assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
+    assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS

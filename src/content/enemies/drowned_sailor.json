@@ -19,5 +19,8 @@
   "gold": [
     0,
     3
+  ],
+  "materials": [
+    { "material": "material.sailcloth", "chance": 0.5, "count": [1, 2] }
   ]
 }
