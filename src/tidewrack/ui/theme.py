@@ -42,6 +42,21 @@ def set_dark(dark: bool) -> bool:
     return changed
 
 
+def is_dark(e: ft.Event) -> bool:
+    """Whether a brightness-change event says dark.
+
+    Flet 1.0.5 only builds a PlatformBrightnessChangeEvent when the client sends
+    a dict; Android sends the bare value, so the handler gets a plain Event with
+    "dark" or "light" in `data`. Accept both (and never raise: it runs at launch).
+    """
+    return _says_dark(getattr(e, "brightness", None) or getattr(e, "data", None))
+
+
+def _says_dark(value) -> bool:
+    """A Brightness, "dark"/"light", or None (light)."""
+    return str(getattr(value, "value", value)).lower() == ft.Brightness.DARK.value
+
+
 def themes(colours: SystemColours | None) -> tuple[ft.Theme | None, ft.Theme | None]:
     """(light, dark) themes for a wallpaper scheme; (None, None) = flet's defaults."""
     if colours is None:
@@ -74,7 +89,7 @@ class Theming:
     def start(self) -> None:
         """Apply the cached scheme now; refresh it in the background."""
         self._apply(self.settings.load().system_colours)
-        set_dark(self.page.platform_brightness == ft.Brightness.DARK)
+        set_dark(_says_dark(self.page.platform_brightness))
         self.page.on_platform_brightness_change = self._brightness
         self.page.on_app_lifecycle_state_change = self._lifecycle
         self.background(self.refresh)
@@ -97,9 +112,9 @@ class Theming:
             self._apply(colours)
             self.page.update()
 
-    def _brightness(self, e: ft.PlatformBrightnessChangeEvent) -> None:
+    def _brightness(self, e: ft.Event) -> None:
         # theme_mode is SYSTEM, so the platform's brightness is the one showing.
-        if set_dark(e.brightness == ft.Brightness.DARK) and redraw is not None:
+        if set_dark(is_dark(e)) and redraw is not None:
             redraw()
             self.page.update()
 

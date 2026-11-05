@@ -132,3 +132,26 @@ def test_a_brightness_flip_redraws_the_open_world(tmp_path, monkeypatch):
     flip(ft.PlatformBrightnessChangeEvent(name="x", control=page, brightness=ft.Brightness.DARK))
     assert redrawn == [ft.Colors.GREEN_300]  # once, already in the new green
     assert page.updates == 1
+
+
+def test_brightness_events_arrive_as_plain_events_with_the_value_in_data(tmp_path, monkeypatch):
+    """What Android sends: a bare "dark", which Flet 1.0.5 passes as a ControlEvent."""
+    monkeypatch.setattr(theme, "_dark", False)
+    monkeypatch.setattr(theme, "redraw", None)
+    page, store, theming = make(tmp_path, OLD, [OLD])
+    theming.start()
+    page.on_platform_brightness_change(ft.ControlEvent(name="x", control=page, data="dark"))
+    assert theme._dark
+    page.on_platform_brightness_change(ft.ControlEvent(name="x", control=page, data="light"))
+    assert not theme._dark
+    page.on_platform_brightness_change(ft.ControlEvent(name="x", control=page, data=None))
+    assert not theme._dark  # nothing usable: treated as light, no crash
+
+
+def test_launch_brightness_may_be_an_enum_or_a_string(tmp_path, monkeypatch):
+    for value in (ft.Brightness.DARK, "dark"):
+        monkeypatch.setattr(theme, "_dark", False)
+        page, store, theming = make(tmp_path, OLD, [OLD])
+        page.platform_brightness = value
+        theming.start()
+        assert theme._dark

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- v0.9.0-beta.1 showed an error on launch ("'Event' object has no
+  attribute 'brightness'"); switching between light and dark works again.
+
 ## [0.9.0-beta.1] - 2026-11-05
 
 ### Added
