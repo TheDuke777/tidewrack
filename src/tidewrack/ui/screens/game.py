@@ -55,8 +55,9 @@ from tidewrack.core.engine.game import (
     Wait,
 )
 from tidewrack.services.session import GameSession
-from tidewrack.services.settings import Settings, SettingsStore
+from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.components.combat_panel import combat_panel
+from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.components.pack_list import (
     BulkAction,
@@ -154,8 +155,11 @@ class GameScreen:
         self.entrances = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.panel_heading = ft.Row()
         # A smithy's sell list: your pack, with the Inventory tab's filters and sort.
+        self.ground_folds = Folds("ground", settings, self.refresh)
+        self.board_folds = Folds("board", settings, self.refresh)
         self.sell_list = PackList(
             choices if choices is not None else PackChoices(),
+            folds=Folds("sell", settings, self.refresh),
             actions=self._sell_actions,
             bulk=lambda: [BulkAction("Sell selected", ft.Icons.SELL_OUTLINED, self._sell)],
             refresh=lambda: self.refresh(),
@@ -173,6 +177,7 @@ class GameScreen:
         craft_choices = PackChoices()
         self.upgrade_list = PackList(
             craft_choices,
+            folds=Folds("upgrade", settings, self.refresh),
             actions=self._upgrade_actions,
             bulk=None,
             refresh=lambda: self.refresh(),
@@ -182,6 +187,7 @@ class GameScreen:
         )
         self.craft_list = PackList(
             craft_choices,
+            folds=Folds("craft", settings, self.refresh),
             actions=self._craft_actions,
             bulk=None,
             refresh=lambda: self.refresh(),
@@ -191,6 +197,7 @@ class GameScreen:
         )
         self.buy_list = PackList(
             shop_choices if shop_choices is not None else PackChoices(),
+            folds=Folds("buy", settings, self.refresh),
             actions=self._buy_actions,
             bulk=None,
             refresh=lambda: self.refresh(),
@@ -368,7 +375,12 @@ class GameScreen:
 
     def _save_split(self) -> None:
         self._apply_split()
-        self.settings.save(Settings(log_visible=self.split.visible, log_share=self.split.share))
+        current = self.settings.load()  # keep the other settings
+        self.settings.save(
+            current.model_copy(
+                update={"log_visible": self.split.visible, "log_share": self.split.share}
+            )
+        )
 
     def _apply_split(self) -> None:
         self.details.expand, self.log.expand = self.split.expands()
@@ -399,7 +411,13 @@ class GameScreen:
         ]
         self.roads.controls = self._roads(view)
         self.here.controls = [
-            gear_compare_card(item, self._take_buttons(item)) for item in view.items_here
+            gear_compare_card(
+                item,
+                self._take_buttons(item),
+                collapsed=self.ground_folds.collapsed(item.id),
+                on_toggle=lambda i=item.id: self.ground_folds.toggle(i),
+            )
+            for item in view.items_here
         ]
         # During a fight, the fight panel replaces everything you can't do anyway.
         fighting = view.combat is not None
@@ -549,7 +567,14 @@ class GameScreen:
                     icon=ft.Icons.ADD_TASK,
                     on_click=lambda _, q=quest.id: self.act(AcceptQuest(q)),
                 )
-            cards.append(quest_card(quest, [button]))
+            cards.append(
+                quest_card(
+                    quest,
+                    [button],
+                    collapsed=self.board_folds.collapsed(quest.id),
+                    on_toggle=lambda q=quest.id: self.board_folds.toggle(q),
+                )
+            )
         return cards
 
     def _shop(self, view: GameView, shop: ShopView) -> list[ft.Control]:
@@ -661,8 +686,10 @@ class GameScreen:
     def _craft_tab(self, shop: ShopView) -> list[ft.Control]:
         """Every recipe you know, in a filterable list."""
         recipes = [r for r in shop.recipes if not self.craftable_only or _enough(r.materials)]
-        # Recipe items aren't in the world yet; give each a stand-in id for the list.
-        self._recipes = {-(n + 1): r for n, r in enumerate(recipes)}
+        # Recipe items aren't in the world yet; give each a stand-in id for the list,
+        # from its place among all known recipes so it's stable while filtering.
+        place = {r.id: n for n, r in enumerate(shop.recipes)}
+        self._recipes = {-(place[r.id] + 1): r for r in recipes}
         self.craft_list.show(replace(r.item, id=i) for i, r in self._recipes.items())
         controls: list[ft.Control] = [self._materials_line(), self._hide_switch()]
         if not shop.recipes:

@@ -404,3 +404,53 @@ def test_the_craft_tab_can_hide_recipes_you_lack_materials_for(tmp_path):
     explore.open("Smithy")
     explore._shop_tab(["craft"])
     assert explore.craft_list.heading.value == "Recipes (1)"  # kept while the world is open
+
+
+def test_shop_cards_start_collapsed_and_open_one_at_a_time(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+    explore.open("Smithy")
+    buy = explore.buy_list
+    first, second, *_ = buy.cards.controls
+    assert "Base" not in _texts(first)  # no stat table while collapsed
+    assert any(isinstance(c, ft.IconButton) and c.tooltip == "Show details" for c in _walk(first))
+    assert _buttons(first, "Buy · ")  # the action stays on a collapsed card
+    explore.buy_list.folds.toggle(buy.shown[0].id)
+    first, second, *_ = buy.cards.controls
+    assert "Base" in _texts(first) and "Base" not in _texts(second)
+
+
+def test_expand_all_is_remembered_across_screens(tmp_path):
+    from tidewrack.services.settings import SettingsStore
+
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+    explore.open("Smithy")
+    [expand_all] = _buttons(explore.buy_list.heading_row, "Expand all")
+    expand_all.on_click(None)
+    assert all("Base" in _texts(card) for card in explore.buy_list.cards.controls)
+    assert SettingsStore(tmp_path / "s.json").load().collapsed == {"buy": False}
+    # A new screen (another world, or after a restart) starts expanded too.
+    _, again, _, _ = _shell(tmp_path)
+    again.explore.open("Smithy")
+    assert all("Base" in _texts(card) for card in again.explore.buy_list.cards.controls)
+    assert _buttons(again.explore.buy_list.heading_row, "Collapse all")
+
+
+def test_moving_the_log_keeps_the_card_settings(tmp_path):
+    from tidewrack.services.settings import SettingsStore
+
+    _, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    _buttons(shell.explore.buy_list.heading_row, "Expand all")[0].on_click(None)
+    shell.explore._toggle_log()
+    saved = SettingsStore(tmp_path / "s.json").load()
+    assert saved.collapsed == {"buy": False} and saved.log_visible is False
+
+
+def test_equipped_gear_starts_expanded(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.select(1)
+    worn = shell.inventory.equipped.controls[0]
+    assert "Gives" in " ".join(_texts(worn))
+    assert any(isinstance(c, ft.IconButton) and c.tooltip == "Hide details" for c in _walk(worn))

@@ -4,12 +4,12 @@ board stays short; in the quest log it's the full gear comparison card."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import flet as ft
 
 from tidewrack.core.engine.game import QuestView
-from tidewrack.ui.components.gear_compare_card import gear_compare_card, verdict_chip
+from tidewrack.ui.components.gear_compare_card import fold_button, gear_compare_card, verdict_chip
 
 KIND_ICONS = {
     "Bounty": ft.Icons.GPS_FIXED,
@@ -60,21 +60,30 @@ def reward_line(quest: QuestView) -> ft.Row:
 
 
 def quest_card(
-    quest: QuestView, actions: Sequence[ft.Control] = (), full_reward: bool = False
+    quest: QuestView,
+    actions: Sequence[ft.Control] = (),
+    full_reward: bool = False,
+    collapsed: bool = False,  # title, progress, the one-line reward and actions only
+    on_toggle: Callable[[], None] | None = None,  # makes it foldable (tap the title)
 ) -> ft.Card:
+    title = ft.Row(
+        vertical_alignment=ft.CrossAxisAlignment.START,
+        controls=[
+            ft.Text(quest.title, size=17, weight=ft.FontWeight.BOLD, expand=True),
+            kind_chip(quest.kind),
+            *([fold_button(collapsed, on_toggle)] if on_toggle else []),
+        ],
+    )
     body: list[ft.Control] = [
-        ft.Row(
-            vertical_alignment=ft.CrossAxisAlignment.START,
-            controls=[
-                ft.Text(quest.title, size=17, weight=ft.FontWeight.BOLD, expand=True),
-                kind_chip(quest.kind),
-            ],
-        ),
-        ft.Text(quest.source, size=13, color=ft.Colors.ON_SURFACE_VARIANT),
-        ft.Text(quest.summary, size=14),
-        ft.Text(quest.progress, size=13, weight=ft.FontWeight.BOLD),
+        ft.Container(content=title, on_click=lambda _: on_toggle()) if on_toggle else title
     ]
-    if full_reward:
+    if not collapsed:
+        body += [
+            ft.Text(quest.source, size=13, color=ft.Colors.ON_SURFACE_VARIANT),
+            ft.Text(quest.summary, size=14),
+        ]
+    body.append(ft.Text(quest.progress, size=13, weight=ft.FontWeight.BOLD))
+    if full_reward and not collapsed:
         gold = f" (and {quest.gold} gold)" if quest.gold else ""
         body += [ft.Text(f"Reward{gold}", size=13), gear_compare_card(quest.reward)]
     else:

@@ -16,6 +16,8 @@ import flet as ft
 from tidewrack.core.engine.events import ActionRejected
 from tidewrack.core.engine.game import AbandonQuest, QuestView
 from tidewrack.services.session import GameSession
+from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.quest_card import quest_card
 
 EMPTY = "No quests yet. Check the notice board at a town gate, or keep an eye out on your travels."
@@ -40,7 +42,10 @@ class QuestsScreen:
         session: GameSession,
         confirm: Confirm = _no_confirm,
         notify: Callable[[str], None] = lambda _: None,
+        settings: SettingsStore | None = None,
     ) -> None:
+        self.folds = Folds("quests", settings, lambda: self.refresh())
+        self.fold_all = ft.Row()
         self.session = session
         self.confirm = confirm
         self.notify = notify
@@ -53,7 +58,12 @@ class QuestsScreen:
                 content=ft.Column(
                     expand=True,
                     controls=[
-                        ft.Text("Quests", size=22, weight=ft.FontWeight.BOLD),
+                        ft.Row(
+                            controls=[
+                                ft.Text("Quests", size=22, weight=ft.FontWeight.BOLD, expand=True),
+                                self.fold_all,
+                            ]
+                        ),
                         ft.ListView(expand=True, spacing=12, controls=[self.sections]),
                     ],
                 ),
@@ -68,6 +78,8 @@ class QuestsScreen:
             "active": log.active,
             "done": log.done,
         }
+        shown = [q.id for key, *_ in SECTIONS for q in groups[key]]
+        self.fold_all.controls = [self.folds.all_button(shown)]
         if not any(groups.values()):
             self.sections.controls = [ft.Text(EMPTY, size=14, color=ft.Colors.ON_SURFACE_VARIANT)]
             return
@@ -86,7 +98,16 @@ class QuestsScreen:
         controls: list[ft.Control] = []
         if hint:
             controls.append(ft.Text(hint, size=13, color=ft.Colors.ON_SURFACE_VARIANT))
-        controls += [quest_card(q, self._actions(q), full_reward=key != "done") for q in quests]
+        controls += [
+            quest_card(
+                q,
+                self._actions(q),
+                full_reward=key != "done",
+                collapsed=self.folds.collapsed(q.id),
+                on_toggle=lambda i=q.id: self.folds.toggle(i),
+            )
+            for q in quests
+        ]
         return ft.ExpansionTile(
             title=ft.Text(title, size=18, weight=ft.FontWeight.BOLD),
             expanded=self.open.get(key, True),

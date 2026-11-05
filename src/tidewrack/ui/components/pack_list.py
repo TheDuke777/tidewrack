@@ -17,6 +17,7 @@ import flet as ft
 
 from tidewrack.core.engine.game import ItemView
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
+from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 
 # (title, message, confirm button label, what to do if confirmed)
@@ -143,7 +144,9 @@ class PackList:
         empty: str = "Your pack is empty.",
         price: Callable[[ItemView], int] = sale_price,
         details: Callable[[ItemView], list[ft.Control]] | None = None,  # under each card
+        folds: Folds | None = None,  # which cards are collapsed (ui.components.folds)
     ) -> None:
+        self.folds = folds
         self._price = price
         self._details = details
         self.choices = choices
@@ -178,12 +181,13 @@ class PackList:
         self.filter_row = ft.Row(spacing=8, controls=list(self.filters.values()))
         self.sort_row = ft.Row(spacing=8, controls=[self.sort, self.order_button])
         self.selection_bar = ft.Row(wrap=True, spacing=8, run_spacing=4)
+        self.heading_row = ft.Row(controls=[self.heading, self.select_button])
         self.cards = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.control = ft.Column(
             spacing=12,
             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
-                ft.Row(controls=[self.heading, self.select_button]),
+                self.heading_row,
                 self.filter_row,
                 self.sort_row,
                 self.selection_bar,
@@ -240,12 +244,21 @@ class PackList:
         elif not self.shown:
             self.cards.controls = [_muted("Nothing here matches these filters.")]
         else:
-            self.cards.controls = [
-                gear_compare_card(
-                    i, self._card_actions(i), self._details(i) if self._details else ()
-                )
-                for i in self.shown
-            ]
+            self.cards.controls = [self._card(i) for i in self.shown]
+        fold_all = [self.folds.all_button(i.id for i in self.shown)] if self.folds else []
+        self.heading_row.controls = [self.heading, *fold_all, self.select_button]
+
+    def _card(self, item: ItemView) -> ft.Card:
+        details = self._details(item) if self._details else ()
+        if self.folds is None:
+            return gear_compare_card(item, self._card_actions(item), details)
+        return gear_compare_card(
+            item,
+            self._card_actions(item),
+            details,
+            collapsed=self.folds.collapsed(item.id),
+            on_toggle=lambda: self.folds.toggle(item.id),
+        )
 
     def chosen(self) -> list[ItemView]:
         return [i for i in self.shown if i.id in self.selected]

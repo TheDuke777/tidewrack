@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Gear and quest cards can be collapsed to their top row and a one-line
+  summary: what the gear changes (e.g. "DEF ▲ +1  HP ▲ +3"), or a quest's
+  progress and reward. Its buttons stay. Tap a card's top row or its arrow
+  to open or fold it.
+- Shop lists, your pack and the quest log start collapsed; what you have on
+  and gear lying in a room start open. "Expand all" / "Collapse all" by each
+  list changes how it starts, and the app remembers that.
+
 ## [0.8.0] - 2026-11-05
 
 ### Changed

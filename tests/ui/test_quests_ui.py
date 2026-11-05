@@ -77,6 +77,9 @@ def test_the_board_shows_at_the_town_gate_and_accepting_moves_a_quest_to_the_log
     shell.select(2)
     [active] = shell.quests.sections.controls
     assert isinstance(active, ft.ExpansionTile) and active.title.value == "Active (1)"
+    assert not any(t.startswith("Reward (and ") for t in _texts(active))  # collapsed
+    shell.quests.folds.toggle(session.game.quests().active[0].id)
+    [active] = shell.quests.sections.controls
     assert any(t.startswith("Reward (and ") for t in _texts(active))  # the full card
     assert [b for b in _walk(active) if isinstance(b, ft.TextButton) and b.content == "Abandon"]
 

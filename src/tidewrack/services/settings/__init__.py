@@ -21,6 +21,7 @@ class Settings(BaseModel):
 
     log_visible: bool = True
     log_share: float = Field(default=0.4, ge=0.1, le=0.8)  # of the game screen's text area
+    collapsed: dict[str, bool] = {}  # card list name -> starts collapsed (ui.components.folds)
 
 
 def settings_path() -> Path:

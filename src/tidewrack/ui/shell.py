@@ -45,8 +45,10 @@ class WorldShell:
             choices=choices,
             shop_choices=shop_choices,
         )
-        self.inventory = InventoryScreen(session, confirm=confirm, notify=notify, choices=choices)
-        self.quests = QuestsScreen(session, confirm=confirm, notify=notify)
+        self.inventory = InventoryScreen(
+            session, confirm=confirm, notify=notify, choices=choices, settings=settings
+        )
+        self.quests = QuestsScreen(session, confirm=confirm, notify=notify, settings=settings)
         self.codex = CodexScreen(session)
         self.tabs = [
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),

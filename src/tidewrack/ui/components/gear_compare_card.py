@@ -9,7 +9,7 @@ card can't disagree with the game.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 import flet as ft
 
@@ -88,10 +88,47 @@ def notes(item: ItemView) -> list[str]:
     return lines
 
 
+def summary(item: ItemView) -> ft.Control:
+    """A collapsed card's one line: what it changes ("ATK ▲ +2  DEF ▼ −1")."""
+    comparison = item.comparison
+    if comparison.equipped:
+        return ft.Text(f"Gives {format_stats(item.total) or 'no stats'}", size=14)
+    changes = [row for row in comparison.rows if row.total_delta]
+    if not changes:
+        return ft.Text("No change to your stats", size=14)
+    return ft.Row(
+        wrap=True,
+        spacing=12,
+        run_spacing=2,
+        controls=[
+            ft.Row(
+                spacing=4,
+                tight=True,
+                controls=[
+                    ft.Text(STAT_LABELS[row.stat], size=14, weight=ft.FontWeight.BOLD),
+                    stat_delta(row.total_delta),
+                ],
+            )
+            for row in changes
+        ],
+    )
+
+
+def fold_button(collapsed: bool, on_toggle: Callable[[], None]) -> ft.IconButton:
+    """The chevron that opens or folds a card; it says what it does to screen readers."""
+    return ft.IconButton(
+        icon=ft.Icons.EXPAND_MORE if collapsed else ft.Icons.EXPAND_LESS,
+        tooltip="Show details" if collapsed else "Hide details",
+        on_click=lambda _: on_toggle(),
+    )
+
+
 def gear_compare_card(
     item: ItemView,
     actions: Sequence[ft.Control] = (),
     details: Sequence[ft.Control] = (),  # e.g. what crafting it costs, above the actions
+    collapsed: bool = False,  # top row, a one-line summary, details and actions only
+    on_toggle: Callable[[], None] | None = None,  # makes it foldable (tap the top row)
 ) -> ft.Card:
     comparison = item.comparison
     header = ft.Row(
@@ -110,10 +147,16 @@ def gear_compare_card(
                 horizontal_alignment=ft.CrossAxisAlignment.END,
                 controls=chips(item),
             ),
+            *([fold_button(collapsed, on_toggle)] if on_toggle else []),
         ],
     )
-    body: list[ft.Control] = [header]
-    if comparison.equipped:
+    top: ft.Control = (
+        ft.Container(content=header, on_click=lambda _: on_toggle()) if on_toggle else header
+    )
+    body: list[ft.Control] = [top]
+    if collapsed:
+        body.append(summary(item))
+    elif comparison.equipped:
         # Nothing to compare against: show what it gives instead.
         body.append(ft.Text(f"Gives {format_stats(item.total) or 'no stats'}", size=14))
     else:
@@ -121,7 +164,8 @@ def gear_compare_card(
             ft.Column(spacing=4, controls=[_table_header(), *map(_table_row, comparison.rows)])
         )
         body.append(ft.Text(f"You: {impact_line(comparison)}", size=13))
-    body += [ft.Text(line, size=13, color=ft.Colors.ON_SURFACE_VARIANT) for line in notes(item)]
+    if not collapsed:
+        body += [ft.Text(n, size=13, color=ft.Colors.ON_SURFACE_VARIANT) for n in notes(item)]
     body += list(details)
     if actions:
         body.append(ft.Row(wrap=True, spacing=8, run_spacing=8, controls=list(actions)))

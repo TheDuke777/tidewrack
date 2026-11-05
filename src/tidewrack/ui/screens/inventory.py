@@ -29,6 +29,8 @@ from tidewrack.core.engine.game import (
 from tidewrack.core.gear.compare import format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
+from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.components.pack_list import (
     BulkAction,
@@ -49,7 +51,9 @@ class InventoryScreen:
         confirm: Confirm,
         notify: Callable[[str], None],
         choices: PackChoices | None = None,
+        settings: SettingsStore | None = None,
     ) -> None:
+        self.equipped_folds = Folds("equipped", settings, lambda: self.refresh())
         self.session = session
         self.confirm = confirm
         self.notify = notify  # a toast, for actions the game refuses (e.g. mid-fight)
@@ -84,6 +88,7 @@ class InventoryScreen:
             actions=self._pack_actions,
             bulk=self._bulk_actions,
             refresh=lambda: self.refresh(),
+            folds=Folds("pack", settings, lambda: self.refresh()),
         )
         self.pack = self.pack_list.cards
         self.control = ft.SafeArea(
@@ -223,7 +228,12 @@ class InventoryScreen:
 
     def _slot(self, slot) -> ft.Control:
         if slot.item is not None:
-            return gear_compare_card(slot.item, self._equipped_actions(slot.item))
+            return gear_compare_card(
+                slot.item,
+                self._equipped_actions(slot.item),
+                collapsed=self.equipped_folds.collapsed(slot.item.id),
+                on_toggle=lambda i=slot.item.id: self.equipped_folds.toggle(i),
+            )
         if slot.filled_by is not None:
             return _muted(f"{slot.label}: held by the {slot.filled_by} (both hands)")
         return _muted(f"{slot.label}: empty")
