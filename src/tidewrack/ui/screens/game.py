@@ -72,6 +72,7 @@ from tidewrack.ui.components.pack_list import (
     sell_message,
 )
 from tidewrack.ui.components.quest_card import quest_card
+from tidewrack.ui.components.unread import dot_icon, dot_label
 from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
 
 LOG_LINES_SHOWN = 40
@@ -613,10 +614,16 @@ class GameScreen:
                 (BUY_TAB, f"Buy ({len(shop.wares)})", ft.Icons.SHOPPING_BAG_OUTLINED),
                 (SELL_TAB, f"Sell ({len(pack)})", ft.Icons.SELL_OUTLINED),
             ]
+            dots: set[str] = set()
             if shop.crafts:
                 tabs.append((UPGRADE_TAB, f"Upgrade ({len(shop.upgrades)})", ft.Icons.UPGRADE))
                 tabs.append((CRAFT_TAB, f"Craft ({len(shop.recipes)})", ft.Icons.HANDYMAN_OUTLINED))
-            controls.append(self._tabs(tabs))
+                # Something you can do now: upgrade gear you have on, or craft a recipe.
+                if any(u.can_upgrade and u.item.equipped for u in shop.upgrades):
+                    dots.add(UPGRADE_TAB)
+                if any(r.can_craft for r in shop.recipes):
+                    dots.add(CRAFT_TAB)
+            controls.append(self._tabs(tabs, dots=dots))
         if shop.buys_gear and self.shop_tab == SELL_TAB:
             self._buyer = shop.name
             self.sell_list.show(pack)
@@ -635,17 +642,28 @@ class GameScreen:
         return controls
 
     def _tabs(
-        self, tabs: list[tuple[str, str, ft.IconData]], default: str = BUY_TAB
+        self,
+        tabs: list[tuple[str, str, ft.IconData]],
+        default: str = BUY_TAB,
+        dots: set[str] = frozenset(),  # type: ignore[assignment]  # tabs with something to do
     ) -> ft.SegmentedButton:
         if self.shop_tab not in {value for value, _, _ in tabs}:
             self.shop_tab = default
         # Four tabs don't fit a phone with icons; the labels say it all.
         icons = len(tabs) <= 3
+
+        def dotted(tab: str) -> bool:  # something to do there, and you're not on it
+            return tab in dots and tab != self.shop_tab
+
         return ft.SegmentedButton(
             selected=[self.shop_tab],
             show_selected_icon=False,
             segments=[
-                ft.Segment(value=v, label=label, icon=icon if icons else None)
+                ft.Segment(
+                    value=v,
+                    label=label if icons else dot_label(label, dotted(v)),
+                    icon=dot_icon(icon, dotted(v)) if icons else None,
+                )
                 for v, label, icon in tabs
             ],
             on_change=lambda e: self._shop_tab(e.control.selected),
@@ -743,7 +761,11 @@ class GameScreen:
         ]
         controls: list[ft.Control] = [
             ft.Text(fed_line(view_fed), size=14),
-            self._tabs(tabs, default=MENU_TAB),
+            self._tabs(
+                tabs,
+                default=MENU_TAB,
+                dots={COOK_TAB} if any(m.can_cook for m in shop.menu) else set(),
+            ),
         ]
         if self.shop_tab == MENU_TAB:
             controls.append(_muted("Ready to eat. Cooking it yourself is cheaper."))

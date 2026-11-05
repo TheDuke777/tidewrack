@@ -405,3 +405,25 @@ def test_v10_fixture_keeps_its_meals_and_buff(tmp_path):
     assert (
         fed is not None and fed.meal.name == "Mussel Stew" and fed.turns_left == 57
     )  # 3 waits after eating
+
+
+def test_v10_saves_regrow_their_wild_places(tmp_path):
+    from tidewrack.core.engine.components import Grower
+
+    envelope = json.loads((FIXTURES / "v10_cooking.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    growers = [g for _, (g,) in game.world.query(Grower)]
+    wild = [loc for loc in game.overworld.locations.values() if loc.kind != "Town"]
+    assert sorted(g.location for g in growers) == sorted(loc.id for loc in wild)
+    caves = next(g for g in growers if game.overworld.location(g.location).kind == "Sea Caves")
+    assert {e.material.name for e in caves.materials} >= {"Kelp", "Mussels"}
+
+
+def test_v11_fixture_keeps_its_regrowth(tmp_path):
+    from tidewrack.core.engine.components import Grower
+
+    envelope = json.loads((FIXTURES / "v11_regrowth.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert len(list(session.game.world.query(Grower))) == 4
+    assert session.game.turn == 44

@@ -39,6 +39,27 @@ class MaterialDrop:
 
 
 @dataclass
+class GrowEntry:
+    """One thing a wild place regrows, and how often it's picked."""
+
+    material: Material
+    weight: float = 1.0
+
+
+@dataclass
+class Grower:
+    """A wild location's gathering spots grow back (core.economy.crafting): every
+    EconomyRules.regrow_every turns, if fewer than `cap` spots lie about, one
+    regrows in an empty room, from `materials`, with `low`–`high` of it."""
+
+    location: str
+    cap: int
+    materials: list[GrowEntry] = field(default_factory=list)
+    low: int = 1
+    high: int = 2
+
+
+@dataclass
 class Recipe:
     """How to craft one piece of gear at a smithy: a snapshot, output included."""
 
@@ -387,5 +408,6 @@ COMPONENTS: dict[str, type] = {
         RecipePage,
         Meals,
         WellFed,
+        Grower,
     )
 }

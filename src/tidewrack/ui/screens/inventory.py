@@ -42,6 +42,7 @@ from tidewrack.ui.components.pack_list import (
     name_list,
     sell_message,
 )
+from tidewrack.ui.components.unread import Unread, dot_icon
 
 EQUIPPED, PACK, SATCHEL = "equipped", "pack", "satchel"
 
@@ -54,7 +55,9 @@ class InventoryScreen:
         notify: Callable[[str], None],
         choices: PackChoices | None = None,
         settings: SettingsStore | None = None,
+        unread: Unread | None = None,
     ) -> None:
+        self.unread = unread
         self.equipped_folds = Folds("equipped", settings, lambda: self.refresh())
         self.session = session
         self.confirm = confirm
@@ -67,20 +70,10 @@ class InventoryScreen:
         self.meals = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.fed = ft.Text(size=14)
         self.recipes = ft.Column(spacing=4)
-        self.satchel = ft.Column(
-            spacing=12,
-            controls=[
-                self.fed,
-                _heading("Meals"),
-                self.meals,
-                _heading("Ingredients"),
-                self.ingredients,
-                _heading("Materials"),
-                self.materials,
-                _heading("Recipes you know"),
-                self.recipes,
-            ],
-        )
+        # Collapsible sections (open or folded while the world is open), like the
+        # Quests tab's; filled in by refresh with their counts.
+        self.satchel_open: dict[str, bool] = {}
+        self.satchel = ft.Column(spacing=8)
         self.tab = EQUIPPED  # kept while the world is open
         self.tabs = ft.SegmentedButton(
             selected=[self.tab],
@@ -207,6 +200,14 @@ class InventoryScreen:
         pack.label = f"Pack ({len(view.pack)})"
         satchel.label = f"Satchel ({len(view.materials) + len(view.meals)})"
         self.tabs.selected = [self.tab]
+        if self.unread is not None and self.control.visible:
+            if self.tab in (PACK, SATCHEL):
+                self.unread.mark_seen(self.tab)  # you're looking at it now
+            fed_warning = self.unread.meal_running_out()
+            pack.icon = dot_icon(ft.Icons.BACKPACK_OUTLINED, bool(self.unread.new(PACK)))
+            satchel.icon = dot_icon(
+                ft.Icons.INVENTORY_2_OUTLINED, bool(self.unread.new(SATCHEL)) or fed_warning
+            )
         self.equipped.visible = self.tab == EQUIPPED
         self.pack_list.control.visible = self.tab == PACK
         self.satchel.visible = self.tab == SATCHEL
@@ -249,6 +250,28 @@ class InventoryScreen:
             [ft.Text(", ".join(view.recipes) + ". Craft them at any smithy.", size=14)]
             if view.recipes
             else [_muted("None yet.")]
+        )
+        self.satchel.controls = [
+            self.fed,
+            self._section("meals", "Meals", len(view.meals), self.meals),
+            self._section("ingredients", "Ingredients", len(food), self.ingredients),
+            self._section("materials", "Materials", len(crafting), self.materials),
+            self._section("recipes", "Recipes you know", len(view.recipes), self.recipes),
+        ]
+
+    def _section(self, key: str, title: str, count: int, body: ft.Control) -> ft.ExpansionTile:
+        def changed(e: ft.Event) -> None:
+            self.satchel_open[key] = bool(e.data)
+
+        return ft.ExpansionTile(
+            title=ft.Text(f"{title} ({count})", size=16, weight=ft.FontWeight.BOLD),
+            expanded=self.satchel_open.get(key, True),
+            maintain_state=True,
+            controls_padding=ft.Padding.only(left=4, bottom=8),
+            tile_padding=ft.Padding.symmetric(horizontal=4),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            on_change=changed,
+            controls=[body],
         )
 
     def _sheet(self, view: InventoryView) -> list[ft.Control]:

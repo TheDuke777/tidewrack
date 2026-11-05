@@ -56,6 +56,7 @@ from tidewrack.core.engine.components import (
     Equipped,
     Explorer,
     Fighting,
+    Grower,
     Health,
     Materials,
     MaterialStack,
@@ -612,6 +613,7 @@ class Game:
         gathering: Iterable[tuple[str, str, MaterialStack]] = (),
         recipes: Iterable[Recipe] = (),
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
+        growers: Iterable[Grower] = (),
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
@@ -675,6 +677,9 @@ class Game:
             shop_entity = self.world.create(shop, Position(location_id, room_id))
             for item in stock:
                 self.world.create(item, Stocked(shop_entity))
+        for grower in growers:
+            world.location(grower.location)  # must exist
+            self.world.create(grower)
         for location_id, room_id, thing in [*gathering, *recipe_pages]:
             location = world.location(location_id)
             if room_id not in location.rooms or room_id in location.gates:
@@ -702,6 +707,7 @@ class Game:
         self.encounter_rng = self.rng.derive("encounters")
         self.respawn_rng = self.rng.derive("respawns")
         self.shop_rng = self.rng.derive("shops")
+        self.gather_rng = self.rng.derive("gathering")
         self.rules = STANDARD
         self.economy = STANDARD_ECONOMY
         self.world = World()
@@ -716,6 +722,7 @@ class Game:
             returns.returns_system,
             shops.restock_system,
             cooking.meal_system,
+            crafting.regrow_system,
         ]
 
         # Subscription order is delivery order: exploration updates state before
@@ -745,6 +752,7 @@ class Game:
             encounter_rng=RngState(**self.encounter_rng.get_state()),
             respawn_rng=RngState(**self.respawn_rng.get_state()),
             shop_rng=RngState(**self.shop_rng.get_state()),
+            gather_rng=RngState(**self.gather_rng.get_state()),
             rules=RulesState(**self.rules.__dict__),
             economy=EconomyState(**self.economy.__dict__),
             next_entity_id=next_id,
@@ -769,6 +777,8 @@ class Game:
             game.respawn_rng = Rng.from_state(state.respawn_rng.model_dump())
         if state.shop_rng is not None:
             game.shop_rng = Rng.from_state(state.shop_rng.model_dump())
+        if state.gather_rng is not None:
+            game.gather_rng = Rng.from_state(state.gather_rng.model_dump())
         game.rules = Rules(**state.rules.model_dump())
         game.economy = EconomyRules(**state.economy.model_dump())
         game.turn = state.turn

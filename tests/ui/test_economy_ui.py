@@ -3,7 +3,7 @@
 import flet as ft
 
 from tidewrack.core.engine.components import Health, Position, Shop
-from tidewrack.core.engine.game import AcceptQuest
+from tidewrack.core.engine.game import AcceptQuest, Wait
 from tidewrack.services.content import load_bundled_content
 
 CONTENT = load_bundled_content()
@@ -528,3 +528,95 @@ def test_eating_from_the_satchel_and_the_status_row(tmp_path):
     assert session.game.view().fed.name == "Mussel Stew"
     shell.select(0)
     assert "· Fed: Mussel Stew (60)" in shell.explore.status.value
+
+
+def test_satchel_sections_fold_and_stay_folded(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    for m in ("material.kelp", "material.hide"):
+        crafting.add(session.game, MaterialStack(make_material(CONTENT.materials[m]), 2), "x")
+    shell.select(1)
+    inventory = shell.inventory
+    inventory.show_tab("satchel")
+    tiles = [c for c in inventory.satchel.controls if isinstance(c, ft.ExpansionTile)]
+    assert [t.title.value for t in tiles] == [
+        "Meals (0)",
+        "Ingredients (1)",
+        "Materials (1)",
+        "Recipes you know (4)",
+    ]
+    assert all(t.expanded for t in tiles)
+    inventory.satchel_open["materials"] = False  # as if folded by a tap
+    inventory.refresh()
+    tiles = [c for c in inventory.satchel.controls if isinstance(c, ft.ExpansionTile)]
+    assert [t.expanded for t in tiles] == [True, True, False, True]
+
+
+def _dot(shell, index) -> bool:
+    return shell.navigation_bar.destinations[index].icon.badge is not None
+
+
+def _dotted(segment) -> bool:
+    icon_dot = isinstance(segment.icon, ft.Icon) and segment.icon.badge is not None
+    return icon_dot or any(getattr(c, "data", None) == "dot" for c in _walk(segment.label))
+
+
+def test_unread_dots_on_the_navigation_bar(tmp_path):
+    from tidewrack.core.engine.components import Quest
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    assert not any(_dot(shell, i) for i in range(4))  # nothing new when the world opens
+    quest = game.view().board[0]
+    shell.explore.act(AcceptQuest(quest.id))
+    assert _dot(shell, 2)  # a new quest
+    shell.select(2)
+    assert not _dot(shell, 2)  # seen
+    shell.select(0)
+    next(q for _, (q,) in game.world.query(Quest) if q.quest_id == quest.id).state = "ready"
+    shell.update_dots()
+    assert _dot(shell, 2)
+    shell.select(2)
+    assert _dot(shell, 2)  # stays until it's turned in
+
+
+def test_new_gear_dots_the_inventory_and_its_pack_tab(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    _buy_first(shell)
+    assert _dot(shell, 1)
+    shell.select(1)
+    inventory = shell.inventory
+    assert inventory.tab == "equipped" and _dotted(inventory.tabs.segments[1])
+    assert _dot(shell, 1)  # still unseen: you're on Equipped
+    inventory.show_tab("pack")
+    shell.update_dots()
+    assert not _dotted(inventory.tabs.segments[1]) and not _dot(shell, 1)
+
+
+def test_a_meal_running_out_dots_the_inventory(tmp_path):
+    from tidewrack.core.engine.components import Meal, WellFed
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    game.world.add(game.player, WellFed(Meal("meal.x", "Broth", "", regen=1, turns=60), 11))
+    shell.explore.act(Wait())
+    assert _dot(shell, 1)  # 10 turns left
+
+
+def test_the_smithy_dots_tabs_with_something_you_can_do(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack, Wallet
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    game.world.get(game.player, Wallet).gold = 100
+    crafting.add(game, MaterialStack(make_material(CONTENT.materials["material.timber"]), 1), "x")
+    shell.explore.open("Smithy")
+    [tabs] = [c for c in _walk(shell.explore.shops) if isinstance(c, ft.SegmentedButton)]
+    dotted = [s.value for s in tabs.segments if isinstance(s.label, ft.Control) and _dotted(s)]
+    assert dotted == ["upgrade"]  # the worn Driftwood Club takes 1 timber; no recipe yet

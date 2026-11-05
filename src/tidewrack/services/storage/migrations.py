@@ -690,6 +690,188 @@ def _not_ingredients(value: Any) -> None:
             _not_ingredients(child)
 
 
+# What v11 gave every world, written out so later content changes can't alter this
+# migration: each wild kind of place's regrowth table (chance per room, materials
+# with weights, count range). A material is (id, name, description, value, ingredient).
+MIGRATED_REGROWTH = {
+    "Mine": (
+        0.3,
+        [
+            (
+                (
+                    "material.iron_ore",
+                    "Iron Ore",
+                    "Rust-red lumps from the old workings. A smith can make something of it.",
+                    2,
+                    False,
+                ),
+                4.0,
+            ),
+            (
+                (
+                    "material.timber",
+                    "Seasoned Timber",
+                    "Straight, dry lengths of forest wood.",
+                    2,
+                    False,
+                ),
+                1.0,
+            ),
+            (
+                (
+                    "material.mushrooms",
+                    "Mushrooms",
+                    "Pale caps from damp, dark places. The safe kind, probably.",
+                    1,
+                    True,
+                ),
+                2.0,
+            ),
+        ],
+        1,
+        3,
+    ),
+    "Sea Caves": (
+        0.35,
+        [
+            (
+                (
+                    "material.driftwood",
+                    "Driftwood",
+                    "Sea-bleached wood, light and hard. Good for hafts and frames.",
+                    1,
+                    False,
+                ),
+                3.0,
+            ),
+            (
+                (
+                    "material.crab_shell",
+                    "Crab Shell",
+                    "Plates of shell, harder than they look.",
+                    2,
+                    False,
+                ),
+                1.0,
+            ),
+            (
+                (
+                    "material.kelp",
+                    "Kelp",
+                    "Long brown ribbons of it, salty and rubbery. Better in a broth.",
+                    1,
+                    True,
+                ),
+                3.0,
+            ),
+            (
+                (
+                    "material.mussels",
+                    "Mussels",
+                    "Blue-black shells prised off the rocks, still closed.",
+                    1,
+                    True,
+                ),
+                2.0,
+            ),
+        ],
+        1,
+        3,
+    ),
+    "Forest": (
+        0.3,
+        [
+            (
+                (
+                    "material.timber",
+                    "Seasoned Timber",
+                    "Straight, dry lengths of forest wood.",
+                    2,
+                    False,
+                ),
+                3.0,
+            ),
+            (("material.hide", "Hide", "A rough hide, scraped and salted.", 2, False), 1.0),
+            (
+                (
+                    "material.wild_herbs",
+                    "Wild Herbs",
+                    "Thyme, sorrel and something peppery, bundled with grass.",
+                    2,
+                    True,
+                ),
+                2.0,
+            ),
+            (
+                (
+                    "material.mushrooms",
+                    "Mushrooms",
+                    "Pale caps from damp, dark places. The safe kind, probably.",
+                    1,
+                    True,
+                ),
+                2.0,
+            ),
+            (
+                (
+                    "material.black_truffle",
+                    "Black Truffle",
+                    "A knobbly black lump that smells of earth and money. Rare.",
+                    4,
+                    True,
+                ),
+                0.4,
+            ),
+        ],
+        1,
+        2,
+    ),
+}
+
+
+def _v10_to_v11(envelope: Envelope) -> Envelope:
+    # v11 lets gathering spots grow back: every wild location of a kind v11 regrows
+    # gets a Grower (its kind's table; a cap of about its rooms × chance, at least
+    # 2). The saved gathering stream defaults to one derived from the seed.
+    game = envelope["game"]
+    next_id = game["next_entity_id"]
+    for location in game["world"]["locations"]:
+        table = MIGRATED_REGROWTH.get(location["kind"])
+        if table is None:
+            continue
+        chance, materials, low, high = table
+        rooms = sum(1 for r in location["rooms"] if r["id"] not in location["gates"])
+        game["entities"].append(
+            {
+                "id": next_id,
+                "components": {
+                    "Grower": {
+                        "location": location["id"],
+                        "cap": max(2, round(rooms * chance)),
+                        "materials": [
+                            {
+                                "material": {
+                                    "material_id": m,
+                                    "name": name,
+                                    "description": description,
+                                    "value": value,
+                                    "ingredient": ingredient,
+                                },
+                                "weight": weight,
+                            }
+                            for (m, name, description, value, ingredient), weight in materials
+                        ],
+                        "low": low,
+                        "high": high,
+                    }
+                },
+            }
+        )
+        next_id += 1
+    game["next_entity_id"] = next_id
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -701,6 +883,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     7: _v7_to_v8,
     8: _v8_to_v9,
     9: _v9_to_v10,
+    10: _v10_to_v11,
 }
 
 

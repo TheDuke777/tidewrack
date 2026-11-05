@@ -52,6 +52,7 @@ class EconomyState(Schema):
     buyback: int = Field(default=STANDARD_ECONOMY.buyback, ge=0)
     meal_markup: float = Field(default=STANDARD_ECONOMY.meal_markup, ge=1)
     cook_fee: float = Field(default=STANDARD_ECONOMY.cook_fee, ge=0)
+    regrow_every: int = Field(default=STANDARD_ECONOMY.regrow_every, ge=1)
 
 
 class EntityState(Schema):
@@ -70,6 +71,7 @@ class GameState(Schema):
     encounter_rng: RngState | None = None
     respawn_rng: RngState | None = None  # None in saves before enemies returned (v7)
     shop_rng: RngState | None = None  # None in saves before shops (v8)
+    gather_rng: RngState | None = None  # None in saves before regrowth (v11)
     rules: RulesState = RulesState()
     economy: EconomyState = EconomyState()
     next_entity_id: int = Field(ge=1)

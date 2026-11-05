@@ -34,32 +34,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -68,7 +68,7 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 10
+    assert GENERATOR_VERSION == 11
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
@@ -82,7 +82,7 @@ GOLDEN_QUESTS = "836fe7259aeb65fd83ce0bc58f41cc6466f467c45be2cfd69c7766b3b139dbd
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
 GOLDEN_ENEMIES = "f09be01d4d0f5c513c4dc939cb558b1f1dbe6e8fc408b53f1011edd102a13077"
 GOLDEN_SHOPS = "f7a74b3214fc9b304f3baf645165ee240bc7d626e62c3c0754ce6c33a5dac36c"
-GOLDEN_GATHERING = "84a9666d45ecc6b04586b771d7025d51e3e47a19773c48d21a64e0a171ee0c05"
+GOLDEN_GATHERING = "348f48d732ce6f438ccd34161479270a8b252fdc93c955c178a25ae2eea2b859"
 GOLDEN_RECIPES = "1bd997b26f118a4ae5da5819a3c24c73a3fc1aa7b1056047d9bf012db13d3077"
 GOLDEN_FINDS = "3497af4ed6ebf32c1744084326575d128310b5061dd52117f6069b6d4ee0e506"
 

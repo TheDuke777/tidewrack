@@ -19,7 +19,8 @@ when the same seed would produce different results (RNG or generation changes).
 #    buy-back, materials and crafting fields; more EconomyRules)
 # 10: cooking (Meals and WellFed on the player; `ingredient` on Material; Shop
 #    `cooks` and `meals`; meal EconomyRules)
-SCHEMA_VERSION = 10
+# 11: gathering regrows (Grower components; gather RNG stream; regrow_every)
+SCHEMA_VERSION = 11
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
@@ -30,4 +31,5 @@ SCHEMA_VERSION = 10
 # 9: enemies drop materials; most gear is upgradable; towns get a Market; new
 #    worlds also get gathering and recipes (procgen/material_gen.py)
 # 10: ingredients in gathering and beast drops; taverns cook; markets sell staples
-GENERATOR_VERSION = 10
+# 11: new worlds also get Growers; sea caves have more gathering spots
+GENERATOR_VERSION = 11

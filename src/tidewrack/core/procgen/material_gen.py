@@ -33,6 +33,8 @@ from tidewrack.core.data.schemas import (
     WorldRecipeSchema,
 )
 from tidewrack.core.engine.components import (
+    GrowEntry,
+    Grower,
     Material,
     MaterialDrop,
     MaterialStack,
@@ -139,6 +141,33 @@ def generate_gathering(seed: int, world: Overworld, content: Content) -> list[Ga
                 Gathered(location.id, room.id, MaterialStack(make_material(material), count))
             )
     return placed
+
+
+def generate_growers(world: Overworld, content: Content) -> list[Grower]:
+    """Each wild location's regrowth: its roomset's gathering table, and a cap of
+    about as many spots as it started with (at least 2). No randomness here; what
+    regrows is rolled during play, on the game's saved gathering stream."""
+    roomsets = {r.name: r for _, r in sorted(content.roomsets.items())}
+    growers = []
+    for location in world.locations.values():
+        roomset = roomsets.get(location.kind)
+        if roomset is None or not roomset.gathering.chance:
+            continue
+        table = roomset.gathering
+        rooms = sum(1 for r in location.rooms if r not in location.gates)
+        growers.append(
+            Grower(
+                location=location.id,
+                cap=max(2, round(rooms * table.chance)),
+                materials=[
+                    GrowEntry(make_material(content.materials[m]), w)
+                    for m, w in table.materials.items()
+                ],
+                low=table.count[0],
+                high=table.count[1],
+            )
+        )
+    return growers
 
 
 def gathering_hash(placed: Iterable[Gathered]) -> str:

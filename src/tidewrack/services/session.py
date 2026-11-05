@@ -23,6 +23,7 @@ from tidewrack.core.engine.components import (
     Bounty,
     Clue,
     Enemy,
+    Grower,
     MaterialStack,
     Quest,
     QuestItem,
@@ -38,6 +39,7 @@ from tidewrack.core.procgen.enemy_gen import generate_enemies
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
 from tidewrack.core.procgen.material_gen import (
     generate_gathering,
+    generate_growers,
     generate_recipes,
     known_recipes,
 )
@@ -73,6 +75,8 @@ class GameSession:
         self.content_version = content_version
         self.clock = clock
         self.from_backup = from_backup
+        # Called after every command (e.g. the UI's unread dots); not saved.
+        self.listeners: list[Callable[[TurnResult], None]] = []
 
     # --- creating and opening ----------------------------------------------------
 
@@ -114,6 +118,7 @@ class GameSession:
             gathering=generate_gathering(seed, world, content),
             recipes=known_recipes(content),
             recipe_pages=recipes.pages,
+            growers=generate_growers(world, content),
         )
 
     @classmethod
@@ -141,6 +146,7 @@ class GameSession:
         gathering: Iterable[tuple[str, str, MaterialStack]] = (),
         recipes: Iterable[Recipe] = (),
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
+        growers: Iterable[Grower] = (),
     ) -> GameSession:
         """Start a world in a new slot (saved immediately)."""
         game = Game(
@@ -161,6 +167,7 @@ class GameSession:
             gathering,
             recipes,
             recipe_pages,
+            growers,
         )
         now = clock()
         meta = SlotMeta(
@@ -195,6 +202,8 @@ class GameSession:
         result = self.game.perform(command)
         if result.events:
             self.save()
+        for listener in self.listeners:
+            listener(result)
         return result
 
     def save(self) -> None:

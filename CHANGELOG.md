@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Gathering spots grow back. Every so often each wild place regrows a spot
+  in an empty room (never the one you're in), up to about as many as it
+  started with, so materials and ingredients don't run out. Worlds from
+  earlier versions regrow too.
+- Unread dots:
+  - Quests: a quest is ready to turn in, or one has been added since you
+    last looked.
+  - Codex: you've met a new foe or learned more about one.
+  - Inventory: new gear in your pack, a new kind of material or meal, a new
+    recipe, or your meal has 10 turns or fewer left. The Pack and Satchel
+    tabs get their own dots.
+  - Smithy and Tavern tabs: an upgrade you can afford for gear you have on,
+    or something you can craft or cook right now.
+
+### Changed
+- The Satchel tab's Meals, Ingredients, Materials and Recipes are
+  collapsible sections with counts.
+- Sea caves have more to gather (kelp and mussels were too scarce).
+
 ## [0.8.2-beta.1] - 2026-11-05
 
 ### Added

@@ -25,6 +25,7 @@ from tidewrack.core.economy.value_model import (
 )
 from tidewrack.core.engine.components import (
     Carried,
+    Grower,
     Materials,
     MaterialStack,
     Position,
@@ -245,3 +246,39 @@ def upgrade(game: Game, entity: int) -> None:
 
 def _and(names: list[str]) -> str:
     return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+# --- systems -----------------------------------------------------------------------
+
+
+def regrow_system(game: Game) -> None:
+    """Per turn: on every Nth turn, each wild place under its cap regrows one
+    gathering spot, in an empty non-gate room other than the one you're in, rolled
+    on the saved gathering stream. Keeps materials and ingredients from running out."""
+    if game.turn % game.economy.regrow_every:
+        return
+    here = game.world.get(game.player, Position)
+    lying: dict[str, set[str]] = {}
+    for _, (_, position) in game.world.query(MaterialStack, Position):
+        lying.setdefault(position.location, set()).add(position.room)
+    for _, (grower,) in game.world.query(Grower):
+        spots = lying.get(grower.location, set())
+        if not grower.materials or len(spots) >= grower.cap:
+            continue
+        location = game.overworld.location(grower.location)
+        rooms = [
+            r
+            for r in location.rooms
+            if r not in location.gates
+            and r not in spots
+            and (location.id, r) != (here.location, here.room)
+        ]
+        if not rooms:
+            continue
+        rng = game.gather_rng
+        room = rng.choice(rooms)
+        entry = rng.weighted_choice(grower.materials, [e.weight for e in grower.materials])
+        count = rng.randint(grower.low, grower.high)
+        game.world.create(
+            MaterialStack(copy.deepcopy(entry.material), count), Position(location.id, room)
+        )

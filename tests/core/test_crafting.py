@@ -371,3 +371,60 @@ def test_generated_worlds_have_markets_and_smithies_that_craft(seed):
     assert any(s.crafts and s.upgrades for s in shops)
     assert any(s.materials and s.buys_materials for s in shops)
     assert len(session.game.inventory().recipes) == 4
+
+
+# --- regrowth ----------------------------------------------------------------------
+
+
+def test_wild_places_regrow_gathering_spots_up_to_their_cap():
+    from tidewrack.core.engine.components import GrowEntry, Grower
+
+    grower = Grower(CAVES.id, cap=2, materials=[GrowEntry(ORE, 1.0)], low=2, high=2)
+    economy = EconomyRules(regrow_every=1)
+    game = Game(7, WORLD, growers=[grower], economy=economy)
+    game.perform(Wait())
+    spots = [p for _, (_, p) in game.world.query(MaterialStack, Position)]
+    assert len(spots) == 1 and spots[0].location == CAVES.id
+    assert spots[0].room not in CAVES.gates
+    for _ in range(5):
+        game.perform(Wait())
+    spots = [p for _, (_, p) in game.world.query(MaterialStack, Position)]
+    assert len(spots) == 2 and len({p.room for p in spots}) == 2  # the cap, in two rooms
+    # Saving keeps the stream, so a loaded game regrows the same way.
+    loaded = Game.from_state(GameState.model_validate(game.to_state().model_dump()))
+    for g in (game, loaded):
+        stack = next(e for e, _ in g.world.query(MaterialStack, Position))
+        g.world.destroy(stack)  # as if gathered
+        g.perform(Wait())
+    rooms = [
+        sorted(p.room for _, (_, p) in g.world.query(MaterialStack, Position))
+        for g in (game, loaded)
+    ]
+    assert rooms[0] == rooms[1]
+
+
+def test_nothing_regrows_in_the_room_youre_standing_in():
+    from tidewrack.core.engine.components import GrowEntry, Grower
+
+    rooms = [r for r in CAVES.rooms if r not in CAVES.gates]
+    game = Game(
+        7,
+        WORLD,
+        growers=[Grower(CAVES.id, cap=len(rooms), materials=[GrowEntry(ORE, 1.0)])],
+        economy=EconomyRules(regrow_every=1),
+    )
+    position = game.world.get(game.player, Position)
+    position.location, position.room = CAVES.id, rooms[0]
+    for _ in range(len(rooms) + 3):
+        game.perform(Wait())
+    spots = {p.room for _, (_, p) in game.world.query(MaterialStack, Position)}
+    assert rooms[0] not in spots and len(spots) == len(rooms) - 1
+
+
+def test_new_worlds_regrow_every_wild_kind_of_place():
+    from tidewrack.core.procgen.material_gen import generate_growers
+
+    growers = generate_growers(WORLD, CONTENT)
+    kinds = {WORLD.location(g.location).kind for g in growers}
+    assert kinds == {loc.kind for loc in WORLD.locations.values()} - {"Town"}
+    assert all(g.cap >= 2 and g.materials for g in growers)

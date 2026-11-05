@@ -19,10 +19,13 @@ import flet as ft
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.components.pack_list import Confirm, PackChoices
+from tidewrack.ui.components.unread import Unread, dot_icon
 from tidewrack.ui.screens.codex import CodexScreen
 from tidewrack.ui.screens.game import GameScreen
 from tidewrack.ui.screens.inventory import InventoryScreen
 from tidewrack.ui.screens.quests import QuestsScreen
+
+EXPLORE, INVENTORY, QUESTS, CODEX = range(4)  # the tabs, in order
 
 
 class WorldShell:
@@ -34,6 +37,7 @@ class WorldShell:
         confirm: Confirm,
         notify: Callable[[str], None],
     ) -> None:
+        self.unread = Unread(session.game)
         choices = PackChoices()  # one set of pack filters and sort for the whole world
         shop_choices = PackChoices()  # and one for every shop's Buy tab
         self.explore = GameScreen(
@@ -46,7 +50,12 @@ class WorldShell:
             shop_choices=shop_choices,
         )
         self.inventory = InventoryScreen(
-            session, confirm=confirm, notify=notify, choices=choices, settings=settings
+            session,
+            confirm=confirm,
+            notify=notify,
+            choices=choices,
+            settings=settings,
+            unread=self.unread,
         )
         self.quests = QuestsScreen(session, confirm=confirm, notify=notify, settings=settings)
         self.codex = CodexScreen(session)
@@ -70,6 +79,7 @@ class WorldShell:
             on_change=lambda e: self.select(int(e.control.selected_index)),
         )
 
+        session.listeners.append(lambda _: self.update_dots())
         self.select(0)
 
     @property
@@ -79,5 +89,25 @@ class WorldShell:
     def select(self, index: int) -> None:
         for i, (screen, *_) in enumerate(self.tabs):
             screen.control.visible = i == index
-        self.tabs[index][0].refresh()
         self.navigation_bar.selected_index = index
+        if index == QUESTS:
+            self.unread.mark_seen("quests")
+        elif index == CODEX:
+            self.unread.mark_seen("codex")
+        self.tabs[index][0].refresh()  # Inventory marks its own inner tab as seen
+        self.update_dots()
+
+    def update_dots(self) -> None:
+        """A dot on a tab with something new in it (CLAUDE.md §8.5's "unread" marks)."""
+        dots = {
+            INVENTORY: (self.unread.inventory(), "Something new in your inventory"),
+            QUESTS: (self.unread.quests(), "A quest is ready or new"),
+            CODEX: (self.unread.codex(), "Something new in the codex"),
+        }
+        for index, destination in enumerate(self.navigation_bar.destinations):
+            dot, why = dots.get(index, (False, ""))
+            # The dot is extra: what it points at is always written in the tab itself.
+            _, _, icon, selected = self.tabs[index]
+            destination.icon = dot_icon(icon, dot)
+            destination.selected_icon = dot_icon(selected, dot)
+            destination.tooltip = why if dot else None
