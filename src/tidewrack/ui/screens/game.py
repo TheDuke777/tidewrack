@@ -70,6 +70,7 @@ LOG_BAR_HEIGHT = 36
 DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are absolute
 
 BOARD = "board"  # GameScreen.opened for the notice board; a shop is opened by its name
+BUY_TAB, SELL_TAB = "buy", "sell"
 
 
 def _confirm_now(_title: str, _message: str, _action: str, then: Callable[[], None]) -> None:
@@ -121,6 +122,7 @@ class GameScreen:
         self.confirm = confirm
         self.opened: str | None = None  # BOARD, a shop's name, or None
         self._buyer: str | None = None  # the open shop that buys gear
+        self.shop_tab = BUY_TAB  # a shop that buys gear has Buy and Sell tabs
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
@@ -276,6 +278,7 @@ class GameScreen:
     def open(self, place: str) -> None:
         """Open the notice board (BOARD) or the shop with this name."""
         self.opened = place
+        self.shop_tab = BUY_TAB
         self._scroll_details_to_top()
         self.refresh()
 
@@ -440,26 +443,27 @@ class GameScreen:
         """The open panel's title, your gold, and the way back to the room."""
         if self.opened is None:
             return []
+        # No back arrow: the one at the top of the screen goes back to the worlds.
         title = "Notice board" if self.opened == BOARD else self.opened
         return [
-            ft.IconButton(
-                icon=ft.Icons.ARROW_BACK,
-                tooltip=f"Back to {view.room}",
-                on_click=lambda _: self.close(),
-            ),
             ft.Column(
                 spacing=0,
                 expand=True,
                 controls=[
                     ft.Text(title, size=22, weight=ft.FontWeight.BOLD),
                     ft.Text(
-                        f"{view.room} · you have {view.gold} gold",
+                        f"{view.room} · {view.gold} gold",
                         size=13,
                         color=ft.Colors.ON_SURFACE_VARIANT,
                     ),
                 ],
             ),
-            ft.OutlinedButton(content="Leave", on_click=lambda _: self.close()),
+            ft.OutlinedButton(
+                content="Leave",
+                icon=ft.Icons.LOGOUT,
+                tooltip=f"Back to {view.room}",
+                on_click=lambda _: self.close(),
+            ),
         ]
 
     def _board(self, view: GameView) -> list[ft.Control]:
@@ -504,8 +508,34 @@ class GameScreen:
                     on_click=lambda _: self._act_and_tell(Rest()),
                 ),
             ]
-        if shop.wares or shop.inn_price is None:
-            controls.append(_section("For sale"))
+        pack = self.session.game.inventory().pack if shop.buys_gear else ()
+        if shop.buys_gear:
+            # Buy and Sell tabs, so a shelf full of your old gear doesn't bury the
+            # sell list (and the other way round).
+            controls.append(
+                ft.SegmentedButton(
+                    selected=[self.shop_tab],
+                    show_selected_icon=False,
+                    segments=[
+                        ft.Segment(
+                            value=BUY_TAB,
+                            label=f"Buy ({len(shop.wares)})",
+                            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                        ),
+                        ft.Segment(
+                            value=SELL_TAB,
+                            label=f"Sell ({len(pack)})",
+                            icon=ft.Icons.SELL_OUTLINED,
+                        ),
+                    ],
+                    on_change=lambda e: self._shop_tab(e.control.selected),
+                )
+            )
+        if shop.buys_gear and self.shop_tab == SELL_TAB:
+            self._buyer = shop.name
+            self.sell_list.show(pack)
+            controls.append(self.sell_list.control)
+            return controls
         for ware in shop.wares:
             label = f"Buy · {ware.price} gold"
             controls.append(
@@ -525,12 +555,12 @@ class GameScreen:
             controls.append(
                 ft.Text("Nothing for sale right now.", size=14, color=ft.Colors.ON_SURFACE_VARIANT)
             )
-        if shop.buys_gear:
-            controls.append(_section(f"Sell to the {shop.name}"))
-            self._buyer = shop.name
-            self.sell_list.show(self.session.game.inventory().pack)
-            controls.append(self.sell_list.control)
         return controls
+
+    def _shop_tab(self, selected: list[str] | None) -> None:
+        self.shop_tab = (selected or [BUY_TAB])[0]
+        self._scroll_details_to_top()
+        self.refresh()
 
     def _sell_actions(self, item: ItemView) -> list[ft.Control]:
         return [
@@ -621,7 +651,3 @@ class GameScreen:
             )
             for road in view.roads
         ]
-
-
-def _section(title: str) -> ft.Text:
-    return ft.Text(title, size=16, weight=ft.FontWeight.BOLD)

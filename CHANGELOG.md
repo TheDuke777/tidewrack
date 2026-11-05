@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The smithy has Buy and Sell tabs, so a shelf full of gear you've sold
+  doesn't bury your pack (or the other way round). It opens on Buy.
+- Shop and notice board headings fit better on a phone: no second back arrow
+  (the one at the top goes back to your worlds), and your gold is shorter.
+
 ## [0.7.0-beta.2] - 2026-11-04
 
 ### Added

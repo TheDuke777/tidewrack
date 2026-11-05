@@ -80,8 +80,8 @@ def test_the_smithy_lists_wares_and_buying_toasts(tmp_path):
     session, shell, toasts, _ = _shell(tmp_path)
     shell.explore.open("Smithy")
     shops = shell.explore.shops
-    assert "For sale" in _texts(shops)
-    assert any("you have 10 gold" in t for t in _texts(shell.explore.panel_heading))
+    assert _tabs(shell) == ["Buy (3)", "Sell (0)"]
+    assert any(t.endswith(" · 10 gold") for t in _texts(shell.explore.panel_heading))
     buys = _buttons(shops, "Buy · ")
     assert len(buys) == 3
     affordable = [b for b in buys if not b.disabled]
@@ -97,6 +97,9 @@ def test_selling_inside_the_smithy(tmp_path):
     shell.explore.open("Smithy")
     _buttons(shell.explore.shops, "Buy · ")[0].on_click(None)
     gold = session.game.view().gold
+    assert _buttons(shell.explore.shops, "Sell · ") == []  # on the Buy tab
+    shell.explore._shop_tab(["sell"])
+    assert _buttons(shell.explore.shops, "Buy · ") == [] and _tabs(shell)[1] == "Sell (1)"
     [sell] = _buttons(shell.explore.shops, "Sell · ")
     sell.on_click(None)
     assert asked and asked[0].startswith("Sell the ")
@@ -172,6 +175,7 @@ def _rich_smithy(tmp_path):
     shell.explore.open("Smithy")
     while buys := _buttons(shell.explore.shops, "Buy · "):
         buys[0].on_click(None)
+    shell.explore._shop_tab(["sell"])
     return session, shell, toasts, asked
 
 
@@ -210,3 +214,16 @@ def test_the_smithy_and_inventory_share_filters_and_sort(tmp_path):
     assert {i.id for i in smithy.shown} == {i.id for i in inventory.shown}
     prices = [i.sell_price for i in smithy.shown]
     assert prices == sorted(prices, reverse=True)
+
+
+def _tabs(shell) -> list[str]:
+    [tabs] = [c for c in _walk(shell.explore.shops) if isinstance(c, ft.SegmentedButton)]
+    return [segment.label for segment in tabs.segments]
+
+
+def test_reopening_a_shop_starts_on_the_buy_tab(tmp_path):
+    session, shell, _, _ = _rich_smithy(tmp_path)
+    assert shell.explore.shop_tab == "sell"
+    shell.explore.close()
+    shell.explore.open("Smithy")
+    assert shell.explore.shop_tab == "buy"
