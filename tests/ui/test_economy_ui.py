@@ -227,3 +227,25 @@ def test_reopening_a_shop_starts_on_the_buy_tab(tmp_path):
     shell.explore.close()
     shell.explore.open("Smithy")
     assert shell.explore.shop_tab == "buy"
+
+
+def test_the_buy_tab_filters_and_sorts_by_what_things_cost(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+    explore.open("Smithy")
+    buy = explore.buy_list
+    wares = {w.item.id: w for w in session.game.view().shops[0].wares}
+    assert buy.heading.value == f"For sale ({len(wares)})"
+    assert not buy.select_button.visible  # nothing to do with several at once
+    buy.sort.value = "price"
+    buy._sort_changed()
+    prices = [wares[i.id].price for i in buy.shown]
+    assert prices == sorted(prices, reverse=True) and buy.order_button.content == "Highest first"
+    slot = buy.shown[0].slot
+    buy.filters["slot"].value = slot
+    buy._filter_changed()
+    assert buy.shown and all(i.slot == slot for i in buy.shown)
+    # The Buy tab has its own choices: your pack's filters and sort are untouched.
+    shell.select(1)
+    assert shell.inventory.pack_list.choices.sort_by == "name"
+    assert shell.inventory.pack_list.filters["slot"].value == "all"

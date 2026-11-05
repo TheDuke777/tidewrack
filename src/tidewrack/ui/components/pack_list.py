@@ -1,10 +1,11 @@
-"""Your pack as a list you can filter, sort and select from.
+"""A list of gear you can filter, sort and select from.
 
-Used by the Inventory tab and by a shop that buys gear, so both look and behave
-the same. Filters (slot, affix, set) and the sort (name, ATK, DEF, HP, verdict or
-sale price, either way round) live in a PackChoices shared by every PackList in an
-open world, so what you pick in one place carries over to the other. Select mode
-is per list: the owner says which bulk actions it offers (drop, sell, ...).
+Your pack on the Inventory tab and in a smithy's Sell tab, and a smithy's wares on
+its Buy tab, so they all look and behave the same. Filters (slot, affix, set) and
+the sort (name, ATK, DEF, HP, verdict or price, either way round) live in a
+PackChoices; the two pack lists share one, so what you pick in one carries over to
+the other, and shops' Buy tabs share another. Select mode is per list: the owner
+says which bulk actions it offers (drop, sell, ...), or none.
 """
 
 from __future__ import annotations
@@ -72,13 +73,24 @@ SORTS = [
     (BY_NAME, "Name"),
     *((s, STAT_LABELS[s]) for s in STATS),
     ("verdict", "Verdict"),
-    (BY_PRICE, "Sale price"),
+    (BY_PRICE, "Price"),
 ]
 VERDICT_RANK = {"better": 3, "mixed": 2, "same": 1, "worse": 0}
 
 
-def sort_pack(items: Iterable[ItemView], by: str, descending: bool = True) -> list[ItemView]:
+def sale_price(item: ItemView) -> int:
+    return item.sell_price
+
+
+def sort_pack(
+    items: Iterable[ItemView],
+    by: str,
+    descending: bool = True,
+    price: Callable[[ItemView], int] = sale_price,
+) -> list[ItemView]:
     """The pack in `by` order; `descending` puts the most first (Z→A for names).
+    `price` is what BY_PRICE sorts on: what a shop pays, unless the list says
+    otherwise (a shop's wares sort by what they cost).
     Ties fall back to the verdict, then the name, so the order never jumps around
     between refreshes."""
     items = list(items)
@@ -93,7 +105,7 @@ def sort_pack(items: Iterable[ItemView], by: str, descending: bool = True) -> li
         if by == "verdict":
             return (verdict, gain(item))
         if by == BY_PRICE:
-            return (item.sell_price, verdict, gain(item))
+            return (price(item), verdict, gain(item))
         return (item.total[by], verdict, gain(item))
 
     ranked = sorted(items, key=lambda i: (i.name.casefold(), i.id))  # A→Z breaks ties
@@ -125,11 +137,13 @@ class PackList:
         self,
         choices: PackChoices,
         actions: Callable[[ItemView], list[ft.Control]],
-        bulk: Callable[[], list[BulkAction]],
+        bulk: Callable[[], list[BulkAction]] | None,
         refresh: Callable[[], None],
         title: str = "Pack",
         empty: str = "Your pack is empty.",
+        price: Callable[[ItemView], int] = sale_price,
     ) -> None:
+        self._price = price
         self.choices = choices
         self._refresh = refresh  # the owner re-reads the game and calls show()
         self._actions = actions
@@ -188,10 +202,11 @@ class PackList:
         shown_filter = PackFilter(**{n: d.value for n, d in self.filters.items()})
 
         kept = [i for i in self.items if shown_filter.keeps(i)]
-        self.shown = sort_pack(kept, choices.sort_by, choices.descending)
+        self.shown = sort_pack(kept, choices.sort_by, choices.descending, self._price)
         self.sort.value = choices.sort_by
         self.sort_row.visible = len(self.items) > 1
-        self.filter_row.visible = self.select_button.visible = bool(self.items)
+        self.filter_row.visible = bool(self.items)
+        self.select_button.visible = bool(self.items) and self._bulk is not None
         self.order_button.icon = (
             ft.Icons.ARROW_DOWNWARD if choices.descending else ft.Icons.ARROW_UPWARD
         )
@@ -215,13 +230,13 @@ class PackList:
                     disabled=not self.selected,
                     on_click=lambda _, a=action: a.run(self.chosen()),
                 )
-                for action in self._bulk()
+                for action in (self._bulk() if self._bulk is not None else [])
             ),
         ]
         if not self.items:
             self.cards.controls = [_muted(self.empty)]
         elif not self.shown:
-            self.cards.controls = [_muted("Nothing in your pack matches these filters.")]
+            self.cards.controls = [_muted("Nothing here matches these filters.")]
         else:
             self.cards.controls = [gear_compare_card(i, self._card_actions(i)) for i in self.shown]
 

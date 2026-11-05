@@ -35,8 +35,15 @@ class WorldShell:
         notify: Callable[[str], None],
     ) -> None:
         choices = PackChoices()  # one set of pack filters and sort for the whole world
+        shop_choices = PackChoices()  # and one for every shop's Buy tab
         self.explore = GameScreen(
-            session, settings, on_back=on_back, notify=notify, confirm=confirm, choices=choices
+            session,
+            settings,
+            on_back=on_back,
+            notify=notify,
+            confirm=confirm,
+            choices=choices,
+            shop_choices=shop_choices,
         )
         self.inventory = InventoryScreen(session, confirm=confirm, notify=notify, choices=choices)
         self.quests = QuestsScreen(session, confirm=confirm, notify=notify)

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The smithy's Buy tab can be filtered and sorted too, including by price.
+  It keeps its own choices, separate from your pack's.
+
 ## [0.7.0-beta.3] - 2026-11-04
 
 ### Changed

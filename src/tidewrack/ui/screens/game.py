@@ -116,6 +116,7 @@ class GameScreen:
         notify: Callable[[str], None] = lambda _: None,
         confirm: Confirm = _confirm_now,
         choices: PackChoices | None = None,
+        shop_choices: PackChoices | None = None,
     ) -> None:
         self.session = session
         self.notify = notify
@@ -142,6 +143,18 @@ class GameScreen:
             refresh=lambda: self.refresh(),
             empty="Nothing in your pack to sell. Take off worn gear on the Inventory "
             "tab to sell it.",
+        )
+        # A shop's wares on its Buy tab: filters and sort of their own, kept while open.
+        self._prices: dict[int, int] = {}  # ware item id -> what it costs
+        self._affordable: set[int] = set()
+        self.buy_list = PackList(
+            shop_choices if shop_choices is not None else PackChoices(),
+            actions=self._buy_actions,
+            bulk=None,
+            refresh=lambda: self.refresh(),
+            title="For sale",
+            empty="Nothing for sale right now.",
+            price=lambda item: self._prices.get(item.id, 0),
         )
         self.board = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.shops = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
@@ -536,26 +549,24 @@ class GameScreen:
             self.sell_list.show(pack)
             controls.append(self.sell_list.control)
             return controls
-        for ware in shop.wares:
-            label = f"Buy · {ware.price} gold"
-            controls.append(
-                gear_compare_card(
-                    ware.item,
-                    [
-                        ft.FilledButton(
-                            content=label if ware.affordable else f"{label} (not enough)",
-                            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
-                            disabled=not ware.affordable,
-                            on_click=lambda _, i=ware.item.id: self._act_and_tell(Buy(i)),
-                        )
-                    ],
-                )
-            )
-        if not shop.wares and shop.inn_price is None:
-            controls.append(
-                ft.Text("Nothing for sale right now.", size=14, color=ft.Colors.ON_SURFACE_VARIANT)
-            )
+        if shop.wares or shop.inn_price is None:
+            self._prices = {w.item.id: w.price for w in shop.wares}
+            self._affordable = {w.item.id for w in shop.wares if w.affordable}
+            self.buy_list.show(w.item for w in shop.wares)
+            controls.append(self.buy_list.control)
         return controls
+
+    def _buy_actions(self, item: ItemView) -> list[ft.Control]:
+        price, affordable = self._prices[item.id], item.id in self._affordable
+        label = f"Buy · {price} gold"
+        return [
+            ft.FilledButton(
+                content=label if affordable else f"{label} (not enough)",
+                icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                disabled=not affordable,
+                on_click=lambda _, i=item.id: self._act_and_tell(Buy(i)),
+            )
+        ]
 
     def _shop_tab(self, selected: list[str] | None) -> None:
         self.shop_tab = (selected or [BUY_TAB])[0]
