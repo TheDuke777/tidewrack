@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0-beta.2] - 2026-11-04
+
 ### Added
 - The smithy's sell list has the same filters, sorting and select mode as
   your pack on the Inventory tab, so you can sell several items at once.
