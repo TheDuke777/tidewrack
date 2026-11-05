@@ -203,11 +203,8 @@ class InventoryScreen:
         if self.unread is not None and self.control.visible:
             if self.tab in (PACK, SATCHEL):
                 self.unread.mark_seen(self.tab)  # you're looking at it now
-            fed_warning = self.unread.meal_running_out()
             pack.icon = dot_icon(ft.Icons.BACKPACK_OUTLINED, bool(self.unread.new(PACK)))
-            satchel.icon = dot_icon(
-                ft.Icons.INVENTORY_2_OUTLINED, bool(self.unread.new(SATCHEL)) or fed_warning
-            )
+            satchel.icon = dot_icon(ft.Icons.INVENTORY_2_OUTLINED, bool(self.unread.new(SATCHEL)))
         self.equipped.visible = self.tab == EQUIPPED
         self.pack_list.control.visible = self.tab == PACK
         self.satchel.visible = self.tab == SATCHEL

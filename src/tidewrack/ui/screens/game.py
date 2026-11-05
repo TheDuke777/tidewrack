@@ -177,6 +177,7 @@ class GameScreen:
         self._prices: dict[int, int] = {}  # ware item id -> what it costs
         self._affordable: set[int] = set()
         self._sold: set[int] = set()  # wares on the buy-back shelf
+        self._doable_seen: dict[str, set] = {}  # shop tab -> what you've seen doable there
         # A crafting smithy's Upgrade and Craft tabs: filterable lists of their own
         # (one set of choices shared by both), sorted by fee for "Price".
         self._upgrades: dict[int, UpgradeView] = {}
@@ -618,11 +619,17 @@ class GameScreen:
             if shop.crafts:
                 tabs.append((UPGRADE_TAB, f"Upgrade ({len(shop.upgrades)})", ft.Icons.UPGRADE))
                 tabs.append((CRAFT_TAB, f"Craft ({len(shop.recipes)})", ft.Icons.HANDYMAN_OUTLINED))
-                # Something you can do now: upgrade gear you have on, or craft a recipe.
-                if any(u.can_upgrade and u.item.equipped for u in shop.upgrades):
-                    dots.add(UPGRADE_TAB)
-                if any(r.can_craft for r in shop.recipes):
-                    dots.add(CRAFT_TAB)
+                # New things you can do: an upgrade for gear you have on, a recipe to craft.
+                dots = self._new_doable(
+                    {
+                        UPGRADE_TAB: {
+                            (u.item.id, u.upgraded.name)
+                            for u in shop.upgrades
+                            if u.can_upgrade and u.item.equipped
+                        },
+                        CRAFT_TAB: {r.id for r in shop.recipes if r.can_craft},
+                    }
+                )
             controls.append(self._tabs(tabs, dots=dots))
         if shop.buys_gear and self.shop_tab == SELL_TAB:
             self._buyer = shop.name
@@ -670,6 +677,14 @@ class GameScreen:
         )
 
     # --- crafting at a smithy ------------------------------------------------------
+
+    def _new_doable(self, doable: dict[str, set]) -> set[str]:
+        """Tabs with something you can now do that you haven't seen there yet. The tab
+        you're on counts as seen, so a dot clears once you look (and stays clear
+        until something new becomes doable)."""
+        if self.shop_tab in doable:
+            self._doable_seen[self.shop_tab] = set(doable[self.shop_tab])
+        return {tab for tab, now in doable.items() if now - self._doable_seen.get(tab, set())}
 
     def _materials_line(self, ingredients: bool = False) -> ft.Text:
         """What you have that this counter uses: crafting materials, or ingredients."""
@@ -764,7 +779,7 @@ class GameScreen:
             self._tabs(
                 tabs,
                 default=MENU_TAB,
-                dots={COOK_TAB} if any(m.can_cook for m in shop.menu) else set(),
+                dots=self._new_doable({COOK_TAB: {m.meal.id for m in shop.menu if m.can_cook}}),
             ),
         ]
         if self.shop_tab == MENU_TAB:

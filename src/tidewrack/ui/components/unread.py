@@ -3,8 +3,9 @@
 Each tracked part of the game (quests, codex, pack, satchel) has a set of keys
 for what's there now; whatever wasn't there when you last looked is new. "Seen"
 starts as everything present when the world opens, and is kept only while it's
-open (UI state, not saved), so reopening a world never shows stale dots. Some
-dots don't depend on seeing: a quest ready to turn in, a meal about to wear off.
+open (UI state, not saved), so reopening a world never shows stale dots. A dot
+always means a new thing you'll find when you look; the one exception is a quest
+ready to turn in, which stays until you hand it in.
 """
 
 from __future__ import annotations
@@ -15,8 +16,6 @@ import flet as ft
 
 from tidewrack.core.engine.game import Game
 
-MEAL_WARNING = 10  # turns left on a meal when the Inventory tab starts warning
-
 PARTS = ("quests", "codex", "pack", "satchel")
 
 
@@ -25,14 +24,8 @@ def keys(game: Game, part: str) -> set[Hashable]:
         log = game.quests()
         return {q.id for q in (*log.ready, *log.active)}
     if part == "codex":
-        found: set[Hashable] = set()
-        for foe in game.foes().foes:
-            found.add((foe.enemy_id, "met"))
-            if foe.stats is not None:
-                found.add((foe.enemy_id, "stats"))
-            if foe.drops is not None:
-                found.add((foe.enemy_id, "drops"))
-        return found
+        # New entries only: more learned about a foe you've met isn't a "new" thing.
+        return {foe.enemy_id for foe in game.foes().foes}
     inventory = game.inventory()
     if part == "pack":
         return {item.id for item in inventory.pack}
@@ -50,17 +43,11 @@ def dot_icon(icon: ft.IconData, dot: bool) -> ft.Icon:
 
 
 def dot_label(text: str, dot: bool) -> ft.Control | str:
-    """A tab label with a dot after it, for tabs without an icon."""
+    """A tab label with a dot on its corner, for tabs without an icon. The dot sits
+    over the text like an icon badge, so the tab keeps its size."""
     if not dot:
         return text
-    return ft.Row(
-        tight=True,
-        spacing=4,
-        controls=[
-            ft.Text(text),
-            ft.Container(width=8, height=8, border_radius=4, bgcolor=ft.Colors.ERROR, data="dot"),
-        ],
-    )
+    return ft.Text(f"{text}\u2002", badge=ft.Badge(small_size=8))  # the dot sits on the space
 
 
 class Unread:
@@ -82,9 +69,5 @@ class Unread:
     def codex(self) -> bool:
         return bool(self.new("codex"))
 
-    def meal_running_out(self) -> bool:
-        fed = self.game.view().fed
-        return fed is not None and fed.turns_left <= MEAL_WARNING
-
     def inventory(self) -> bool:
-        return bool(self.new("pack") or self.new("satchel")) or self.meal_running_out()
+        return bool(self.new("pack") or self.new("satchel"))

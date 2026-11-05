@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- A dot now always means something new to find. The Smithy and Tavern tabs
+  dot only for what's newly doable since you last looked there, and clear
+  once you've looked (they used to come back every time). There's no dot any
+  more for a meal running low, or for learning more about a foe already in
+  the Codex.
+
+### Fixed
+- Dots on the Smithy's tabs no longer push its tab labels out of line.
+
 ## [0.8.2-beta.2] - 2026-11-05
 
 ### Added

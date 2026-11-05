@@ -561,7 +561,8 @@ def _dot(shell, index) -> bool:
 
 def _dotted(segment) -> bool:
     icon_dot = isinstance(segment.icon, ft.Icon) and segment.icon.badge is not None
-    return icon_dot or any(getattr(c, "data", None) == "dot" for c in _walk(segment.label))
+    label_dot = isinstance(segment.label, ft.Text) and segment.label.badge is not None
+    return icon_dot or label_dot
 
 
 def test_unread_dots_on_the_navigation_bar(tmp_path):
@@ -597,14 +598,14 @@ def test_new_gear_dots_the_inventory_and_its_pack_tab(tmp_path):
     assert not _dotted(inventory.tabs.segments[1]) and not _dot(shell, 1)
 
 
-def test_a_meal_running_out_dots_the_inventory(tmp_path):
+def test_a_meal_running_out_doesnt_dot_the_inventory(tmp_path):
     from tidewrack.core.engine.components import Meal, WellFed
 
     session, shell, _, _ = _shell(tmp_path)
     game = session.game
     game.world.add(game.player, WellFed(Meal("meal.x", "Broth", "", regen=1, turns=60), 11))
     shell.explore.act(Wait())
-    assert _dot(shell, 1)  # 10 turns left
+    assert not _dot(shell, 1)  # 10 turns left: nothing new to find there
 
 
 def test_the_smithy_dots_tabs_with_something_you_can_do(tmp_path):
@@ -620,3 +621,47 @@ def test_the_smithy_dots_tabs_with_something_you_can_do(tmp_path):
     [tabs] = [c for c in _walk(shell.explore.shops) if isinstance(c, ft.SegmentedButton)]
     dotted = [s.value for s in tabs.segments if isinstance(s.label, ft.Control) and _dotted(s)]
     assert dotted == ["upgrade"]  # the worn Driftwood Club takes 1 timber; no recipe yet
+
+
+def test_a_smithy_dot_clears_once_you_look_and_stays_clear(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack, Wallet
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    game.world.get(game.player, Wallet).gold = 100
+    timber = make_material(CONTENT.materials["material.timber"])
+    crafting.add(game, MaterialStack(timber, 1), "x")
+    explore = shell.explore
+
+    def dotted():
+        [tabs] = [c for c in _walk(explore.shops) if isinstance(c, ft.SegmentedButton)]
+        return [s.value for s in tabs.segments if _dotted(s)]
+
+    explore.open("Smithy")
+    assert dotted() == ["upgrade"]
+    explore._shop_tab(["upgrade"])  # look
+    explore._shop_tab(["buy"])
+    assert dotted() == []  # seen; it stays clear
+    explore.close()
+    explore.open("Smithy")
+    assert dotted() == []
+    for material in ("material.hide", "material.sailcloth"):  # the coat's upgrade: new
+        crafting.add(game, MaterialStack(make_material(CONTENT.materials[material]), 1), "x")
+    explore.refresh()
+    assert dotted() == ["upgrade"]
+
+
+def test_learning_more_about_a_foe_isnt_a_new_codex_entry(tmp_path):
+    from tidewrack.core.engine.components import Codex, FoeEntry
+
+    session, shell, _, _ = _shell(tmp_path)
+    codex = session.game.world.get(session.game.player, Codex)
+    codex.foes["enemy.cave_rat"] = FoeEntry("enemy.cave_rat", "Cave Rat", "beast", "Rat.", {})
+    shell.update_dots()
+    assert _dot(shell, 3)  # a new foe
+    shell.select(3)
+    codex.kills["enemy.cave_rat"] = 3  # stats and drops revealed
+    shell.select(0)
+    assert not _dot(shell, 3)
