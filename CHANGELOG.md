@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0-beta.1] - 2026-11-04
+
 ### Added
 - Materials: hides, shells, ore, timber, sailcloth and rarer finds. Beasts drop
   them at last, people and spirits drop some too, and wild places have them

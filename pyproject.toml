@@ -1,7 +1,7 @@
 [project]
 name = "tidewrack"
 # Last released version (bumped by tools/release.py; do not edit by hand).
-version = "0.7.0"
+version = "0.8.0"
 description = "Text-based procgen roguelike"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -60,7 +60,7 @@ company = "Duke Digital"
 copyright = "Copyright (C) 2026 Duke Digital"
 # Android versionCode. Strictly increases every release; never reused.
 # Bumped by tools/release.py; do not edit by hand.
-build_number = 31
+build_number = 32
 
 # src/assets/icon.png is the icon for every platform. Keep it transparent and
 # filling the whole canvas: web, Windows and Linux show it as-is, and Flet
