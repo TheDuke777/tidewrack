@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- A collapsed card's stat line now counts set bonuses (it shows what happens
+  to your stats, like the open card's "You" column), and says when you'd gain
+  or lose a set bonus.
+
+### Changed
+- Gear cards are laid out so the name and its details aren't squeezed into a
+  narrow column: name, verdict and arrow on top, then the set and the
+  slot/upgrade line across the full width.
+
 ## [0.8.1-beta.1] - 2026-11-05
 
 ### Added

@@ -93,10 +93,14 @@ def summary(item: ItemView) -> ft.Control:
     comparison = item.comparison
     if comparison.equipped:
         return ft.Text(f"Gives {format_stats(item.total) or 'no stats'}", size=14)
-    changes = [row for row in comparison.rows if row.total_delta]
+    # What happens to *your* stats (set bonuses included), like the table's You column.
+    changes = [row for row in comparison.rows if row.change]
+    sets = [ft.Text(f"Gains set bonus: {s}", size=13) for s in comparison.sets_gained]
+    sets += [ft.Text(f"Loses set bonus: {s}", size=13) for s in comparison.sets_lost]
     if not changes:
-        return ft.Text("No change to your stats", size=14)
-    return ft.Row(
+        line: ft.Control = ft.Text("No change to your stats", size=14)
+        return ft.Column(spacing=2, controls=[line, *sets]) if sets else line
+    line = ft.Row(
         wrap=True,
         spacing=12,
         run_spacing=2,
@@ -106,12 +110,13 @@ def summary(item: ItemView) -> ft.Control:
                 tight=True,
                 controls=[
                     ft.Text(STAT_LABELS[row.stat], size=14, weight=ft.FontWeight.BOLD),
-                    stat_delta(row.total_delta),
+                    stat_delta(row.change),
                 ],
             )
             for row in changes
         ],
     )
+    return ft.Column(spacing=2, controls=[line, *sets]) if sets else line
 
 
 def fold_button(collapsed: bool, on_toggle: Callable[[], None]) -> ft.IconButton:
@@ -131,23 +136,35 @@ def gear_compare_card(
     on_toggle: Callable[[], None] | None = None,  # makes it foldable (tap the top row)
 ) -> ft.Card:
     comparison = item.comparison
-    header = ft.Row(
-        vertical_alignment=ft.CrossAxisAlignment.START,
+    # Top row: name, verdict, the fold arrow. Under it, full width: the set chip and
+    # the slot/upgrade/replaces line, so neither is squeezed beside the chips.
+    verdict = [] if comparison.equipped else [verdict_chip(comparison.verdict)]
+    gear_set = (
+        [set_chip(item.gear_set, item.gear_set_id, item.gear_set_color)]
+        if item.gear_set and item.gear_set_id
+        else []
+    )
+    header = ft.Column(
+        spacing=4,
         controls=[
-            ft.Column(
-                expand=True,
-                spacing=2,
+            ft.Row(
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Text(item.name, size=17, weight=ft.FontWeight.BOLD),
+                    ft.Text(item.name, size=17, weight=ft.FontWeight.BOLD, expand=True),
+                    *verdict,
+                    *([fold_button(collapsed, on_toggle)] if on_toggle else []),
+                ],
+            ),
+            ft.Row(
+                wrap=True,
+                spacing=8,
+                run_spacing=4,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    *gear_set,
                     ft.Text(subtitle(item), size=13, color=ft.Colors.ON_SURFACE_VARIANT),
                 ],
             ),
-            ft.Column(
-                spacing=6,
-                horizontal_alignment=ft.CrossAxisAlignment.END,
-                controls=chips(item),
-            ),
-            *([fold_button(collapsed, on_toggle)] if on_toggle else []),
         ],
     )
     top: ft.Control = (

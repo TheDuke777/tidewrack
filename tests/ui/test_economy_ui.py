@@ -454,3 +454,25 @@ def test_equipped_gear_starts_expanded(tmp_path):
     worn = shell.inventory.equipped.controls[0]
     assert "Gives" in " ".join(_texts(worn))
     assert any(isinstance(c, ft.IconButton) and c.tooltip == "Hide details" for c in _walk(worn))
+
+
+def test_a_collapsed_card_counts_set_bonuses(tmp_path):
+    from tidewrack.core.engine.components import Carried, Equipped
+    from tidewrack.core.procgen.gear_gen import make_item
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+
+    def gear(gear_id):
+        return make_item(CONTENT.gear[gear_id], CONTENT.gearsets)
+
+    game.world.create(gear("gear.oilskin_hood"), Carried(game.player), Equipped("head"))
+    game.world.create(gear("gear.sealskin_boots"), Carried(game.player))
+    shell.select(1)
+    shell.inventory.show_tab("pack")
+    [boots] = shell.inventory.pack_list.cards.controls
+    texts = _texts(boots)
+    # The boots' own DEF 1, plus the Drowned Watch's 2-piece bonus of DEF 2.
+    assert "▲ +3" in texts
+    assert any(t.startswith("Gains set bonus: Drowned Watch") for t in texts)
+    assert "Drowned Watch set" in texts  # the set chip, on the line under the name
