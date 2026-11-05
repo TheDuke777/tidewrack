@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows
 - Material You: on Android 12 and later the app takes its colours from your
   wallpaper, in light and dark. It picks up a new palette when you come back
   to the app (on Samsung, once you've applied it in the system settings).
+- The Tidewrack logo on the world list.
 
 ### Changed
 - The top-left back arrow in a world is now a menu with "Switch world", so

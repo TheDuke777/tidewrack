@@ -9,6 +9,23 @@ import flet as ft
 
 from tidewrack.services.storage import SlotListing
 
+LOGO = "tidewrack.png"  # src/assets; the black-backed art, like the icon and splash
+LOGO_SIZE = 88
+
+
+def logo() -> ft.Control:
+    """The logo as a rounded black tile, which reads the same on light and dark
+    themes (the transparent cut has a faint cyan ring on light surfaces)."""
+    return ft.Image(
+        src=LOGO,
+        width=LOGO_SIZE,
+        height=LOGO_SIZE,
+        fit=ft.BoxFit.CONTAIN,
+        border_radius=ft.BorderRadius.all(LOGO_SIZE * 0.22),
+        semantics_label="Tidewrack logo",
+        error_content=ft.Container(),  # missing art never breaks the picker
+    )
+
 
 class SlotPickerScreen:
     def __init__(
@@ -33,7 +50,14 @@ class SlotPickerScreen:
                     spacing=12,
                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                     controls=[
-                        ft.Text("Tidewrack", size=28, weight=ft.FontWeight.BOLD),
+                        ft.Row(
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=16,
+                            controls=[
+                                logo(),
+                                ft.Text("Tidewrack", size=28, weight=ft.FontWeight.BOLD),
+                            ],
+                        ),
                         ft.FilledButton(
                             content="New world", icon=ft.Icons.ADD, on_click=lambda _: on_new()
                         ),
