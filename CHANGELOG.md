@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0-beta.3] - 2026-11-05
+
 ### Changed
 - The smithy's crafting is split into Upgrade and Craft tabs, each with
   counts and the same filters and sorting as your pack ("Price" sorts by the
