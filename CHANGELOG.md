@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.2-beta.1] - 2026-11-05
+
 ### Added
 - Cooking. Every tavern has a kitchen with two tabs: a Menu of ready meals,
   and Cook, where you make any of seven meals from ingredients for a small
