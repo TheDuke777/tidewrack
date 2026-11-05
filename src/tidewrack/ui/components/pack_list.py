@@ -142,8 +142,10 @@ class PackList:
         title: str = "Pack",
         empty: str = "Your pack is empty.",
         price: Callable[[ItemView], int] = sale_price,
+        details: Callable[[ItemView], list[ft.Control]] | None = None,  # under each card
     ) -> None:
         self._price = price
+        self._details = details
         self.choices = choices
         self._refresh = refresh  # the owner re-reads the game and calls show()
         self._actions = actions
@@ -238,7 +240,12 @@ class PackList:
         elif not self.shown:
             self.cards.controls = [_muted("Nothing here matches these filters.")]
         else:
-            self.cards.controls = [gear_compare_card(i, self._card_actions(i)) for i in self.shown]
+            self.cards.controls = [
+                gear_compare_card(
+                    i, self._card_actions(i), self._details(i) if self._details else ()
+                )
+                for i in self.shown
+            ]
 
     def chosen(self) -> list[ItemView]:
         return [i for i in self.shown if i.id in self.selected]

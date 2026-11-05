@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The smithy's crafting is split into Upgrade and Craft tabs, each with
+  counts and the same filters and sorting as your pack ("Price" sorts by the
+  fee). Both share one set of filters, and the switch to hide what you can't
+  make covers both.
+
 ## [0.8.0-beta.2] - 2026-11-04
 
 ### Added

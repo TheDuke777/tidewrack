@@ -16,7 +16,7 @@ leave it or anything moves you; which panel is open is UI state, not saved.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import flet as ft
 
@@ -42,6 +42,7 @@ from tidewrack.core.engine.game import (
     ItemView,
     Look,
     Move,
+    RecipeView,
     Rest,
     Sell,
     SellMaterials,
@@ -50,6 +51,7 @@ from tidewrack.core.engine.game import (
     Travel,
     TurnInQuest,
     Upgrade,
+    UpgradeView,
     Wait,
 )
 from tidewrack.services.session import GameSession
@@ -84,7 +86,7 @@ LOG_BAR_HEIGHT = 36
 DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are absolute
 
 BOARD = "board"  # GameScreen.opened for the notice board; a shop is opened by its name
-BUY_TAB, SELL_TAB, CRAFT_TAB = "buy", "sell", "craft"
+BUY_TAB, SELL_TAB, UPGRADE_TAB, CRAFT_TAB = "buy", "sell", "upgrade", "craft"
 BULK = 5  # "Buy 5" at a market
 
 
@@ -164,6 +166,29 @@ class GameScreen:
         self._prices: dict[int, int] = {}  # ware item id -> what it costs
         self._affordable: set[int] = set()
         self._sold: set[int] = set()  # wares on the buy-back shelf
+        # A crafting smithy's Upgrade and Craft tabs: filterable lists of their own
+        # (one set of choices shared by both), sorted by fee for "Price".
+        self._upgrades: dict[int, UpgradeView] = {}
+        self._recipes: dict[int, RecipeView] = {}
+        craft_choices = PackChoices()
+        self.upgrade_list = PackList(
+            craft_choices,
+            actions=self._upgrade_actions,
+            bulk=None,
+            refresh=lambda: self.refresh(),
+            title="Upgrades",
+            price=lambda item: self._upgrades[item.id].fee,
+            details=self._upgrade_details,
+        )
+        self.craft_list = PackList(
+            craft_choices,
+            actions=self._craft_actions,
+            bulk=None,
+            refresh=lambda: self.refresh(),
+            title="Recipes",
+            price=lambda item: self._recipes[item.id].fee,
+            details=lambda item: [_costs(self._recipes[item.id].materials)],
+        )
         self.buy_list = PackList(
             shop_choices if shop_choices is not None else PackChoices(),
             actions=self._buy_actions,
@@ -553,15 +578,18 @@ class GameScreen:
                 (SELL_TAB, f"Sell ({len(pack)})", ft.Icons.SELL_OUTLINED),
             ]
             if shop.crafts:
-                tabs.append((CRAFT_TAB, "Craft", ft.Icons.HANDYMAN_OUTLINED))
+                tabs.append((UPGRADE_TAB, f"Upgrade ({len(shop.upgrades)})", ft.Icons.UPGRADE))
+                tabs.append((CRAFT_TAB, f"Craft ({len(shop.recipes)})", ft.Icons.HANDYMAN_OUTLINED))
             controls.append(self._tabs(tabs))
         if shop.buys_gear and self.shop_tab == SELL_TAB:
             self._buyer = shop.name
             self.sell_list.show(pack)
             controls.append(self.sell_list.control)
             return controls
+        if shop.crafts and self.shop_tab == UPGRADE_TAB:
+            return controls + self._upgrade_tab(shop)
         if shop.crafts and self.shop_tab == CRAFT_TAB:
-            return controls + self._craft(view, shop)
+            return controls + self._craft_tab(shop)
         if shop.wares or shop.inn_price is None:
             self._prices = {w.item.id: w.price for w in shop.wares}
             self._affordable = {w.item.id for w in shop.wares if w.affordable}
@@ -573,88 +601,89 @@ class GameScreen:
     def _tabs(self, tabs: list[tuple[str, str, ft.IconData]]) -> ft.SegmentedButton:
         if self.shop_tab not in {value for value, _, _ in tabs}:
             self.shop_tab = BUY_TAB
+        # Four tabs don't fit a phone with icons; the labels say it all.
+        icons = len(tabs) <= 3
         return ft.SegmentedButton(
             selected=[self.shop_tab],
             show_selected_icon=False,
-            segments=[ft.Segment(value=v, label=label, icon=icon) for v, label, icon in tabs],
+            segments=[
+                ft.Segment(value=v, label=label, icon=icon if icons else None)
+                for v, label, icon in tabs
+            ],
             on_change=lambda e: self._shop_tab(e.control.selected),
         )
 
     # --- crafting at a smithy ------------------------------------------------------
 
-    def _craft(self, view: GameView, shop: ShopView) -> list[ft.Control]:
-        """Upgrades for the gear you carry, then every recipe you know."""
+    def _materials_line(self) -> ft.Text:
         materials = self.session.game.inventory().materials
         have = ", ".join(f"{m.name} {m.count}" for m in materials) or "none yet"
-        controls: list[ft.Control] = [
-            _muted(f"Your materials: {have}. Markets sell the common ones."),
-            _heading("Upgrade your gear"),
-        ]
+        return _muted(f"Your materials: {have}. Markets sell the common ones.")
+
+    def _hide_switch(self) -> ft.Switch:
+        return ft.Switch(
+            label="Hide what I can't make",
+            value=self.craftable_only,
+            on_change=lambda e: self._craftable_only(bool(e.control.value)),
+        )
+
+    def _upgrade_tab(self, shop: ShopView) -> list[ft.Control]:
+        """Each piece of gear you carry, one level up, in a filterable list."""
+        ups = [u for u in shop.upgrades if not self.craftable_only or _enough(u.materials)]
+        # Shown as the upgraded item, but under the real item's id (what Upgrade takes).
+        self._upgrades = {u.item.id: u for u in ups}
+        self.upgrade_list.show(replace(u.upgraded, id=u.item.id) for u in ups)
+        controls: list[ft.Control] = [self._materials_line(), self._hide_switch()]
         if not shop.upgrades:
             controls.append(_muted("Nothing you carry can be upgraded further here."))
-        for up in shop.upgrades:
-            controls.append(
-                gear_compare_card(
-                    up.upgraded,
-                    [
-                        ft.FilledButton(
-                            content=f"Upgrade · {up.fee} gold",
-                            icon=ft.Icons.UPGRADE,
-                            disabled=not up.can_upgrade,
-                            on_click=lambda _, i=up.item.id: self._act_and_tell(Upgrade(i)),
-                        )
-                    ],
-                    details=[
-                        _muted(
-                            f"Your {up.item.name}"
-                            + (" (worn)" if up.item.equipped else "")
-                            + ", one level up."
-                        ),
-                        _costs(up.materials),
-                    ],
-                )
+        elif not ups:
+            controls.append(_muted("You don't have the materials for any upgrade yet."))
+        else:
+            controls.append(self.upgrade_list.control)
+        return controls
+
+    def _upgrade_actions(self, item: ItemView) -> list[ft.Control]:
+        up = self._upgrades[item.id]
+        return [
+            ft.FilledButton(
+                content=f"Upgrade · {up.fee} gold",
+                icon=ft.Icons.UPGRADE,
+                disabled=not up.can_upgrade,
+                on_click=lambda _, i=item.id: self._act_and_tell(Upgrade(i)),
             )
-        recipes = [
-            r for r in shop.recipes if not self.craftable_only or all(c.enough for c in r.materials)
         ]
-        count = (
-            f"{len(recipes)} of {len(shop.recipes)}" if self.craftable_only else len(shop.recipes)
-        )
-        controls.append(
-            ft.Row(
-                wrap=True,
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                controls=[
-                    _heading(f"Recipes ({count})"),
-                    ft.Switch(
-                        label="Hide what I can't make",
-                        value=self.craftable_only,
-                        on_change=lambda e: self._craftable_only(bool(e.control.value)),
-                    ),
-                ],
-            )
-        )
+
+    def _upgrade_details(self, item: ItemView) -> list[ft.Control]:
+        up = self._upgrades[item.id]
+        worn = " (worn)" if up.item.equipped else ""
+        return [_muted(f"Your {up.item.name}{worn}, one level up."), _costs(up.materials)]
+
+    def _craft_tab(self, shop: ShopView) -> list[ft.Control]:
+        """Every recipe you know, in a filterable list."""
+        recipes = [r for r in shop.recipes if not self.craftable_only or _enough(r.materials)]
+        # Recipe items aren't in the world yet; give each a stand-in id for the list.
+        self._recipes = {-(n + 1): r for n, r in enumerate(recipes)}
+        self.craft_list.show(replace(r.item, id=i) for i, r in self._recipes.items())
+        controls: list[ft.Control] = [self._materials_line(), self._hide_switch()]
         if not shop.recipes:
             controls.append(_muted("You don't know any recipes yet."))
         elif not recipes:
             controls.append(_muted("You don't have the materials for any recipe yet."))
-        for recipe in recipes:
-            controls.append(
-                gear_compare_card(
-                    recipe.item,
-                    [
-                        ft.FilledButton(
-                            content=f"Craft · {recipe.fee} gold",
-                            icon=ft.Icons.HANDYMAN_OUTLINED,
-                            disabled=not recipe.can_craft,
-                            on_click=lambda _, r=recipe.id: self._act_and_tell(Craft(r)),
-                        )
-                    ],
-                    details=[_costs(recipe.materials)],
-                )
-            )
+        else:
+            controls.append(self.craft_list.control)
         controls.append(_muted("Find more recipes out in the world, or earn them from quests."))
         return controls
+
+    def _craft_actions(self, item: ItemView) -> list[ft.Control]:
+        recipe = self._recipes[item.id]
+        return [
+            ft.FilledButton(
+                content=f"Craft · {recipe.fee} gold",
+                icon=ft.Icons.HANDYMAN_OUTLINED,
+                disabled=not recipe.can_craft,
+                on_click=lambda _, r=recipe.id: self._act_and_tell(Craft(r)),
+            )
+        ]
 
     # --- a market --------------------------------------------------------------------
 
@@ -889,3 +918,7 @@ def _material_card(name: str, description: str, line: str, actions: list[ft.Cont
             ),
         )
     )
+
+
+def _enough(costs: tuple[CostView, ...]) -> bool:
+    return all(c.enough for c in costs)

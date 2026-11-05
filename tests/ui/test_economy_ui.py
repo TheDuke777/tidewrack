@@ -80,7 +80,7 @@ def test_the_smithy_lists_wares_and_buying_toasts(tmp_path):
     session, shell, toasts, _ = _shell(tmp_path)
     shell.explore.open("Smithy")
     shops = shell.explore.shops
-    assert _tabs(shell) == ["Buy (3)", "Sell (0)", "Craft"]
+    assert _tabs(shell) == ["Buy (3)", "Sell (0)", "Upgrade (2)", "Craft (4)"]
     assert any(t.endswith(" · 10 gold") for t in _texts(shell.explore.panel_heading))
     buys = _buttons(shops, "Buy · ")
     assert len(buys) == 3
@@ -265,7 +265,7 @@ def _at(shell, pred):
     shell.explore.refresh()
 
 
-def test_the_craft_tab_upgrades_worn_gear_and_crafts_recipes(tmp_path):
+def test_the_upgrade_and_craft_tabs_upgrade_worn_gear_and_craft_recipes(tmp_path):
     from tidewrack.core.economy import crafting
     from tidewrack.core.engine.components import MaterialStack, Wallet
     from tidewrack.core.procgen.material_gen import make_material
@@ -275,26 +275,47 @@ def test_the_craft_tab_upgrades_worn_gear_and_crafts_recipes(tmp_path):
     game.world.get(game.player, Wallet).gold = 200
     for material, n in (("material.iron_ore", 6), ("material.timber", 3)):
         crafting.add(game, MaterialStack(make_material(CONTENT.materials[material]), n), "test")
-    shell.explore.open("Smithy")
-    shell.explore._shop_tab(["craft"])
-    texts = _texts(shell.explore.shops)
-    assert "Upgrade your gear" in texts and "Recipes (4)" in texts
+    explore = shell.explore
+    explore.open("Smithy")
+    explore._shop_tab(["upgrade"])
+    ups = explore.upgrade_list
+    assert ups.heading.value == "Upgrades (2)"  # the worn club and coat
     # The worn Driftwood Club can go to +1 (1 timber); its card says so.
-    assert any(t.startswith("Your Driftwood Club (worn)") for t in texts)
-    assert "Seasoned Timber 3/1 ✓" in texts
     [club] = [
         card
-        for card in shell.explore.shops.controls
-        if any(t.startswith("Your Driftwood Club") for t in _texts(card))
+        for card in ups.cards.controls
+        if any(t.startswith("Your Driftwood Club (worn)") for t in _texts(card))
     ]
+    assert "Seasoned Timber 3/1 ✓" in _texts(club)
     [upgrade] = _buttons(club, "Upgrade · ")
     upgrade.on_click(None)
     assert toasts[-1].startswith("It's now a Driftwood Club +1")
-    crafts = [b for b in _buttons(shell.explore.shops, "Craft · ") if not b.disabled]
-    assert crafts  # the Cutlass: 3 iron ore and 1 timber
+    assert explore.shop_tab == "upgrade"  # stays on the tab
+    explore._shop_tab(["craft"])
+    assert explore.craft_list.heading.value == "Recipes (4)"
+    crafts = [b for b in _buttons(explore.shops, "Craft · ") if not b.disabled]
+    assert len(crafts) == 1  # the Cutlass: 3 iron ore and 1 timber
     crafts[0].on_click(None)
     assert toasts[-1].endswith("gold fee.") and len(game.inventory().pack) == 1
-    assert shell.explore.shop_tab == "craft"  # stays on the tab
+    assert explore.shop_tab == "craft"
+
+
+def test_upgrade_and_craft_lists_filter_and_sort(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+    explore.open("Smithy")
+    explore._shop_tab(["craft"])
+    recipes = explore.craft_list
+    recipes.sort.value = "price"
+    recipes._sort_changed()
+    fees = [explore._recipes[i.id].fee for i in recipes.shown]
+    assert fees == sorted(fees, reverse=True)
+    recipes.filters["slot"].value = "Off hand"
+    recipes._filter_changed()
+    assert {i.name for i in recipes.shown} == {"Buckler", "Storm Lantern"}
+    assert recipes.heading.value == "Recipes (2 of 4 shown)"
+    explore._shop_tab(["upgrade"])  # the Upgrade tab shares the craft choices
+    assert explore.upgrade_list.choices is recipes.choices
 
 
 def test_short_materials_are_marked_in_words(tmp_path):
@@ -373,14 +394,13 @@ def test_the_craft_tab_can_hide_recipes_you_lack_materials_for(tmp_path):
     explore = shell.explore
     explore.open("Smithy")
     explore._shop_tab(["craft"])
-    assert "Recipes (4)" in _texts(explore.shops)
+    assert explore.craft_list.heading.value == "Recipes (4)"
     [switch] = [c for c in _walk(explore.shops) if isinstance(c, ft.Switch)]
     assert switch.value is False
     explore._craftable_only(True)
-    texts = _texts(explore.shops)
-    assert "Recipes (1 of 4)" in texts  # just the Cutlass: 3 iron ore, 1 timber
+    assert explore.craft_list.heading.value == "Recipes (1)"  # the Cutlass: 3 ore, 1 timber
     assert len(_buttons(explore.shops, "Craft · ")) == 1
     explore.close()
     explore.open("Smithy")
     explore._shop_tab(["craft"])
-    assert "Recipes (1 of 4)" in _texts(explore.shops)  # kept while the world is open
+    assert explore.craft_list.heading.value == "Recipes (1)"  # kept while the world is open
