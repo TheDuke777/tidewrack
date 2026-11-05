@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.1-beta.1] - 2026-11-05
+
 ### Added
 - Gear and quest cards can be collapsed to their top row and a one-line
   summary: what the gear changes (e.g. "DEF ▲ +1  HP ▲ +3"), or a quest's
