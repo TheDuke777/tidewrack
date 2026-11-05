@@ -16,11 +16,12 @@ import flet as ft
 from tidewrack.core.engine.game import ItemView
 from tidewrack.core.gear.compare import Comparison, format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
+from tidewrack.ui import theme
 from tidewrack.ui.components.set_chip import set_chip
 from tidewrack.ui.components.stat_delta import delta_color, stat_delta
 
 VERDICTS = {
-    "better": ("▲ Better", ft.Colors.GREEN),
+    "better": ("▲ Better", None),  # theme.good(), which depends on brightness
     "worse": ("▼ Worse", ft.Colors.ERROR),
     "mixed": ("◆ Mixed", ft.Colors.TERTIARY),
     "same": ("＝ Same", ft.Colors.ON_SURFACE_VARIANT),
@@ -30,6 +31,7 @@ STAT_COLUMN, DELTA_COLUMN = 44, 64
 
 def verdict_chip(verdict: str) -> ft.Container:
     label, color = VERDICTS[verdict]
+    color = color or theme.good()
     return ft.Container(
         padding=ft.Padding.symmetric(horizontal=10, vertical=4),
         border=ft.Border.all(1, color),

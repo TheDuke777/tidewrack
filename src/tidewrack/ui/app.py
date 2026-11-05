@@ -11,6 +11,7 @@ from tidewrack.core.data.loader import Content
 from tidewrack.services.session import GameSession, next_world_name
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
+from tidewrack.ui import theme
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
 from tidewrack.ui.shell import WorldShell
 from tidewrack.version import get_build_info, version_label
@@ -67,6 +68,7 @@ class App:
     def show_picker(self) -> None:
         global _open_world
         _open_world = None
+        theme.redraw = None
         self._show(
             SlotPickerScreen(
                 self.store.list_slots(),
@@ -87,6 +89,7 @@ class App:
             confirm=self.confirm,
             notify=self._notify,
         )
+        theme.redraw = lambda: shell.select(shell.current)
         self._show(shell.body, shell.navigation_bar)
         if session.from_backup:
             self._notify(

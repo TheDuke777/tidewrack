@@ -17,6 +17,25 @@ import flet as ft
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.system_colours import SystemColours, read_system_colours
 
+# Colours Material 3 has no role for. "Better" green must differ by brightness
+# to stay readable (a mid green is faint on light surfaces), so the theme
+# tracks which brightness is showing; `redraw` repaints the open world's tab
+# when it flips (set by App while a world is open).
+_dark = False
+redraw: Callable[[], None] | None = None
+
+
+def good() -> str:
+    """Green for "better" / gains, readable on this brightness's surfaces."""
+    return ft.Colors.GREEN_300 if _dark else ft.Colors.GREEN_800
+
+
+def set_dark(dark: bool) -> bool:
+    """Record the brightness showing; True if it changed."""
+    global _dark
+    changed, _dark = dark != _dark, dark
+    return changed
+
 
 def themes(colours: SystemColours | None) -> tuple[ft.Theme | None, ft.Theme | None]:
     """(light, dark) themes for a wallpaper scheme; (None, None) = flet's defaults."""
@@ -50,6 +69,8 @@ class Theming:
     def start(self) -> None:
         """Apply the cached scheme now; refresh it in the background."""
         self._apply(self.settings.load().system_colours)
+        set_dark(self.page.platform_brightness == ft.Brightness.DARK)
+        self.page.on_platform_brightness_change = self._brightness
         self.page.on_app_lifecycle_state_change = self._lifecycle
         self.background(self.refresh)
 
@@ -69,6 +90,12 @@ class Theming:
             self.settings.save(current.model_copy(update={"system_colours": colours}))
         if colours != self.shown:
             self._apply(colours)
+            self.page.update()
+
+    def _brightness(self, e: ft.PlatformBrightnessChangeEvent) -> None:
+        # theme_mode is SYSTEM, so the platform's brightness is the one showing.
+        if set_dark(e.brightness == ft.Brightness.DARK) and redraw is not None:
+            redraw()
             self.page.update()
 
     def _lifecycle(self, e: ft.AppLifecycleStateChangeEvent) -> None:

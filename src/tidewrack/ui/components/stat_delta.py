@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import flet as ft
 
+from tidewrack.ui import theme
+
 UP, DOWN, SAME = "▲", "▼", "＝"
 MINUS = "−"  # a real minus sign, not a hyphen
 
@@ -20,7 +22,7 @@ def delta_label(value: int) -> str:
 
 def delta_color(value: int) -> str:
     if value > 0:
-        return ft.Colors.GREEN
+        return theme.good()
     if value < 0:
         return ft.Colors.ERROR
     return ft.Colors.ON_SURFACE_VARIANT

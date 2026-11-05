@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The format follows
   wallpaper, in light and dark. It picks up a new palette when you come back
   to the app (on Samsung, once you've applied it in the system settings).
 
+### Changed
+- "▲ Better" and stat gains use a darker green on light themes and a
+  lighter one on dark themes, so they're easy to read on both.
+
 ### Fixed
 - When Android rebuilds the app's window (for example after a new system
   colour palette), you stay in the world you had open instead of landing back

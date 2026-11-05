@@ -4,6 +4,7 @@ import flet as ft
 
 from tidewrack.services.settings import Settings, SettingsStore
 from tidewrack.services.system_colours import SystemColours
+from tidewrack.ui import theme
 from tidewrack.ui.theme import Theming, themes
 
 OLD = SystemColours(light={"primary": "#112233"}, dark={"primary": "#445566"})
@@ -18,6 +19,8 @@ class FakePage:
     def __init__(self):
         self.theme = self.dark_theme = None
         self.on_app_lifecycle_state_change = None
+        self.on_platform_brightness_change = None
+        self.platform_brightness = None
         self.updates = 0
 
     def update(self):
@@ -107,3 +110,25 @@ def test_refreshes_run_on_a_thread_of_our_own(tmp_path):
             break
         time.sleep(0.01)
     assert done
+
+
+def test_good_green_suits_the_brightness(monkeypatch):
+    monkeypatch.setattr(theme, "_dark", False)
+    assert theme.good() == ft.Colors.GREEN_800  # dark enough on light surfaces
+    assert theme.set_dark(True)
+    assert theme.good() == ft.Colors.GREEN_300
+    assert not theme.set_dark(True)  # unchanged
+
+
+def test_a_brightness_flip_redraws_the_open_world(tmp_path, monkeypatch):
+    monkeypatch.setattr(theme, "_dark", False)
+    redrawn = []
+    monkeypatch.setattr(theme, "redraw", lambda: redrawn.append(theme.good()))
+    page, store, theming = make(tmp_path, OLD, [OLD])
+    page.platform_brightness = ft.Brightness.LIGHT
+    theming.start()
+    flip = page.on_platform_brightness_change
+    flip(ft.PlatformBrightnessChangeEvent(name="x", control=page, brightness=ft.Brightness.DARK))
+    flip(ft.PlatformBrightnessChangeEvent(name="x", control=page, brightness=ft.Brightness.DARK))
+    assert redrawn == [ft.Colors.GREEN_300]  # once, already in the new green
+    assert page.updates == 1
