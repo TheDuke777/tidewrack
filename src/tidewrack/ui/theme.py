@@ -30,6 +30,11 @@ def good() -> str:
     return ft.Colors.GREEN_300 if _dark else ft.Colors.GREEN_800
 
 
+def gold() -> str:
+    """Gold for the purse icon: deep amber on light surfaces, bright on dark."""
+    return ft.Colors.AMBER_300 if _dark else ft.Colors.AMBER_800
+
+
 def set_dark(dark: bool) -> bool:
     """Record the brightness showing; True if it changed."""
     global _dark

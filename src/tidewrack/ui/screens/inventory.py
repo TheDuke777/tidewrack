@@ -31,6 +31,7 @@ from tidewrack.core.gear.compare import format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.coins import coins, purse
 from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.components.meal_card import fed_line, meal_card
@@ -276,12 +277,17 @@ class InventoryScreen:
         game = self.session.game
         top = [f"HP {game.hp()}/{game.max_hp()}"]
         top += [f"{STAT_LABELS[s]} {total[s]}" for s in STATS if s != "hp"]
-        top.append(f"{view.gold} gold")
+        stats = "   ".join(top)
         lines: list[ft.Control] = [
-            ft.Text(
-                "   ".join(top),
-                size=20,
-                weight=ft.FontWeight.BOLD,
+            ft.Row(
+                wrap=True,
+                spacing=16,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                data=f"{stats}   {view.gold} gold",  # what it says, for tests and coins.label_of
+                controls=[
+                    ft.Text(stats, size=20, weight=ft.FontWeight.BOLD),
+                    purse(view.gold, size=20),
+                ],
             )
         ]
         base, *gear = view.sheet.sources
@@ -326,7 +332,7 @@ class InventoryScreen:
         if self._buyer:
             actions.append(
                 ft.FilledTonalButton(
-                    content=f"Sell · {item.sell_price} gold",
+                    content=coins(f"Sell · {item.sell_price} gold"),
                     icon=ft.Icons.SELL_OUTLINED,
                     on_click=lambda _, i=item: self._sell(i),
                 )

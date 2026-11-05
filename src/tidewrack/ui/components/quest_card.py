@@ -9,6 +9,7 @@ from collections.abc import Callable, Sequence
 import flet as ft
 
 from tidewrack.core.engine.game import QuestView
+from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.gear_compare_card import fold_button, gear_compare_card, verdict_chip
 
 KIND_ICONS = {
@@ -46,14 +47,14 @@ def reward_text(quest: QuestView) -> str:
 
 def reward_line(quest: QuestView) -> ft.Row:
     if quest.state == "done":
-        return ft.Row(controls=[ft.Text(reward_text(quest), size=14)])
+        return ft.Row(controls=[coins(reward_text(quest), size=14)])
     return ft.Row(
         wrap=True,
         spacing=8,
         run_spacing=6,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Text(reward_text(quest), size=14),
+            coins(reward_text(quest), size=14),
             verdict_chip(quest.reward.comparison.verdict),
         ],
     )
@@ -85,7 +86,7 @@ def quest_card(
     body.append(ft.Text(quest.progress, size=13, weight=ft.FontWeight.BOLD))
     if full_reward and not collapsed:
         gold = f" (and {quest.gold} gold)" if quest.gold else ""
-        body += [ft.Text(f"Reward{gold}", size=13), gear_compare_card(quest.reward)]
+        body += [coins(f"Reward{gold}", size=13), gear_compare_card(quest.reward)]
     else:
         body.append(reward_line(quest))
     if actions:

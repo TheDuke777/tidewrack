@@ -5,6 +5,7 @@ import flet as ft
 from tidewrack.core.engine.components import Health, Position, Shop
 from tidewrack.core.engine.game import AcceptQuest, Wait
 from tidewrack.services.content import load_bundled_content
+from tidewrack.ui.components.coins import label_of
 
 CONTENT = load_bundled_content()
 
@@ -46,7 +47,13 @@ def _walk(control):
 
 
 def _texts(control) -> list[str]:
-    return [c.value for c in _walk(control) if isinstance(c, ft.Text) and c.value]
+    """Text values, plus the sentence behind each coins()/purse() row."""
+    return [
+        label_of(c)
+        for c in _walk(control)
+        if (isinstance(c, ft.Text) and c.value)
+        or (isinstance(c, ft.Row) and isinstance(c.data, str))
+    ]
 
 
 def _buttons(control, starts: str) -> list[ft.Control]:
@@ -54,15 +61,14 @@ def _buttons(control, starts: str) -> list[ft.Control]:
         c
         for c in _walk(control)
         if isinstance(c, ft.FilledButton | ft.FilledTonalButton | ft.TextButton | ft.OutlinedButton)
-        and isinstance(c.content, str)
-        and c.content.startswith(starts)
+        and label_of(label_of(c.content)).startswith(starts)
     ]
 
 
 def test_shops_show_as_buttons_until_opened(tmp_path):
     session, shell, _, _ = _shell(tmp_path)
     explore = shell.explore
-    labels = [b.content for b in _buttons(explore.entrances, "")]
+    labels = [label_of(b.content) for b in _buttons(explore.entrances, "")]
     assert "Smithy · 3 for sale · buys gear · crafts" in labels
     assert explore.shops.controls == [] and explore.map.control.visible
     [smithy] = _buttons(explore.entrances, "Smithy")
@@ -85,7 +91,7 @@ def test_the_smithy_lists_wares_and_buying_toasts(tmp_path):
     buys = _buttons(shops, "Buy · ")
     assert len(buys) == 3
     affordable = [b for b in buys if not b.disabled]
-    assert affordable and all("(not enough)" in b.content for b in buys if b.disabled)
+    assert affordable and all("(not enough)" in label_of(b.content) for b in buys if b.disabled)
     affordable[0].on_click(None)
     assert toasts and toasts[0].endswith("gold.") and "added to your pack" in toasts[0]
     assert len(session.game.inventory().pack) == 1
@@ -138,7 +144,7 @@ def test_the_inn_rests_you_for_gold(tmp_path):
     game.world.get(game.player, Health).damage = 5
     shell.explore.refresh()
     [tavern_button] = _buttons(shell.explore.entrances, "Tavern · ")
-    assert tavern_button.content == "Tavern · beds 4 gold · kitchen"
+    assert label_of(tavern_button.content) == "Tavern · beds 4 gold · kitchen"
     tavern_button.on_click(None)
     [rest] = _buttons(shell.explore.shops, "Rest the night")
     rest.on_click(None)
@@ -207,7 +213,7 @@ def test_the_smithy_and_inventory_share_filters_and_sort(tmp_path):
     inventory._filter_changed()
     inventory.sort.value = "price"
     inventory._sort_changed()
-    assert inventory.order_button.content == "Highest first"
+    assert label_of(inventory.order_button.content) == "Highest first"
     shell.select(0)
     smithy = shell.explore.sell_list
     assert smithy.filters["slot"].value == slot and smithy.sort.value == "price"
@@ -240,7 +246,10 @@ def test_the_buy_tab_filters_and_sorts_by_what_things_cost(tmp_path):
     buy.sort.value = "price"
     buy._sort_changed()
     prices = [wares[i.id].price for i in buy.shown]
-    assert prices == sorted(prices, reverse=True) and buy.order_button.content == "Highest first"
+    assert (
+        prices == sorted(prices, reverse=True)
+        and label_of(buy.order_button.content) == "Highest first"
+    )
     slot = buy.shown[0].slot
     buy.filters["slot"].value = slot
     buy._filter_changed()
@@ -331,10 +340,12 @@ def test_the_market_sells_and_buys_materials(tmp_path):
     session, shell, toasts, asked = _shell(tmp_path)
     _at(shell, lambda s: s.buys_materials)
     [market] = _buttons(shell.explore.entrances, "Market · ")
-    assert market.content == "Market · materials"
+    assert label_of(market.content) == "Market · materials"
     market.on_click(None)
     assert _tabs(shell) == ["Buy (6)", "Sell (0)"]
-    [buy] = [b for b in _buttons(shell.explore.shops, "Buy 1 · ") if "3 gold" in b.content][:1]
+    [buy] = [
+        b for b in _buttons(shell.explore.shops, "Buy 1 · ") if "3 gold" in label_of(b.content)
+    ][:1]
     buy.on_click(None)
     assert toasts[-1].startswith("Bought 1 ") and session.game.view().gold < 10
     shell.explore._shop_tab(["sell"])
@@ -490,7 +501,7 @@ def test_the_tavern_kitchen_has_a_menu_and_a_cook_tab(tmp_path):
     texts = _texts(explore.shops)
     assert any(t.startswith("You haven't eaten.") for t in texts)
     assert _tabs(shell) == ["Menu (2)", "Cook (7)"]
-    [buy] = [b for b in _buttons(explore.shops, "Buy · ") if "6 gold" in b.content]
+    [buy] = [b for b in _buttons(explore.shops, "Buy · ") if "6 gold" in label_of(b.content)]
     buy.on_click(None)  # the Kelp Broth
     assert toasts[-1] == "Kelp Broth bought for 6 gold. Eat it any time."
     explore._shop_tab(["cook"])

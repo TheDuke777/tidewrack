@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 - The top-left back arrow in a world is now a menu with "Switch world", so
   leaving a shop or notice board no longer drops you at the world list by
   mistake. Settings and Help will live in this menu too.
+- Prices and rewards show a coin instead of the word "gold" (Buy · 12 ◉),
+  and your total in the Inventory has a gold money bag. Messages and the
+  log still say "gold"; screen readers say it everywhere.
 - "▲ Better" and stat gains use a darker green on light themes and a
   lighter one on dark themes, so they're easy to read on both.
 

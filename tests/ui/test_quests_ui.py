@@ -5,6 +5,7 @@ import flet as ft
 from tidewrack.core.engine.components import Quest
 from tidewrack.core.engine.game import AcceptQuest, MapNode, Move
 from tidewrack.services.content import load_bundled_content
+from tidewrack.ui.components.coins import label_of
 from tidewrack.ui.map_canvas import badges, label
 from tidewrack.ui.screens.game import BOARD
 from tidewrack.ui.screens.quests import EMPTY
@@ -42,14 +43,20 @@ def _walk(control):
 
 
 def _texts(control) -> list[str]:
-    return [c.value for c in _walk(control) if isinstance(c, ft.Text) and c.value]
+    """Text values, plus the sentence behind each coins()/purse() row."""
+    return [
+        label_of(c)
+        for c in _walk(control)
+        if (isinstance(c, ft.Text) and c.value)
+        or (isinstance(c, ft.Row) and isinstance(c.data, str))
+    ]
 
 
 def _buttons(control, text: str) -> list[ft.Control]:
     return [
         c
         for c in _walk(control)
-        if isinstance(c, ft.FilledButton | ft.FilledTonalButton) and c.content == text
+        if isinstance(c, ft.FilledButton | ft.FilledTonalButton) and label_of(c.content) == text
     ]
 
 
@@ -61,7 +68,7 @@ def test_the_board_shows_at_the_town_gate_and_accepting_moves_a_quest_to_the_log
         for b in _walk(explore.entrances)
         if str(getattr(b, "content", "")).startswith("Notice board · ")
     ]
-    assert entrance.content == "Notice board · 3 posted" and explore.board.controls == []
+    assert label_of(entrance.content) == "Notice board · 3 posted" and explore.board.controls == []
     entrance.on_click(None)  # opens the board, which takes over the screen
     board = explore.board
     assert "Notice board" in _texts(explore.panel_heading)
@@ -81,7 +88,11 @@ def test_the_board_shows_at_the_town_gate_and_accepting_moves_a_quest_to_the_log
     shell.quests.folds.toggle(session.game.quests().active[0].id)
     [active] = shell.quests.sections.controls
     assert any(t.startswith("Reward (and ") for t in _texts(active))  # the full card
-    assert [b for b in _walk(active) if isinstance(b, ft.TextButton) and b.content == "Abandon"]
+    assert [
+        b
+        for b in _walk(active)
+        if isinstance(b, ft.TextButton) and label_of(b.content) == "Abandon"
+    ]
 
 
 def test_turning_in_toasts_the_reward(tmp_path):
@@ -108,7 +119,9 @@ def test_the_board_hides_away_from_the_gate(tmp_path):
     explore.act(Move(first_exit))  # anything that moves you closes it
     assert explore.opened is None and explore.board.controls == []
     assert explore.exits.visible
-    assert not [b for b in explore.entrances.controls if b.content.startswith("Notice board")]
+    assert not [
+        b for b in explore.entrances.controls if label_of(b.content).startswith("Notice board")
+    ]
 
 
 def test_map_marks():

@@ -60,6 +60,7 @@ from tidewrack.core.engine.game import (
 )
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
@@ -527,7 +528,7 @@ class GameScreen:
                 parts.append("crafts")
             buttons.append(
                 ft.FilledTonalButton(
-                    content=f"{shop.name} · " + " · ".join(parts),
+                    content=coins(f"{shop.name} · " + " · ".join(parts)),
                     icon=ft.Icons.BED_OUTLINED
                     if shop.inn_price is not None
                     else ft.Icons.STOREFRONT_OUTLINED,
@@ -548,7 +549,7 @@ class GameScreen:
                 expand=True,
                 controls=[
                     ft.Text(title, size=22, weight=ft.FontWeight.BOLD),
-                    ft.Text(
+                    coins(
                         f"{view.room} · {view.gold} gold",
                         size=13,
                         color=ft.Colors.ON_SURFACE_VARIANT,
@@ -605,8 +606,10 @@ class GameScreen:
             controls += [
                 ft.Text(f"HP {view.hp}/{view.max_hp}", size=14),
                 ft.FilledTonalButton(
-                    content=f"Rest the night · {shop.inn_price} gold"
-                    + ("  (you're rested)" if full else ""),
+                    content=coins(
+                        f"Rest the night · {shop.inn_price} gold"
+                        + ("  (you're rested)" if full else "")
+                    ),
                     icon=ft.Icons.BED_OUTLINED,
                     disabled=full,
                     on_click=lambda _: self._act_and_tell(Rest()),
@@ -730,7 +733,7 @@ class GameScreen:
         up = self._upgrades[item.id]
         return [
             ft.FilledButton(
-                content=f"Upgrade · {up.fee} gold",
+                content=coins(f"Upgrade · {up.fee} gold"),
                 icon=ft.Icons.UPGRADE,
                 disabled=not up.can_upgrade,
                 on_click=lambda _, i=item.id: self._act_and_tell(Upgrade(i)),
@@ -764,7 +767,7 @@ class GameScreen:
         recipe = self._recipes[item.id]
         return [
             ft.FilledButton(
-                content=f"Craft · {recipe.fee} gold",
+                content=coins(f"Craft · {recipe.fee} gold"),
                 icon=ft.Icons.HANDYMAN_OUTLINED,
                 disabled=not recipe.can_craft,
                 on_click=lambda _, r=recipe.id: self._act_and_tell(Craft(r)),
@@ -799,7 +802,7 @@ class GameScreen:
                         item.meal,
                         [
                             ft.FilledButton(
-                                content=f"Buy · {item.price} gold",
+                                content=coins(f"Buy · {item.price} gold"),
                                 icon=ft.Icons.SHOPPING_BAG_OUTLINED,
                                 disabled=not item.affordable,
                                 on_click=lambda _, m=item.meal.id: self._act_and_tell(BuyMeal(m)),
@@ -818,7 +821,7 @@ class GameScreen:
                     item.meal,
                     [
                         ft.FilledButton(
-                            content=f"Cook · {item.fee} gold",
+                            content=coins(f"Cook · {item.fee} gold"),
                             icon=ft.Icons.SOUP_KITCHEN_OUTLINED,
                             disabled=not item.can_cook,
                             on_click=lambda _, m=item.meal.id: self._act_and_tell(Cook(m)),
@@ -850,14 +853,14 @@ class GameScreen:
                         f"You have {material.count} · {material.sell_price} gold each",
                         [
                             ft.FilledTonalButton(
-                                content=f"Sell 1 · {material.sell_price} gold",
+                                content=coins(f"Sell 1 · {material.sell_price} gold"),
                                 icon=ft.Icons.SELL_OUTLINED,
                                 on_click=lambda _, m=material.id: self._act_and_tell(
                                     SellMaterials(m, 1)
                                 ),
                             ),
                             ft.OutlinedButton(
-                                content=f"Sell all {material.count} · {total} gold",
+                                content=coins(f"Sell all {material.count} · {total} gold"),
                                 on_click=lambda _, m=material, s=shop.name: self._sell_all_of(m, s),
                             ),
                         ],
@@ -873,13 +876,13 @@ class GameScreen:
                     f"You have {m.count} · {ware.price} gold each",
                     [
                         ft.FilledButton(
-                            content=f"Buy 1 · {ware.price} gold",
+                            content=coins(f"Buy 1 · {ware.price} gold"),
                             icon=ft.Icons.SHOPPING_BAG_OUTLINED,
                             disabled=not ware.affordable,
                             on_click=lambda _, i=m.id: self._act_and_tell(BuyMaterials(i, 1)),
                         ),
                         ft.OutlinedButton(
-                            content=f"Buy {BULK} · {ware.price * BULK} gold",
+                            content=coins(f"Buy {BULK} · {ware.price * BULK} gold"),
                             disabled=ware.price * BULK > view.gold,
                             on_click=lambda _, i=m.id: self._act_and_tell(BuyMaterials(i, BULK)),
                         ),
@@ -904,7 +907,7 @@ class GameScreen:
         label = f"{'Buy back' if item.id in self._sold else 'Buy'} · {price} gold"
         return [
             ft.FilledButton(
-                content=label if affordable else f"{label} (not enough)",
+                content=coins(label if affordable else f"{label} (not enough)"),
                 icon=ft.Icons.SHOPPING_BAG_OUTLINED,
                 disabled=not affordable,
                 on_click=lambda _, i=item.id: self._act_and_tell(Buy(i)),
@@ -923,7 +926,7 @@ class GameScreen:
     def _sell_actions(self, item: ItemView) -> list[ft.Control]:
         return [
             ft.OutlinedButton(
-                content=f"Sell · {item.sell_price} gold",
+                content=coins(f"Sell · {item.sell_price} gold"),
                 icon=ft.Icons.SELL_OUTLINED,
                 on_click=lambda _, i=item: self._sell([i]),
             )
@@ -1063,7 +1066,7 @@ def _material_card(name: str, description: str, line: str, actions: list[ft.Cont
                 controls=[
                     ft.Text(name, size=17, weight=ft.FontWeight.BOLD),
                     _muted(description),
-                    ft.Text(line, size=14),
+                    coins(line, size=14),
                     ft.Row(wrap=True, spacing=8, run_spacing=8, controls=actions),
                 ],
             ),

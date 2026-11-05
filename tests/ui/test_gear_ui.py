@@ -7,6 +7,7 @@ from tidewrack.core.gear.compare import Comparison, StatRow
 from tidewrack.core.procgen.gear_gen import generate_kit, make_item
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
+from tidewrack.ui.components.coins import label_of
 from tidewrack.ui.components.gear_compare_card import gear_compare_card, impact_line, subtitle
 from tidewrack.ui.components.stat_delta import delta_label
 
@@ -34,6 +35,8 @@ def _texts(control) -> list[str]:
     def walk(c):
         if isinstance(c, ft.Text) and c.value:
             found.append(c.value)
+        if isinstance(c, ft.Row) and isinstance(c.data, str):  # a coins()/purse() row
+            found.append(c.data)
         for attr in ("content", "controls"):
             child = getattr(c, attr, None)
             for x in child if isinstance(child, list) else [child]:
@@ -258,11 +261,11 @@ def test_sorting_applies_to_the_filtered_pack_and_survives_refreshes(tmp_path):
     assert [screen_item.total["hp"] for screen_item in packs.shown] == sorted(
         (i.total["hp"] for i in feet), reverse=True
     )
-    assert packs.order_button.content == "Best first"
+    assert label_of(packs.order_button.content) == "Best first"
 
     packs._flip_order()
     assert [i.total["hp"] for i in packs.shown] == sorted(i.total["hp"] for i in feet)
-    assert packs.order_button.content == "Worst first"
+    assert label_of(packs.order_button.content) == "Worst first"
 
     screen.refresh()  # e.g. switching tabs
     assert packs.sort.value == "hp" and not packs.choices.descending
