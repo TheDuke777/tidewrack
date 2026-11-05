@@ -49,6 +49,7 @@ def make_enemy(rng: Rng, schema: EnemySchema, content: Content) -> Enemy:
         choices = list(schema.loot.gear)
         gear_id = rng.weighted_choice(choices, [schema.loot.gear[g] for g in choices])
         loot.append(roll_item(rng, content.gear[gear_id], content, LOOT_AFFIX_CHANCE))
+    gold = rng.randint(*schema.gold) if schema.gold[1] else 0  # beasts don't use a draw
     return Enemy(
         enemy_id=schema.id,
         name=schema.name,
@@ -57,6 +58,7 @@ def make_enemy(rng: Rng, schema: EnemySchema, content: Content) -> Enemy:
         stats=stats,
         drops=sorted({content.gear[g].name for g in schema.loot.gear}),
         loot=loot,
+        gold=gold,
     )
 
 
@@ -114,6 +116,7 @@ def make_template(rng: Rng, schema: EnemySchema, weight: float, content: Content
         loot_chance=schema.loot.chance,
         loot=loot,
         weight=weight,
+        gold=list(schema.gold),
     )
 
 

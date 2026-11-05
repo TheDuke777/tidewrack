@@ -84,6 +84,7 @@ class Enemy:
     stats: dict[str, int]  # before the world's Rules scale them
     drops: list[str] = field(default_factory=list)  # names of what its kind can drop
     loot: list[Item] = field(default_factory=list)  # what this one will drop
+    gold: int = 0  # what it carries (rolled at creation), yours if you win
 
 
 @dataclass
@@ -118,6 +119,7 @@ class EnemyTemplate:
     loot_chance: float = 0.0  # its kind's own chance (Rules.return_loot_factor scales it)
     loot: list[Item] = field(default_factory=list)  # pre-rolled pieces it may drop
     weight: float = 1.0  # how often it's picked
+    gold: list[int] = field(default_factory=lambda: [0, 0])  # [min, max] it carries
 
 
 @dataclass
@@ -185,6 +187,7 @@ class Quest:
     needed: int = 1  # cull: how many
     progress: int = 0  # cull: defeated since accepting
     achieved: bool = False  # bounty beaten or item recovered (counts before accepting)
+    gold: int = 0  # paid on turning in, with the reward item
 
 
 @dataclass
@@ -202,6 +205,34 @@ class Clue:
 
     quest_id: str
     text: str
+
+
+@dataclass
+class Wallet:
+    """The player's gold: the one currency (CLAUDE.md §1)."""
+
+    gold: int = 0
+
+
+@dataclass
+class Shop:
+    """A shop in a town room (with a Position). Its wares for sale are Items with
+    Stocked; it restocks slowly from `wares`, pre-rolled at world creation, up to
+    `cap` (core.economy.shops). An inn sells a night's rest instead."""
+
+    shop_id: str  # its content definition, e.g. "shop.smithy"
+    name: str  # "Smithy"
+    buys_gear: bool = False  # you can sell gear here
+    inn: bool = False  # you can pay to rest here
+    cap: int = 0  # restocking stops at this many wares
+    wares: list[Item] = field(default_factory=list)  # what restocking picks from
+
+
+@dataclass
+class Stocked:
+    """An item for sale in a shop (an entity with Shop)."""
+
+    shop: int
 
 
 # Every component type, by name, for saving and loading. Names are part of the save
@@ -228,5 +259,8 @@ COMPONENTS: dict[str, type] = {
         Quest,
         QuestItem,
         Clue,
+        Wallet,
+        Shop,
+        Stocked,
     )
 }

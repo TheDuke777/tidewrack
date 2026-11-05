@@ -27,6 +27,7 @@ from tidewrack.core.data.schemas import (
     GearSetSchema,
     QuestTemplateSchema,
     RoomsetSchema,
+    ShopSchema,
     WorldRecipeSchema,
 )
 from tidewrack.core.world.location import Location
@@ -40,6 +41,7 @@ KINDS = {
     "gearsets": (GearSetSchema, "gearset"),
     "quests": (QuestTemplateSchema, "quest"),
     "roomsets": (RoomsetSchema, "roomset"),
+    "shops": (ShopSchema, "shop"),
     "worlds": (WorldRecipeSchema, "world"),
 }
 
@@ -60,6 +62,7 @@ class Content:
     gearsets: dict[str, GearSetSchema]
     enemies: dict[str, EnemySchema]
     quests: dict[str, QuestTemplateSchema]
+    shops: dict[str, ShopSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -115,6 +118,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         gearsets=loaded["gearsets"],
         enemies=loaded["enemies"],
         quests=loaded["quests"],
+        shops=loaded["shops"],
         content_hash=content_hash(files),
     )
 
@@ -140,6 +144,9 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         if roomset.finds.chance and not roomset.finds.gear:
             problems.append(f"{path}: finds.chance is set but finds.gear is empty")
         check(path, roomset.enemies.pool, "enemies", "enemy")
+        check(path, roomset.shops, "shops", "shop")
+        if len(set(roomset.shops)) != len(roomset.shops):
+            problems.append(f"{path}: a shop is listed more than once")
         encounters = roomset.enemies
         if (encounters.placed_chance or encounters.wandering_chance) and not encounters.pool:
             problems.append(f"{path}: enemies has chances set but an empty pool")
@@ -149,6 +156,8 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         names.setdefault(roomset.name, roomset.id)
     for enemy in loaded["enemies"].values():
         check(_path("enemies", enemy.id), enemy.loot.gear, "gear", "gear")
+    for shop in loaded["shops"].values():
+        check(_path("shops", shop.id), shop.gear, "gear", "gear")
     for gear in loaded["gear"].values():
         if gear.set is not None:
             check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")

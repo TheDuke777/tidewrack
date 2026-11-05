@@ -152,6 +152,7 @@ class _Builder:
             ordinary,
             name=name,
             stats={s: ceil(v * t.strength) for s, v in ordinary.stats.items()},
+            gold=ceil(ordinary.gold * t.strength),
         )
         bounty = Bounty(quest_id, schema.name, dict(ordinary.stats))
         self.plan.bounties.append(PlacedBounty(location.id, room, enemy, bounty))
@@ -221,6 +222,7 @@ class _Builder:
             summary=rng.choice(t.summaries).format(**words),
             reward=self.reward(rng, location),
             location=location.id,
+            gold=rng.randint(*t.gold),
             **fields,
         )
 

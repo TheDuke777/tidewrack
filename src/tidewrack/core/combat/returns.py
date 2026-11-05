@@ -33,6 +33,8 @@ def from_template(rng: Rng, template: EnemyTemplate, loot_factor: float) -> Enem
     loot = []
     if template.loot and rng.chance(template.loot_chance * loot_factor):
         loot.append(copy.deepcopy(rng.choice(template.loot)))
+    low, high = template.gold
+    gold = rng.randint(low, high) if high else 0
     return Enemy(
         enemy_id=template.enemy_id,
         name=template.name,
@@ -41,6 +43,7 @@ def from_template(rng: Rng, template: EnemyTemplate, loot_factor: float) -> Enem
         stats=stats,
         drops=list(template.drops),
         loot=loot,
+        gold=gold,
     )
 
 

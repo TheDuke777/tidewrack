@@ -186,14 +186,15 @@ def test_regeneration_scales_with_max_hp():
     assert regen(5, STANDARD) == STANDARD.regen_amount  # small bars still heal
 
 
-def test_waiting_in_a_town_rests_you_to_full():
+def test_waiting_in_a_town_no_longer_rests_you_for_free():
+    # Since v0.7: a full rest is a paid night at an inn (tests/core/test_economy.py).
     world = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
     game = Game(7, world)
     game.world.get(game.player, Health).damage = 9
     assert game.view().in_town
     result = game.perform(Wait())
-    assert any(isinstance(e, Rested) for e in result.events)
-    assert game.view().hp == game.view().max_hp
+    assert not any(isinstance(e, Rested) for e in result.events)
+    assert game.view().hp < game.view().max_hp
 
 
 def test_taking_off_hp_gear_never_knocks_you_out():

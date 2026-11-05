@@ -7,6 +7,10 @@ returns, so handlers just update controls.
 Below the map, the room details and the log share the space. The bar between
 them hides or shows the log when tapped and resizes it when dragged (dragging it
 to the bottom hides it); the choice is an app-wide setting, not part of the save.
+
+A notice board or shop shows in the room as one button. Tapping it opens a panel
+that takes over the screen like a fight does (no map or room details) until you
+leave it or anything moves you; which panel is open is UI state, not saved.
 """
 
 from __future__ import annotations
@@ -16,15 +20,19 @@ from dataclasses import dataclass
 
 import flet as ft
 
-from tidewrack.core.engine.events import QuestCompleted
+from tidewrack.core.engine.events import ActionRejected, ItemBought, ItemSold, QuestCompleted
 from tidewrack.core.engine.game import (
     AcceptQuest,
+    Buy,
     Command,
     Equip,
     GameView,
     ItemView,
     Look,
     Move,
+    Rest,
+    Sell,
+    ShopView,
     Take,
     Travel,
     TurnInQuest,
@@ -36,12 +44,13 @@ from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
 from tidewrack.ui.components.quest_card import quest_card
 from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
+from tidewrack.ui.screens.inventory import Confirm
 
 LOG_LINES_SHOWN = 40
 
 ROOM_LEGEND = (
     "● visited   ○ unexplored   ◉ you   ■ gate (roads leave from here)\n"
-    "✦ items left here   ◆ quest target\n"
+    "¤ shop or inn   ✦ items left here   ◆ quest target\n"
     "Tap a ringed room to go there."
 )
 WORLD_LEGEND = (
@@ -53,6 +62,12 @@ MIN_LOG_SHARE, MAX_LOG_SHARE = 0.1, 0.8  # same bounds as Settings.log_share
 HIDE_LOG_BELOW = 0.06  # dragging the log smaller than this hides it
 LOG_BAR_HEIGHT = 36
 DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are absolute
+
+BOARD = "board"  # GameScreen.opened for the notice board; a shop is opened by its name
+
+
+def _confirm_now(_title: str, _message: str, _action: str, then: Callable[[], None]) -> None:
+    then()
 
 
 @dataclass
@@ -92,9 +107,12 @@ class GameScreen:
         settings: SettingsStore,
         on_back: Callable[[], None],
         notify: Callable[[str], None] = lambda _: None,
+        confirm: Confirm = _confirm_now,
     ) -> None:
         self.session = session
         self.notify = notify
+        self.confirm = confirm
+        self.opened: str | None = None  # BOARD, a shop's name, or None
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
@@ -103,7 +121,11 @@ class GameScreen:
         self.room = ft.Text(size=26, weight=ft.FontWeight.BOLD)
         self.description = ft.Text(size=16)
         self.here = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        # One button per board or shop in the room; the open one's panel below.
+        self.entrances = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.panel_heading = ft.Row()
         self.board = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.shops = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
@@ -142,7 +164,10 @@ class GameScreen:
                 self.room,
                 self.description,
                 self.combat,
+                self.panel_heading,
                 self.board,
+                self.shops,
+                self.entrances,
                 self.here,
                 self.exits,
                 self.roads,
@@ -231,6 +256,16 @@ class GameScreen:
     def _wait(self, _: ft.Event) -> None:
         self.act(Wait())
 
+    def open(self, place: str) -> None:
+        """Open the notice board (BOARD) or the shop with this name."""
+        self.opened = place
+        self._scroll_details_to_top()
+        self.refresh()
+
+    def close(self) -> None:
+        self.opened = None
+        self.refresh()
+
     def _toggle_log(self) -> None:
         self.split.toggle()
         self._save_split()
@@ -276,6 +311,7 @@ class GameScreen:
         self.description.value = view.description
         if self._shown_room not in (None, (view.location, view.room)):
             self._scroll_details_to_top()
+            self.opened = None  # moving (or waking somewhere after a defeat) leaves it
         self._shown_room = (view.location, view.room)
         self.exits.controls = [
             ft.FilledTonalButton(
@@ -296,12 +332,19 @@ class GameScreen:
             self._scroll_details_to_top()  # the fight panel is the first thing you see
         self._was_fighting = fighting
         self.combat.controls = [combat_panel(view, self.act)] if fighting else []
-        self.board.controls = self._board(view)
-        for section in (self.board, self.here, self.exits, self.roads, self.actions):
-            section.visible = not fighting
-        resting = view.in_town and view.hp < view.max_hp
-        self.wait_button.content = "Rest" if resting else "Wait"
-        self.wait_button.icon = ft.Icons.BED_OUTLINED if resting else ft.Icons.HOURGLASS_EMPTY
+        shop = next((s for s in view.shops if s.name == self.opened), None)
+        if fighting or (shop is None and not (self.opened == BOARD and view.board is not None)):
+            self.opened = None
+        self.board.controls = self._board(view) if self.opened == BOARD else []
+        self.shops.controls = self._shop(view, shop) if shop is not None else []
+        self.entrances.controls = self._entrances(view)
+        self.panel_heading.controls = self._panel_heading(view)
+        # A fight or an open board/shop takes over the screen; the log stays.
+        busy = fighting or self.opened is not None
+        self.panel_heading.visible = self.opened is not None
+        self.room.visible = self.description.visible = self.opened is None
+        for section in (self.entrances, self.here, self.exits, self.roads, self.actions):
+            section.visible = not busy
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
         self.log_hint.value = view.log[-1] if view.log else ""
         self._apply_split()
@@ -310,10 +353,10 @@ class GameScreen:
         area, world = self.map_choice.segments
         area.disabled, world.disabled = view.map is None, view.world_map is None
         # A fight takes over the screen: no map, so it's obvious one has started.
-        self.map_choice.visible = not (area.disabled and world.disabled) and not fighting
+        self.map_choice.visible = not (area.disabled and world.disabled) and not busy
         choice = (self.map_choice.selected or [None])[0]
         shown = {"area": view.map, "world": view.world_map}.get(choice)
-        self.map.control.visible = shown is not None and not fighting
+        self.map.control.visible = shown is not None and not busy
         if shown is not None:
             on_world = choice == "world"
             legend = f"{kinds_legend(shown)}\n{WORLD_LEGEND}" if on_world else ROOM_LEGEND
@@ -340,14 +383,79 @@ class GameScreen:
         if page is not None:
             page.run_task(self.details.scroll_to, offset=0)
 
-    def _board(self, view: GameView) -> list[ft.Control]:
-        if view.board is None:
+    def _entrances(self, view: GameView) -> list[ft.Control]:
+        """The room's notice board and shops, one button each."""
+        buttons: list[ft.Control] = []
+        if view.board is not None:
+            ready = sum(q.state == "ready" for q in view.board)
+            posted = len(view.board) - ready
+            parts = [f"{posted} posted"] if posted else []
+            parts += [f"{ready} ready to turn in"] if ready else []
+            label = "Notice board · " + (" · ".join(parts) or "nothing new")
+            kind = ft.FilledButton if ready else ft.FilledTonalButton
+            buttons.append(
+                kind(
+                    content=label,
+                    icon=ft.Icons.PUSH_PIN_OUTLINED,
+                    on_click=lambda _: self.open(BOARD),
+                )
+            )
+        for shop in view.shops:
+            parts = []
+            if shop.inn_price is not None:
+                parts.append(f"beds {shop.inn_price} gold")
+            if shop.wares or shop.inn_price is None:
+                parts.append(f"{len(shop.wares)} for sale")
+            if shop.buys_gear:
+                parts.append("buys gear")
+            buttons.append(
+                ft.FilledTonalButton(
+                    content=f"{shop.name} · " + " · ".join(parts),
+                    icon=ft.Icons.BED_OUTLINED
+                    if shop.inn_price is not None
+                    else ft.Icons.STOREFRONT_OUTLINED,
+                    on_click=lambda _, name=shop.name: self.open(name),
+                )
+            )
+        return buttons
+
+    def _panel_heading(self, view: GameView) -> list[ft.Control]:
+        """The open panel's title, your gold, and the way back to the room."""
+        if self.opened is None:
             return []
+        title = "Notice board" if self.opened == BOARD else self.opened
+        return [
+            ft.IconButton(
+                icon=ft.Icons.ARROW_BACK,
+                tooltip=f"Back to {view.room}",
+                on_click=lambda _: self.close(),
+            ),
+            ft.Column(
+                spacing=0,
+                expand=True,
+                controls=[
+                    ft.Text(title, size=22, weight=ft.FontWeight.BOLD),
+                    ft.Text(
+                        f"{view.room} · you have {view.gold} gold",
+                        size=13,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                    ),
+                ],
+            ),
+            ft.OutlinedButton(content="Leave", on_click=lambda _: self.close()),
+        ]
+
+    def _board(self, view: GameView) -> list[ft.Control]:
+        assert view.board is not None
         if not view.board:
-            heading = "Notice board · nothing new pinned up"
-        else:
-            heading = "Notice board"
-        cards: list[ft.Control] = [ft.Text(heading, size=18, weight=ft.FontWeight.BOLD)]
+            return [
+                ft.Text(
+                    "Nothing new is pinned up. Quests you give up come back here.",
+                    size=14,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                )
+            ]
+        cards: list[ft.Control] = []
         for quest in view.board:
             if quest.state == "ready":
                 button = ft.FilledButton(
@@ -364,6 +472,92 @@ class GameScreen:
             cards.append(quest_card(quest, [button]))
         return cards
 
+    def _shop(self, view: GameView, shop: ShopView) -> list[ft.Control]:
+        """The inn's bed, the wares for sale, and (at a buyer) your pack to sell from."""
+        controls: list[ft.Control] = []
+        if shop.inn_price is not None:
+            full = view.hp >= view.max_hp
+            controls += [
+                ft.Text(f"HP {view.hp}/{view.max_hp}", size=14),
+                ft.FilledTonalButton(
+                    content=f"Rest the night · {shop.inn_price} gold"
+                    + ("  (you're rested)" if full else ""),
+                    icon=ft.Icons.BED_OUTLINED,
+                    disabled=full,
+                    on_click=lambda _: self._act_and_tell(Rest()),
+                ),
+            ]
+        if shop.wares or shop.inn_price is None:
+            controls.append(_section("For sale"))
+        for ware in shop.wares:
+            label = f"Buy · {ware.price} gold"
+            controls.append(
+                gear_compare_card(
+                    ware.item,
+                    [
+                        ft.FilledButton(
+                            content=label if ware.affordable else f"{label} (not enough)",
+                            icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                            disabled=not ware.affordable,
+                            on_click=lambda _, i=ware.item.id: self._act_and_tell(Buy(i)),
+                        )
+                    ],
+                )
+            )
+        if not shop.wares and shop.inn_price is None:
+            controls.append(
+                ft.Text("Nothing for sale right now.", size=14, color=ft.Colors.ON_SURFACE_VARIANT)
+            )
+        if shop.buys_gear:
+            controls.append(_section(f"Sell to the {shop.name}"))
+            pack = self.session.game.inventory().pack
+            if not pack:
+                controls.append(
+                    ft.Text(
+                        "Nothing in your pack to sell. Take off worn gear on the "
+                        "Inventory tab to sell it.",
+                        size=14,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                    )
+                )
+            for item in pack:
+                controls.append(
+                    gear_compare_card(
+                        item,
+                        [
+                            ft.OutlinedButton(
+                                content=f"Sell · {item.sell_price} gold",
+                                icon=ft.Icons.SELL_OUTLINED,
+                                on_click=lambda _, i=item, s=shop.name: self._sell(i, s),
+                            )
+                        ],
+                    )
+                )
+        return controls
+
+    def _sell(self, item: ItemView, shop: str) -> None:
+        self.confirm(
+            f"Sell the {item.name}?",
+            f"The {shop} pays {item.sell_price} gold. Buying it back costs more.",
+            f"Sell for {item.sell_price} gold",
+            lambda: self._act_and_tell(Sell(item.id)),
+        )
+
+    def _act_and_tell(self, command: Command) -> None:
+        """Do it, then toast the outcome: what was bought, or why it was refused."""
+        result = self.session.perform(command)
+        self.refresh()  # before any toast: showing one updates the page at once
+        for event in result.events:
+            if isinstance(event, ActionRejected):
+                self.notify(event.reason)
+                return
+            if isinstance(event, ItemBought):
+                self.notify(f"{event.name} added to your pack for {event.price} gold.")
+                return
+            if isinstance(event, ItemSold):
+                self.notify(f"Sold the {event.name} for {event.price} gold.")
+                return
+
     def _turn_in(self, quest: str) -> None:
         result = self.session.perform(TurnInQuest(quest))
         # Refresh first: showing the toast pushes an update to the page at once, and
@@ -372,7 +566,8 @@ class GameScreen:
         self.refresh()
         for event in result.events:
             if isinstance(event, QuestCompleted):
-                self.notify(f"{event.reward} added to your pack.")
+                paid = f", and {event.gold} gold" if event.gold else ""
+                self.notify(f"{event.reward} added to your pack{paid}.")
 
     def _take_buttons(self, item: ItemView) -> list[ft.Control]:
         return [
@@ -413,3 +608,7 @@ class GameScreen:
             )
             for road in view.roads
         ]
+
+
+def _section(title: str) -> ft.Text:
+    return ft.Text(title, size=16, weight=ft.FontWeight.BOLD)

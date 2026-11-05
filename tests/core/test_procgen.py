@@ -7,6 +7,7 @@ from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
 from tidewrack.core.procgen.quest_gen import generate_quests, quests_hash
+from tidewrack.core.procgen.shop_gen import generate_shops, shop_room, shops_hash
 from tidewrack.core.procgen.world_gen import generate_world, world_hash
 from tidewrack.core.rng import Rng
 from tidewrack.core.versions import GENERATOR_VERSION
@@ -26,28 +27,34 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 7
+    assert GENERATOR_VERSION == 8
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 7
+    assert GENERATOR_VERSION == 8
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 7
+    assert GENERATOR_VERSION == 8
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 7
+    assert GENERATOR_VERSION == 8
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
+
+
+def test_golden_shops():
+    # Same rule for shops and their stock (procgen/shop_gen.py).
+    assert GENERATOR_VERSION == 8
+    assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def quests_for(seed: int):
@@ -56,9 +63,10 @@ def quests_for(seed: int):
     return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
 
 
-GOLDEN_QUESTS = "b49bc177ccf1b768733013e00b05d3278aac68c55bf559bbe482f3c8ca099aa6"
+GOLDEN_QUESTS = "636cab77bd79452f8f76b17e6de3070d763faf8318f75a14ae0912064f7c0b87"
 GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
-GOLDEN_ENEMIES = "c56b05ac7220d98a5ab64581a83fcafc7fc3b0786d4299a6b218c665d374cf0f"
+GOLDEN_ENEMIES = "842ba17ad3cc135e63cf11a80f0cd1cd703afd56e62df4527b82eda37b622c45"
+GOLDEN_SHOPS = "fda89aead248be9e52e4f54084fb7a6b7a62736fdf1434968c27d895e143a8f8"
 GOLDEN_FINDS = "ad3e543e3e78e20f6f9c99679912e3051e93fab9d463a8fe525fe5ae11c4763b"
 
 
@@ -378,3 +386,63 @@ def test_quests_dont_change_the_world_finds_or_enemies():
     assert world_hash(world) == GOLDEN_STANDARD
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
+
+
+# --- shops -------------------------------------------------------------------------
+
+
+def test_every_town_has_each_shop_in_its_room_or_at_its_gate():
+    saw_room = saw_gate = False
+    for seed in range(20):
+        world = new_world(seed)
+        shops = generate_shops(seed, world, CONTENT)
+        assert shops == generate_shops(seed, world, CONTENT)
+        towns = [loc for loc in world.locations.values() if loc.kind == "Town"]
+        assert len(shops) == 2 * len(towns)
+        for town in towns:
+            here = [s for s in shops if s.location == town.id]
+            assert sorted(s.shop.shop_id for s in here) == ["shop.smithy", "shop.tavern"]
+            for placed in here:
+                noun = CONTENT.shops[placed.shop.shop_id].room
+                named = [r for r in town.rooms.values() if noun in r.name.split()]
+                if placed.room == town.start:
+                    saw_gate = True
+                    assert not named
+                else:
+                    saw_room = True
+                    assert noun in town.room(placed.room).name
+    assert saw_room and saw_gate
+
+
+def test_shop_room_ignores_lookalike_names():
+    from tidewrack.core.world.location import Location, Room
+
+    rooms = {
+        "a": Room("a", "The Town Gate", "", ()),
+        "b": Room("b", "Blacksmithy Lane", "", ()),
+        "c": Room("c", "Tarred Smithy II", "", ()),
+    }
+    town = Location("t", "T", "Town", "a", rooms, ("a",))
+    assert shop_room(town, "Smithy") == "c"
+    assert shop_room(town, "Tavern") == "a"
+
+
+def test_shop_stock_is_plain_and_in_the_lower_half_of_its_rolls():
+    for seed in range(10):
+        world = new_world(seed)
+        for placed in generate_shops(seed, world, CONTENT):
+            schema = CONTENT.shops[placed.shop.shop_id]
+            low, high = schema.stock
+            assert low <= len(placed.stock) <= high and placed.shop.cap == high
+            for item in placed.stock + placed.shop.wares:
+                assert item.gear_id in schema.gear and not item.affixes
+                for stat, value in item.roll.items():
+                    roll_low, roll_high = CONTENT.gear[item.gear_id].rolls[stat]
+                    assert roll_low <= value <= roll_low + (roll_high - roll_low) // 2
+
+
+def test_shops_dont_change_anything_else():
+    world = new_world(20261103)
+    generate_shops(20261103, world, CONTENT)
+    assert world_hash(world) == GOLDEN_STANDARD
+    assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS

@@ -1,0 +1,16 @@
+{
+  "id": "shop.smithy",
+  "name": "Smithy",
+  "room": "Smithy",
+  "stock": [3, 4],
+  "wares": 6,
+  "gear": {
+    "gear.cutlass": 2,
+    "gear.buckler": 2,
+    "gear.boathook": 1,
+    "gear.miners_helm": 1,
+    "gear.sealskin_boots": 1,
+    "gear.storm_lantern": 1
+  },
+  "buys_gear": true
+}

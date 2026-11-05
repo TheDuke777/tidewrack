@@ -16,6 +16,7 @@ from pydantic import Field, TypeAdapter
 
 from tidewrack.core.combat.rules import STANDARD
 from tidewrack.core.data.schemas import OverworldSchema, Schema
+from tidewrack.core.economy.value_model import STANDARD_ECONOMY
 from tidewrack.core.engine.components import COMPONENTS
 
 
@@ -38,6 +39,15 @@ class RulesState(Schema):
     return_loot_factor: float = Field(default=STANDARD.return_loot_factor, ge=0, le=1)
 
 
+class EconomyState(Schema):
+    """The world's prices and shop timing (core.economy.value_model.EconomyRules)."""
+
+    buy_factor: float = Field(default=STANDARD_ECONOMY.buy_factor, gt=0)
+    sell_factor: float = Field(default=STANDARD_ECONOMY.sell_factor, ge=0)
+    inn_price: int = Field(default=STANDARD_ECONOMY.inn_price, ge=0)
+    restock_every: int = Field(default=STANDARD_ECONOMY.restock_every, ge=1)
+
+
 class EntityState(Schema):
     id: int = Field(ge=1)
     components: dict[str, dict[str, Any]]
@@ -53,7 +63,9 @@ class GameState(Schema):
     combat_rng: RngState | None = None  # None in saves before combat: derived from seed
     encounter_rng: RngState | None = None
     respawn_rng: RngState | None = None  # None in saves before enemies returned (v7)
+    shop_rng: RngState | None = None  # None in saves before shops (v8)
     rules: RulesState = RulesState()
+    economy: EconomyState = EconomyState()
     next_entity_id: int = Field(ge=1)
     entities: list[EntityState]
 

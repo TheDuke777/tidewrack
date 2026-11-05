@@ -50,6 +50,11 @@ Slot = Literal[SLOTS]  # type: ignore[valid-type]
 Weights = dict[str, Annotated[float, Field(gt=0)]]
 
 
+def _check_range(name: str, low: int, high: int) -> None:
+    if not 0 <= low <= high:
+        raise ValueError(f"{name} must satisfy 0 <= min <= max, not [{low}, {high}]")
+
+
 # --- gear ----------------------------------------------------------------------------
 
 
@@ -128,6 +133,7 @@ class EnemySchema(Schema):
     stats: StatBlock
     rolls: dict[str, tuple[int, int]] = {}  # stat -> inclusive [min, max] bonus
     loot: LootSchema = LootSchema()
+    gold: tuple[int, int] = (0, 0)  # inclusive range it carries (people have purses)
 
     @property
     def plural_name(self) -> str:
@@ -143,6 +149,7 @@ class EnemySchema(Schema):
                 raise ValueError(f"roll for {stat} has min {low} above max {high}")
         if self.loot.chance and not self.loot.gear:
             raise ValueError("loot.chance is set but loot.gear is empty")
+        _check_range("gold", *self.gold)
         return self
 
 
@@ -161,6 +168,35 @@ class FindsSchema(Schema):
     chance: Unit = 0.0  # per room (gate rooms never have finds)
     gear: Weights = {}  # gear id -> relative weight
     affix_chance: Unit = 0.3
+
+
+# --- shops ---------------------------------------------------------------------------
+
+
+class ShopSchema(Schema):
+    """A kind of shop. A town that has a room with this `room` noun (e.g. "Smithy")
+    gets the shop there; a town without one gets it at its gate.
+
+    Shops sell plain copies (no affixes, rolls in the lower half), so finds and
+    quest rewards always beat them: top-tier gear is never for sale (§8.6)."""
+
+    id: content_id("shop")
+    name: Text  # shown to players: "Smithy"
+    room: Text  # the room archetype noun it moves into
+    stock: tuple[int, int] = (0, 0)  # wares for sale at world creation
+    wares: int = Field(default=0, ge=0, le=20)  # pre-rolled pieces it restocks from
+    gear: Weights = {}  # gear id -> relative weight, for stock and wares
+    buys_gear: bool = False
+    inn: bool = False  # sells a night's rest (a full heal)
+
+    @model_validator(mode="after")
+    def _check(self) -> ShopSchema:
+        _check_range("stock", *self.stock)
+        if (self.stock[1] or self.wares) and not self.gear:
+            raise ValueError("a shop with stock or wares needs gear to sell")
+        if not (self.gear or self.buys_gear or self.inn):
+            raise ValueError("a shop must sell gear, buy gear or be an inn")
+        return self
 
 
 # --- roomsets (raw material for generated locations) -------------------------------
@@ -197,6 +233,7 @@ class RoomsetSchema(Schema):
     rooms: list[ArchetypeSchema] = Field(min_length=1)
     finds: FindsSchema = FindsSchema()
     enemies: EncountersSchema = EncountersSchema()
+    shops: list[content_id("shop")] = []  # one of each in every location of this kind
 
     @model_validator(mode="after")
     def _check_size(self) -> RoomsetSchema:
@@ -237,6 +274,7 @@ class QuestTemplateSchema(Schema):
     strength: float = Field(default=1.5, ge=1.0, le=5.0)  # bounty stats multiplier
     counts: tuple[int, int] = (3, 5)  # cull: how many to defeat
     items: list[QuestItemSchema] = []  # recover: what's lost
+    gold: tuple[int, int] = (0, 0)  # paid on turning in, with the reward item
 
     @model_validator(mode="after")
     def _check(self) -> QuestTemplateSchema:
@@ -257,6 +295,7 @@ class QuestTemplateSchema(Schema):
         low, high = self.counts
         if not 1 <= low <= high <= 20:
             raise ValueError(f"counts must satisfy 1 <= min <= max <= 20, not {list(self.counts)}")
+        _check_range("gold", *self.gold)
         return self
 
 
@@ -281,6 +320,7 @@ class WorldRecipeSchema(Schema):
     roomsets: dict[content_id("roomset"), Annotated[float, Field(gt=0)]] = Field(min_length=1)
     player: StatBlock = dict(DEFAULT_PLAYER_BASE)  # the player's starting stats
     kit: list[content_id("gear")] = []  # starting gear, equipped
+    gold: int = Field(default=0, ge=0)  # starting gold
     quests: QuestsRecipeSchema = QuestsRecipeSchema()
 
 

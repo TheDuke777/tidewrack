@@ -21,5 +21,9 @@
       "gear.oilskin_hood": 1,
       "gear.watchmans_coat": 1
     }
-  }
+  },
+  "gold": [
+    4,
+    9
+  ]
 }

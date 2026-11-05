@@ -9,5 +9,6 @@
   "clues": [
     "A trapper's tally stick, notched and abandoned, with a note: \"{count} more {enemies} and I'm paid.\""
   ],
-  "counts": [3, 5]
+  "counts": [3, 5],
+  "gold": [8, 14]
 }

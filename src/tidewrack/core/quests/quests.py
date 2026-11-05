@@ -8,6 +8,10 @@ A bounty beaten or an item recovered counts even before you accept the quest
 (accepting then makes it ready at once); culls count only kills after you
 accept; explore quests are checked against the rooms you've visited. Every
 quest is turned in at any town's notice board (a town's gate room).
+
+An active quest can be abandoned anywhere: a board quest goes back up on its
+own board, a found one on the board of the last town you visited; a cull's
+count starts again. A bounty beaten or an item already found stays achieved.
 """
 
 from __future__ import annotations
@@ -15,11 +19,21 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.fight import TOWN
-from tidewrack.core.engine.components import Carried, Clue, Explorer, Position, Quest, QuestItem
+from tidewrack.core.economy import shops
+from tidewrack.core.engine.components import (
+    Carried,
+    Clue,
+    Explorer,
+    Position,
+    Quest,
+    QuestItem,
+    Respawn,
+)
 from tidewrack.core.engine.events import (
     ActionRejected,
     EnemyKilled,
     LocationDiscovered,
+    QuestAbandoned,
     QuestAccepted,
     QuestCompleted,
     QuestFound,
@@ -120,7 +134,22 @@ def turn_in(game: Game, quest_id: str) -> None:
     else:
         quest.state = "done"
         game.world.create(quest.reward, Carried(game.player))
-        game.bus.emit(QuestCompleted(quest.quest_id, quest.title, quest.reward.display_name))
+        game.bus.emit(
+            QuestCompleted(quest.quest_id, quest.title, quest.reward.display_name, quest.gold)
+        )
+        shops.gain(game, quest.gold, "quest")
+
+
+def abandon(game: Game, quest_id: str) -> None:
+    quest = find(game, quest_id)
+    if quest is None or quest.state != "active":
+        game.bus.emit(ActionRejected("You can only give up a quest you're still working on."))
+        return
+    if quest.board is None:  # a found quest: leave word at the last town you visited
+        quest.board = game.world.get(game.player, Respawn).location
+    quest.state = "posted"
+    quest.progress = 0
+    game.bus.emit(QuestAbandoned(quest.quest_id, quest.title, quest.board))
 
 
 # --- subscribers -------------------------------------------------------------------

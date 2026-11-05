@@ -295,7 +295,7 @@ class MapCanvas:
         ]
 
 
-QUEST_MARK, CHARTED_MARK, ITEMS_MARK = "◆", "✓", "✦"
+QUEST_MARK, CHARTED_MARK, ITEMS_MARK, SHOP_MARK = "◆", "✓", "✦", "¤"
 
 
 def label(name: str, kind: str | None, quest: bool = False, charted: bool = False) -> str:
@@ -306,8 +306,13 @@ def label(name: str, kind: str | None, quest: bool = False, charted: bool = Fals
 
 
 def badges(node: MapNode) -> str:
-    """Area-map marks beside a room: items left lying there, a quest target."""
-    return (ITEMS_MARK if node.items else "") + (QUEST_MARK if node.quest else "")
+    """Area-map marks beside a room: a shop or inn, items left lying there, a quest
+    target."""
+    return (
+        (SHOP_MARK if node.shop else "")
+        + (ITEMS_MARK if node.items else "")
+        + (QUEST_MARK if node.quest else "")
+    )
 
 
 def _badges(node: MapNode, x: float, y: float, r: float) -> list[cv.Shape]:

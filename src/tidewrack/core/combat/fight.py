@@ -17,6 +17,7 @@ from math import ceil
 from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.rules import damage, regen, scaled
+from tidewrack.core.economy import shops
 from tidewrack.core.engine.components import (
     Bounty,
     Codex,
@@ -44,7 +45,7 @@ from tidewrack.core.engine.events import (
 if TYPE_CHECKING:
     from tidewrack.core.engine.game import Game
 
-TOWN = "Town"  # the location kind that's safe: no wanderers, Wait rests you fully
+TOWN = "Town"  # the location kind that's safe: no wanderers (its inn sells a full rest)
 
 
 # --- starting fights ---------------------------------------------------------------
@@ -180,8 +181,10 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
             enemy.category,
             tuple(item.display_name for item in enemy.loot),
             bounty.quest_id if bounty else None,
+            enemy.gold,
         )
     )
+    shops.gain(game, enemy.gold, "loot")
 
 
 def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:
@@ -216,7 +219,7 @@ def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:
 
 
 def regen_system(game: Game) -> None:
-    """Out of a fight, slowly heal by a share of max HP (resting in a town heals fully)."""
+    """Out of a fight, slowly heal by a share of max HP (a night at an inn heals fully)."""
     if game.world.has(game.player, Fighting):
         return
     health = game.world.get(game.player, Health)

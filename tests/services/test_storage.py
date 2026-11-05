@@ -271,3 +271,34 @@ def test_v7_fixture_resumes_with_its_returned_wanderer(tmp_path):
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     spawners = [s for _, (s,) in session.game.world.query(Spawner)]
     assert all(len(s.queue) == s.cap for s in spawners)
+
+
+def test_v7_saves_get_gold_and_town_shops_from_their_own_snapshots(tmp_path):
+    from tidewrack.core.economy import shops
+    from tidewrack.core.engine.components import Enemy, Quest, Shop, Spawner
+
+    envelope = json.loads((FIXTURES / "v7_returns.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert shops.gold(game) == 10
+    towns = [loc for loc in game.overworld.locations.values() if loc.kind == "Town"]
+    found = [s for _, (s,) in game.world.query(Shop)]
+    assert sorted(s.name for s in found) == ["Smithy", "Tavern"] * len(towns)
+    smithy = next(s for s in found if s.buys_gear)
+    assert smithy.wares and all(not i.affixes and not i.roll for i in smithy.wares)
+    for _, (spawner,) in game.world.query(Spawner):
+        assert all(isinstance(e.gold, int) for e in spawner.queue)
+        assert all(len(t.gold) == 2 for t in spawner.templates)
+    assert all(isinstance(e.gold, int) for _, (e,) in game.world.query(Enemy))
+    assert all(q.gold > 0 for _, (q,) in game.world.query(Quest))
+    # The player can shop straight away: the town's shops are at its gate or in its rooms.
+    assert game.economy.inn_price == 4
+
+
+def test_v8_fixture_keeps_its_gold_shops_and_purchases(tmp_path):
+    from tidewrack.core.economy import shops
+
+    envelope = json.loads((FIXTURES / "v8_economy.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert shops.gold(session.game) == 3
+    assert "You sell the Miner's Helm to the Smithy for 3 gold." in session.game.log

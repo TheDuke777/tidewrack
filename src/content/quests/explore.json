@@ -9,5 +9,6 @@
   "clues": [
     "A half-finished map, its edges blank, labelled in a careful hand: {location}.",
     "A surveyor's notebook, swollen with damp. The last page reads: \"Finish {location}.\""
-  ]
+  ],
+  "gold": [8, 14]
 }

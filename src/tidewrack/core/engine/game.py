@@ -23,6 +23,7 @@ from tidewrack.core.codex.foes import FoesView, foes_view
 from tidewrack.core.combat import fight, returns
 from tidewrack.core.combat.rules import STANDARD, Rules
 from tidewrack.core.data.save import (
+    EconomyState,
     EntityState,
     GameState,
     RngState,
@@ -31,6 +32,14 @@ from tidewrack.core.data.save import (
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
+from tidewrack.core.economy import shops
+from tidewrack.core.economy.value_model import (
+    STANDARD_ECONOMY,
+    EconomyRules,
+    buy_price,
+    sell_price,
+    value,
+)
 from tidewrack.core.engine.components import (
     Bounty,
     Carried,
@@ -48,8 +57,11 @@ from tidewrack.core.engine.components import (
     QuestItem,
     Respawn,
     Scenery,
+    Shop,
     Spawner,
     Stats,
+    Stocked,
+    Wallet,
 )
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
@@ -63,14 +75,17 @@ from tidewrack.core.engine.events import (
     Fled,
     FleeFailed,
     GameStarted,
+    ItemBought,
     ItemDropped,
     ItemEquipped,
+    ItemSold,
     ItemTaken,
     ItemUnequipped,
     LocationDiscovered,
     LocationEntered,
     LookedAround,
     PlayerDefeated,
+    QuestAbandoned,
     QuestAccepted,
     QuestCompleted,
     QuestFound,
@@ -182,6 +197,32 @@ class TurnInQuest:
     quest: str
 
 
+@dataclass(frozen=True)
+class AbandonQuest:
+    """Give up an active quest; its notice goes back on a board (free)."""
+
+    quest: str
+
+
+@dataclass(frozen=True)
+class Buy:
+    """Buy an item from a shop here (free)."""
+
+    item: int  # entity id, from a WareView's item
+
+
+@dataclass(frozen=True)
+class Sell:
+    """Sell a carried, unequipped item to a shop here that buys gear (free)."""
+
+    item: int
+
+
+@dataclass(frozen=True)
+class Rest:
+    """Pay for a night at an inn here: back to full health."""
+
+
 Command = (
     Move
     | Travel
@@ -196,6 +237,10 @@ Command = (
     | Flee
     | AcceptQuest
     | TurnInQuest
+    | AbandonQuest
+    | Buy
+    | Sell
+    | Rest
 )
 COMBAT_COMMANDS = (Attack, Defend, Flee)
 ALLOWED_IN_COMBAT = (Look, *COMBAT_COMMANDS)
@@ -237,6 +282,7 @@ class MapNode:
     items: bool = False  # a visited room with items left lying in it (area maps)
     quest: bool = False  # where an active quest sends you (a seen bounty, a target place)
     charted: bool = False  # every room visited (world maps)
+    shop: bool = False  # a visited room with a shop or inn in it (area maps)
     blocked: str | None = None  # why you can't go there from here yet (tap to be told)
 
 
@@ -264,6 +310,8 @@ class ItemView:
     gear_set_color: str | None  # one of core.gear.item.SET_COLORS, if the set has one
     effects: tuple[str, ...]
     comparison: Comparison  # against what the player has on now
+    value: int = 0  # core.economy.value_model.value
+    sell_price: int = 0  # what a shop that buys gear pays for it
 
 
 @dataclass(frozen=True)
@@ -279,6 +327,23 @@ class InventoryView:
     slots: tuple[SlotView, ...]  # every slot, in SLOTS order
     pack: tuple[ItemView, ...]  # carried but not equipped
     sheet: StatSheet
+    gold: int = 0
+    buyer: str | None = None  # the shop here that buys gear (sell from the pack)
+
+
+@dataclass(frozen=True)
+class WareView:
+    item: ItemView  # its id is what Buy takes
+    price: int
+    affordable: bool
+
+
+@dataclass(frozen=True)
+class ShopView:
+    name: str  # "Smithy"
+    wares: tuple[WareView, ...]
+    buys_gear: bool
+    inn_price: int | None  # set at an inn
 
 
 @dataclass(frozen=True)
@@ -302,6 +367,7 @@ class QuestView:
     progress: str  # "2/4 Shore Crabs defeated", …
     state: str  # posted, active, ready, done
     reward: ItemView
+    gold: int = 0  # paid with the reward
 
 
 @dataclass(frozen=True)
@@ -335,8 +401,10 @@ class GameView:
     hp: int
     max_hp: int
     combat: CombatView | None  # set while fighting
-    in_town: bool  # Wait here rests you to full
+    in_town: bool
     board: tuple[QuestView, ...] | None = None  # at a notice board: posted + ready quests
+    gold: int = 0
+    shops: tuple[ShopView, ...] = ()  # shops in this room
 
 
 # --- the game ----------------------------------------------------------------------
@@ -356,13 +424,18 @@ class Game:
         quests: Iterable[Quest] = (),
         bounties: Iterable[tuple[str, str, Enemy, Bounty]] = (),
         quest_things: Iterable[tuple[str, str, QuestItem | Clue]] = (),
+        gold: int = 0,
+        shops: Iterable[tuple[str, str, Shop, Iterable[Item]]] = (),
+        economy: EconomyRules = STANDARD_ECONOMY,
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
         each location's wandering enemies in `spawners`, under `rules`; plus the
-        world's `quests`, their `bounties` and their items and clues."""
+        world's `quests`, their `bounties` and their items and clues; `gold` to
+        start with; and its `shops` (location, room, shop, stock) under `economy`."""
         self._setup(seed, world)
         self.rules = rules
+        self.economy = economy
         start = world.location(world.start)
         self.player = self.world.create(
             Player(),
@@ -373,6 +446,7 @@ class Game:
             Health(),
             Codex(),
             Respawn(start.id),
+            Wallet(gold),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
@@ -405,6 +479,12 @@ class Game:
             if room_id not in world.location(location_id).rooms:
                 raise ValueError(f"quest item placed in unknown room {location_id}/{room_id}")
             self.world.create(thing, Position(location_id, room_id))
+        for location_id, room_id, shop, stock in shops:
+            if room_id not in world.location(location_id).rooms:
+                raise ValueError(f"shop placed in unknown room {location_id}/{room_id}")
+            shop_entity = self.world.create(shop, Position(location_id, room_id))
+            for item in stock:
+                self.world.create(item, Stocked(shop_entity))
 
         self.bus.emit(GameStarted(seed))
         self.bus.emit(LocationEntered(self.player, start.id, None, first_visit=True))
@@ -424,7 +504,9 @@ class Game:
         self.combat_rng = self.rng.derive("combat")
         self.encounter_rng = self.rng.derive("encounters")
         self.respawn_rng = self.rng.derive("respawns")
+        self.shop_rng = self.rng.derive("shops")
         self.rules = STANDARD
+        self.economy = STANDARD_ECONOMY
         self.world = World()
         self.bus = EventBus()
         self.turn = 0
@@ -435,6 +517,7 @@ class Game:
             ambience_system,
             fight.regen_system,
             returns.returns_system,
+            shops.restock_system,
         ]
 
         # Subscription order is delivery order: exploration updates state before
@@ -462,7 +545,9 @@ class Game:
             combat_rng=RngState(**self.combat_rng.get_state()),
             encounter_rng=RngState(**self.encounter_rng.get_state()),
             respawn_rng=RngState(**self.respawn_rng.get_state()),
+            shop_rng=RngState(**self.shop_rng.get_state()),
             rules=RulesState(**self.rules.__dict__),
+            economy=EconomyState(**self.economy.__dict__),
             next_entity_id=next_id,
             entities=[
                 EntityState(id=e, components=dict(encode_component(c) for c in components))
@@ -483,7 +568,10 @@ class Game:
             game.encounter_rng = Rng.from_state(state.encounter_rng.model_dump())
         if state.respawn_rng is not None:
             game.respawn_rng = Rng.from_state(state.respawn_rng.model_dump())
+        if state.shop_rng is not None:
+            game.shop_rng = Rng.from_state(state.shop_rng.model_dump())
         game.rules = Rules(**state.rules.model_dump())
+        game.economy = EconomyRules(**state.economy.model_dump())
         game.turn = state.turn
         game.log = list(state.log)
         game.world = World.restore(
@@ -494,14 +582,17 @@ class Game:
             },
         )
         game.player = game.world.single(Player)[0]
-        if not game.world.has(game.player, Stats, Health, Codex, Respawn):
-            raise ValueError("the player is missing Stats, Health, Codex or Respawn")
+        if not game.world.has(game.player, Stats, Health, Codex, Respawn, Wallet):
+            raise ValueError("the player is missing Stats, Health, Codex, Respawn or Wallet")
         fighting = game.world.try_get(game.player, Fighting)
         if fighting is not None and not game.world.has(fighting.enemy, Enemy, Position):
             raise ValueError("the player is fighting an enemy that isn't there")
         for entity, (_, carried) in game.world.query(Item, Carried):
             if not game.world.exists(carried.by) or game.world.has(entity, Position):
                 raise ValueError(f"item {entity} is carried by a missing entity or also placed")
+        for entity, (_, stocked) in game.world.query(Item, Stocked):
+            if not game.world.has(stocked.shop, Shop) or game.world.has(entity, Carried):
+                raise ValueError(f"item {entity} is stocked by a missing shop or also carried")
         for entity, _ in game.world.query(Equipped):
             if not game.world.has(entity, Item, Carried):
                 raise ValueError(f"entity {entity} is equipped but isn't a carried item")
@@ -579,10 +670,13 @@ class Game:
                 self.bus.emit(LookedAround(location.id, position.room))
             case Wait():
                 self.bus.emit(Waited(location.id, position.room))
-                if location.kind == fight.TOWN and self.world.get(self.player, Health).damage:
-                    self.world.get(self.player, Health).damage = 0
-                    self.bus.emit(Rested(location.id))
                 took_turn = True
+            case Rest():
+                took_turn = shops.rest(self)
+            case Buy(item=entity):
+                shops.buy(self, entity)
+            case Sell(item=entity):
+                shops.sell(self, entity)
             case Attack():
                 fight.attack(self)
                 took_turn = True
@@ -604,6 +698,8 @@ class Game:
                 questing.accept(self, quest_id)
             case TurnInQuest(quest=quest_id):
                 questing.turn_in(self, quest_id)
+            case AbandonQuest(quest=quest_id):
+                questing.abandon(self, quest_id)
             case _:
                 raise TypeError(f"unknown command: {command!r}")
 
@@ -726,6 +822,8 @@ class Game:
             gear_set_color=item.gear_set.color if item.gear_set else None,
             effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
             comparison=compare(item, self._equipped(), base),
+            value=value(item),
+            sell_price=sell_price(item, self.economy),
         )
 
     def _clamp_health(self) -> None:
@@ -777,6 +875,7 @@ class Game:
             progress=questing.progress_text(self, quest),
             state=quest.state,
             reward=self._item_view(-1, quest.reward),  # not in the world until earned
+            gold=quest.gold,
         )
 
     def quests(self) -> QuestLogView:
@@ -842,7 +941,37 @@ class Game:
             for e, (item, carried) in self.world.query(Item, Carried)
             if carried.by == self.player and not self.world.has(e, Equipped)
         )
-        return InventoryView(slots=tuple(slots), pack=pack, sheet=self.sheet())
+        buyer = shops.buyer_here(self)
+        return InventoryView(
+            slots=tuple(slots),
+            pack=pack,
+            sheet=self.sheet(),
+            gold=shops.gold(self),
+            buyer=buyer[1].name if buyer else None,
+        )
+
+    def _shops(self) -> tuple[ShopView, ...]:
+        gold = shops.gold(self)
+        views = []
+        for entity, shop in shops.shops_here(self):
+            wares = []
+            for e, item in shops.wares(self, entity):
+                price = buy_price(item, self.economy)
+                wares.append(WareView(self._item_view(e, item), price, price <= gold))
+            views.append(
+                ShopView(
+                    name=shop.name,
+                    wares=tuple(wares),
+                    buys_gear=shop.buys_gear,
+                    inn_price=self.economy.inn_price if shop.inn else None,
+                )
+            )
+        return tuple(views)
+
+    def _shop_rooms(self, location_id: str) -> set[str]:
+        return {
+            p.room for _, (_, p) in self.world.query(Shop, Position) if p.location == location_id
+        }
 
     def _explorer(self) -> Explorer:
         return self.world.get(self.player, Explorer)
@@ -890,6 +1019,7 @@ class Game:
                     if p.location == location.id and p.room in rooms_visited
                 },
                 quests={r for loc, r in quest_rooms if loc == location.id},
+                shops=self._shop_rooms(location.id) & rooms_visited,
             )
         if self.overworld.has_map:
             world_map = _fog_map(
@@ -936,6 +1066,8 @@ class Game:
             combat=self._combat_view(),
             in_town=location.kind == fight.TOWN,
             board=self._board(),
+            gold=shops.gold(self),
+            shops=self._shops(),
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -989,6 +1121,7 @@ class Game:
                         )
                     self._mention_items(location_id, room_id)
                     self._mention_board()
+                    self._mention_shops()
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
                     s.text
@@ -1012,8 +1145,8 @@ class Game:
                 self._say(f"You take off the {name}.")
             case Waited():
                 self._say("Time passes.")
-            case Rested():
-                self._say("You rest a while in safety and feel whole again.")
+            case Rested(price=price):
+                self._say(f"You pay {price} gold for a bed and wake whole again.")
             case CombatStarted(name=name, wandering=wandering):
                 self._say(
                     f"A {name} comes upon you!" if wandering else f"A {name} blocks your way!"
@@ -1028,10 +1161,11 @@ class Game:
                 self._say(f"You break away from the {name} and run.")
             case FleeFailed(name=name):
                 self._say(f"You try to run, but the {name} cuts you off.")
-            case EnemyKilled(name=name, loot=loot):
+            case EnemyKilled(name=name, loot=loot, gold=gold):
                 self._say(f"You defeat the {name}.")
-                if loot:
-                    self._say(f"It drops {_and(f'a {n}' for n in loot)}.")
+                dropped = [f"a {n}" for n in loot] + ([f"{gold} gold"] if gold else [])
+                if dropped:
+                    self._say(f"It drops {_and(dropped)}.")
             case PlayerDefeated(name=name):
                 self._say(f"The {name} strikes you down. Everything goes dark.")
             case Respawned(location=location_id):
@@ -1048,8 +1182,16 @@ class Game:
                 self._say(f"{title}: {done} of {needed}.")
             case QuestReady(title=title):
                 self._say(f"Quest ready to turn in: {title}. Any town's notice board will do.")
-            case QuestCompleted(title=title, reward=reward):
-                self._say(f"Quest done: {title}. Your reward: the {reward}.")
+            case QuestCompleted(title=title, reward=reward, gold=gold):
+                paid = f" and {gold} gold" if gold else ""
+                self._say(f"Quest done: {title}. Your reward: the {reward}{paid}.")
+            case QuestAbandoned(title=title, board=board):
+                where = f" at {self.overworld.location(board).name}" if board else ""
+                self._say(f"You give up on {title}. The notice goes back up{where}.")
+            case ItemBought(name=name, price=price, shop=shop):
+                self._say(f"You buy the {name} from the {shop} for {price} gold.")
+            case ItemSold(name=name, price=price, shop=shop):
+                self._say(f"You sell the {name} to the {shop} for {price} gold.")
             case AmbientNoticed(text=text):
                 self._say(text)
             case ActionRejected(reason=reason):
@@ -1074,6 +1216,13 @@ class Game:
             )
         if ready:
             self._say(f"You can turn in {ready} finished quest{'s' * (ready != 1)} here.")
+
+    def _mention_shops(self) -> None:
+        for _, shop in shops.shops_here(self):
+            if shop.inn:
+                self._say(f"The {shop.name} has beds for {self.economy.inn_price} gold a night.")
+            else:
+                self._say(f"The {shop.name} is open for trade.")
 
     def _say(self, line: str) -> None:
         self.log.append(line)
@@ -1108,6 +1257,7 @@ def _fog_map(
     quests: set[str] = frozenset(),  # type: ignore[assignment]
     charted: set[str] = frozenset(),  # type: ignore[assignment]
     blocked: dict[str, str] | None = None,
+    shops: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -1130,6 +1280,7 @@ def _fog_map(
                 quest=node_id in quests,
                 charted=node_id in charted,
                 blocked=(blocked or {}).get(node_id),
+                shop=node_id in shops,
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

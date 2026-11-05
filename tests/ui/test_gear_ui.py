@@ -111,7 +111,7 @@ def test_shell_switches_tabs(tmp_path):
     assert shell.inventory.control.visible and not shell.explore.control.visible
     assert shell.current == 1
     texts = _texts(shell.inventory.control)
-    assert "HP 20/20   ATK 4   DEF 2" in texts and "Head: empty" in texts
+    assert "HP 20/20   ATK 4   DEF 2   10 gold" in texts and "Head: empty" in texts
     assert "Your pack is empty." in texts
     shell.select(0)
     assert shell.explore.control.visible and not shell.inventory.control.visible

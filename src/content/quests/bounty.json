@@ -15,5 +15,6 @@
     "person": ["Notorious", "Branded", "Ruthless", "Silver-Tongued"],
     "spirit": ["Restless", "Howling", "Ancient", "Bitter"]
   },
-  "strength": 1.5
+  "strength": 1.5,
+  "gold": [12, 20]
 }

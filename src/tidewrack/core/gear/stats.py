@@ -12,6 +12,9 @@ from collections.abc import Iterable, Mapping
 STATS = ("atk", "def", "hp")
 STAT_LABELS = {"atk": "ATK", "def": "DEF", "hp": "HP"}
 STAT_NAMES = {"atk": "Attack", "def": "Defence", "hp": "Health"}
+# Gold each point of a stat is worth (core/economy/value_model.py). A point of
+# DEF takes about as much off every blow as a point of ATK adds; HP is cheaper.
+STAT_VALUES = {"atk": 5.0, "def": 5.0, "hp": 1.5}
 
 StatBlock = dict[str, int]
 

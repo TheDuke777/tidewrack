@@ -170,6 +170,7 @@ class EnemyKilled(Event):
     category: str
     loot: tuple[str, ...]  # names of what it dropped
     bounty: str | None = None  # the quest it was wanted for
+    gold: int = 0  # what it carried, now yours
 
 
 @dataclass(frozen=True)
@@ -186,6 +187,7 @@ class Respawned(Event):
 @dataclass(frozen=True)
 class Rested(Event):
     location: str
+    price: int = 0  # what the inn charged
 
 
 # --- quests ------------------------------------------------------------------------
@@ -230,6 +232,50 @@ class QuestCompleted(Event):
     quest_id: str
     title: str
     reward: str  # the reward's name
+    gold: int = 0  # paid with it
+
+
+@dataclass(frozen=True)
+class QuestAbandoned(Event):
+    quest_id: str
+    title: str
+    board: str | None  # the town whose board it's back on (None: gone)
+
+
+# --- the economy -------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class GoldGained(Event):
+    """Every gold the player gets: loot, quest rewards, sales. Not narrated itself
+    (the event that caused it is); for subscribers like achievements."""
+
+    amount: int
+    source: str  # "loot", "quest" or "sale"
+
+
+@dataclass(frozen=True)
+class GoldSpent(Event):
+    amount: int
+    on: str  # "gear" or "rest"
+
+
+@dataclass(frozen=True)
+class ItemBought(Event):
+    item: int
+    gear_id: str
+    name: str
+    price: int
+    shop: str  # the shop's name
+
+
+@dataclass(frozen=True)
+class ItemSold(Event):
+    item: int
+    gear_id: str
+    name: str
+    price: int
+    shop: str
 
 
 @dataclass(frozen=True)

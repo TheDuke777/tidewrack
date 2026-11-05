@@ -15,5 +15,6 @@
     { "name": "Brass Sextant", "description": "Green with verdigris, its mirror cracked, its arc still true." },
     { "name": "Smuggler's Tally", "description": "A knotted cord, each knot a debt. Several people would pay to see it burned." },
     { "name": "Drowned Bell", "description": "A ship's bell no bigger than a fist. It doesn't ring, though the clapper moves." }
-  ]
+  ],
+  "gold": [10, 16]
 }

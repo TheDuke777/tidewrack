@@ -35,18 +35,24 @@ def kind_chip(kind: str) -> ft.Container:
     )
 
 
-def reward_line(quest: QuestView) -> ft.Row:
-    reward = quest.reward
+def reward_text(quest: QuestView) -> str:
+    gold = f" + {quest.gold} gold" if quest.gold else ""
     if quest.state == "done":
-        return ft.Row(controls=[ft.Text(f"Reward: {reward.name}", size=14)])
+        return f"Reward: {quest.reward.name}{gold}"
+    return f"Reward: {quest.reward.name} ({quest.reward.slot}){gold}"
+
+
+def reward_line(quest: QuestView) -> ft.Row:
+    if quest.state == "done":
+        return ft.Row(controls=[ft.Text(reward_text(quest), size=14)])
     return ft.Row(
         wrap=True,
         spacing=8,
         run_spacing=6,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         controls=[
-            ft.Text(f"Reward: {reward.name} ({reward.slot})", size=14),
-            verdict_chip(reward.comparison.verdict),
+            ft.Text(reward_text(quest), size=14),
+            verdict_chip(quest.reward.comparison.verdict),
         ],
     )
 
@@ -67,7 +73,8 @@ def quest_card(
         ft.Text(quest.progress, size=13, weight=ft.FontWeight.BOLD),
     ]
     if full_reward:
-        body += [ft.Text("Reward", size=13), gear_compare_card(quest.reward)]
+        gold = f" (and {quest.gold} gold)" if quest.gold else ""
+        body += [ft.Text(f"Reward{gold}", size=13), gear_compare_card(quest.reward)]
     else:
         body.append(reward_line(quest))
     if actions:

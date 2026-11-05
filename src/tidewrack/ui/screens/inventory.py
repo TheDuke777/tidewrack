@@ -3,8 +3,8 @@
 Reads only Game.inventory() and sends only commands, through the GameSession so
 every change autosaves (CLAUDE.md §4, §6). The pack can be filtered by slot,
 affix and set, then sorted (name, ATK, DEF, HP or verdict, either way round),
-and a select mode acts on several items at once (drop now; sell once shops
-exist). Dropping always asks first.
+and a select mode acts on several items at once (drop, or sell while you're at
+a shop that buys gear). Dropping and selling always ask first.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from tidewrack.core.engine.game import (
     Equip,
     InventoryView,
     ItemView,
+    Sell,
     TurnResult,
     Unequip,
 )
@@ -117,6 +118,7 @@ class InventoryScreen:
         self.selecting = False
         self.selected: set[int] = set()
         self._shown: list[ItemView] = []  # the pack after filtering
+        self._buyer: str | None = None  # the shop here that buys gear
 
         self.sheet = ft.Column(spacing=4)
         self.equipped = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
@@ -213,6 +215,38 @@ class InventoryScreen:
             drop,
         )
 
+    def _sell(self, item: ItemView) -> None:
+        def sell() -> None:
+            self.act(Sell(item.id))
+
+        self.confirm(
+            f"Sell the {item.name}?",
+            f"The {self._buyer} pays {item.sell_price} gold. Buying it back costs more.",
+            f"Sell for {item.sell_price} gold",
+            sell,
+        )
+
+    def _sell_selected(self, _: ft.Event) -> None:
+        chosen = [i for i in self._shown if i.id in self.selected]
+        if not chosen:
+            return
+        total = sum(i.sell_price for i in chosen)
+
+        def sell() -> None:
+            results = [self.session.perform(Sell(item.id)) for item in chosen]
+            self.selected.clear()
+            self.selecting = False
+            self.refresh()
+            self._tell(*results)
+
+        names = ", ".join(i.name for i in chosen[:3]) + (" …" if len(chosen) > 3 else "")
+        self.confirm(
+            f"Sell {len(chosen)} item{'s' if len(chosen) != 1 else ''}?",
+            f"{names}. The {self._buyer} pays {total} gold for them.",
+            f"Sell for {total} gold",
+            sell,
+        )
+
     def _toggle_select(self, _: ft.Event) -> None:
         self.selecting = not self.selecting
         self.selected.clear()
@@ -245,6 +279,7 @@ class InventoryScreen:
 
     def refresh(self) -> None:
         view = self.session.game.inventory()
+        self._buyer = view.buyer
         self.sheet.controls = self._sheet(view)
         self.equipped.controls = [self._slot(slot) for slot in view.slots]
 
@@ -285,6 +320,15 @@ class InventoryScreen:
                 on_click=self._drop_selected,
             ),
         ]
+        if self._buyer:
+            self.selection_bar.controls.append(
+                ft.FilledTonalButton(
+                    content="Sell selected",
+                    icon=ft.Icons.SELL_OUTLINED,
+                    disabled=not self.selected,
+                    on_click=self._sell_selected,
+                )
+            )
         if not view.pack:
             self.pack.controls = [_muted("Your pack is empty.")]
         elif not self._shown:
@@ -297,6 +341,7 @@ class InventoryScreen:
         game = self.session.game
         top = [f"HP {game.hp()}/{game.max_hp()}"]
         top += [f"{STAT_LABELS[s]} {total[s]}" for s in STATS if s != "hp"]
+        top.append(f"{view.gold} gold")
         lines: list[ft.Control] = [
             ft.Text(
                 "   ".join(top),
@@ -339,14 +384,23 @@ class InventoryScreen:
                     on_change=lambda e, i=item.id: self._select(i, bool(e.control.value)),
                 )
             ]
-        return [
+        actions: list[ft.Control] = [
             ft.FilledButton(
                 content="Equip",
                 icon=ft.Icons.CHECK,
                 on_click=lambda _, i=item.id: self.act(Equip(i)),
             ),
-            self._drop_button(item),
         ]
+        if self._buyer:
+            actions.append(
+                ft.FilledTonalButton(
+                    content=f"Sell · {item.sell_price} gold",
+                    icon=ft.Icons.SELL_OUTLINED,
+                    on_click=lambda _, i=item: self._sell(i),
+                )
+            )
+        actions.append(self._drop_button(item))
+        return actions
 
     def _drop_button(self, item: ItemView) -> ft.Control:
         return ft.TextButton(

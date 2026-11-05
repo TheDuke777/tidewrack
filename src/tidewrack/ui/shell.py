@@ -33,9 +33,11 @@ class WorldShell:
         confirm: Confirm,
         notify: Callable[[str], None],
     ) -> None:
-        self.explore = GameScreen(session, settings, on_back=on_back, notify=notify)
+        self.explore = GameScreen(
+            session, settings, on_back=on_back, notify=notify, confirm=confirm
+        )
         self.inventory = InventoryScreen(session, confirm=confirm, notify=notify)
-        self.quests = QuestsScreen(session)
+        self.quests = QuestsScreen(session, confirm=confirm, notify=notify)
         self.codex = CodexScreen(session)
         self.tabs = [
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),

@@ -6,6 +6,32 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Gold. People you defeat (wreckers, smugglers, the odd drowned sailor) carry
+  some, quests pay gold as well as their gear reward, and every new world
+  starts you with 10.
+- Shops. Every town has a Smithy that sells plain gear and buys yours, and a
+  Tavern with beds. Each shop is in a room named for it, or at the town gate
+  if the town hasn't got one. Every item for sale shows the usual comparison
+  card and its price. Smithies slowly restock, and gear you sell goes on their
+  shelves.
+- Selling, inside the smithy or from the Inventory tab while you're there (one
+  item at a time, or several at once in select mode). Selling always asks
+  first.
+- Abandoning quests from the Quests tab. A quest from a notice board goes
+  back up on its board; a quest you found goes up on the board of the last
+  town you visited. A cull's count starts again.
+- Area map: rooms with a shop or inn show ¤.
+
+### Changed
+- Notice boards and shops show in the room as one button each. Tapping one
+  opens it over the whole screen, like a fight, until you leave it.
+- Resting to full health in town is no longer free: it's a night at a tavern,
+  for 4 gold. Waiting anywhere still heals slowly.
+- Worlds from earlier versions get gold and shops too. You start with 10 gold,
+  enemies and unfinished quests carry gold, and every town gets a Smithy and a
+  Tavern. The Smithy stocks plain copies of gear already in that world.
+
 ## [0.6.2] - 2026-11-04
 
 ### Added

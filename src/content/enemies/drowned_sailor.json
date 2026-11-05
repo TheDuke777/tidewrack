@@ -15,5 +15,9 @@
       "gear.oilskin_hood": 1,
       "gear.sealskin_boots": 1
     }
-  }
+  },
+  "gold": [
+    0,
+    3
+  ]
 }
