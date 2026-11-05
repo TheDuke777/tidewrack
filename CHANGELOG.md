@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows
   to the app (on Samsung, once you've applied it in the system settings).
 
 ### Changed
+- The top-left back arrow in a world is now a menu with "Switch world", so
+  leaving a shop or notice board no longer drops you at the world list by
+  mistake. Settings and Help will live in this menu too.
 - "▲ Better" and stat gains use a darker green on light themes and a
   lighter one on dark themes, so they're easy to read on both.
 

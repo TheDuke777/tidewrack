@@ -306,10 +306,19 @@ class GameScreen:
         self._was_fighting = False
         header = ft.Row(
             controls=[
-                ft.IconButton(
-                    icon=ft.Icons.ARROW_BACK,
-                    tooltip="Back to worlds",
-                    on_click=lambda _: on_back(),
+                # A menu, not a back arrow: an arrow up here reads as "back one
+                # step" and kept leaving the world when a panel was meant.
+                # Settings and Help will join Switch world here (step 10).
+                ft.PopupMenuButton(
+                    icon=ft.Icons.MENU,
+                    tooltip="Menu",
+                    items=[
+                        ft.PopupMenuItem(
+                            content="Switch world",
+                            icon=ft.Icons.PUBLIC,
+                            on_click=lambda _: on_back(),
+                        ),
+                    ],
                 ),
                 self.where,
                 self.map_choice,

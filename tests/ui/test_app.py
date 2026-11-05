@@ -76,3 +76,28 @@ def test_a_world_that_cant_be_opened_falls_back_to_the_picker(make_app):
     page, app = make()
     app.start()
     assert not in_world(page)
+
+
+def walk(control):
+    yield control
+    for name in ("content", "controls"):
+        child = getattr(control, name, None)
+        if isinstance(child, list):
+            for c in child:
+                yield from walk(c)
+        elif child is not None and hasattr(child, "__dict__"):
+            yield from walk(child)
+
+
+def test_the_menu_switches_world_and_nothing_up_top_means_back(make_app):
+    import flet as ft
+
+    _, make = make_app
+    page, app = make()
+    app.new_world()
+    controls = list(walk(page.controls[0]))
+    assert not any(getattr(c, "icon", None) == ft.Icons.ARROW_BACK for c in controls)
+    (menu,) = [c for c in controls if isinstance(c, ft.PopupMenuButton)]
+    (switch,) = [i for i in menu.items if i.content == "Switch world"]
+    switch.on_click(None)
+    assert not in_world(page)
