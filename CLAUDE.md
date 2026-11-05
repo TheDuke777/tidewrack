@@ -134,7 +134,7 @@ tidewrack/
 │   ├── materials/                   #   so no items/ parent dir) hides, ore, timber, … (7b);
 │   │                                #   cooking ingredients later (7c)
 │   ├── recipes/                     # crafting recipes (7b): makes, affix, materials, known
-│   │                                #   (cooking gets its own flat kind in 7c, e.g. meals/)
+│   ├── meals/                       # meals (7c): ingredients, buff (stats, regen), turns, sold
 │   ├── shops/                       # shop archetypes, stock rules
 │   ├── pets/
 │   ├── factions/
@@ -172,8 +172,8 @@ tidewrack/
 │   │   ├── quests/                  # quests.py (accept, turn in, progress subscribers)
 │   │   ├── economy/                 # value_model.py (value, prices, EconomyRules),
 │   │   │                            #   shops.py (buy, sell, inn, restock, buy-back),
-│   │   │                            #   crafting.py (satchel, markets, craft, upgrade);
-│   │   │                            #   later cooking.py (7c)
+│   │   │                            #   crafting.py (satchel, markets, craft, upgrade),
+│   │   │                            #   cooking.py (kitchens, meals, buffs)
 │   │   ├── progression/             # prestige.py, achievements.py, difficulty.py
 │   │   ├── codex/                   # foes.py (Foes section: reveal by kills); later
 │   │   │                            #   lore/quest-log models, help index + search, glossary
@@ -347,6 +347,11 @@ Each system owns a distinct role so none makes the others pointless:
 - **Crafting** (`core/economy/crafting.py`) needs a shop that `crafts` (the Smithy; a third **Craft** tab). Upgrades: gear `upgrade_materials` (per level, × the level reached) are snapshotted into each crafting Smithy's `Shop.upgrades` (gear id → stacks), so items need no new fields; fee = value one level adds × `upgrade_fee` × level. Most gear is upgradable now (weapons to +3, the rest +2). Recipes (`recipes/<name>.json`, `recipe.<name>`: `makes`, optional `affix`, `materials`, `known`) are `Recipe` snapshots (the `Item` they make, best roll + affix, plus materials) in the player's `Recipes`; fee = made item's value × `craft_fee`. `known` recipes are taught at world creation; each other one turns up once per world (`recipes` substream, `recipes_hash`): as a quest's extra reward (`Quest.recipe`, at the world recipe's `quests.recipe_chance`) or a `RecipePage` in a wild non-gate room, learned on entering. All crafting actions are free. UI: a crafting Smithy has Buy / Sell / Upgrade / Craft tabs (no tab icons at four); Upgrade and Craft are `PackList`s sharing a third `PackChoices` ("Price" = fee), and a "Hide what I can't make" switch (`GameScreen.craftable_only`, UI state) hides upgrades and recipes short of materials; the Inventory tab has Equipped / Pack / Satchel tabs (`InventoryScreen.tab`). v0.8.1: gear and quest cards collapse to their top row + a one-line summary (`collapsed`/`on_toggle` on `gear_compare_card` and `quest_card`; actions and details such as material costs stay). `ui/components/folds.py` (`Folds`) tracks each list's collapsed cards; per-list defaults (`DEFAULTS`: long lists collapsed, equipped/ground expanded) can be changed with "Expand all / Collapse all", remembered in `Settings.collapsed` (Settings screen toggles come in step 10).
 - **Sim/lint:** income now includes materials (about 480 a standard world); the sim also reports crafting fees. The lint flags any craft or upgrade that sells for more than its fee plus its materials' sale value, and any smithy-sold gear whose cheapest copy costs no more than crafting it (rule 2).
 
+**Built (step 7c):**
+- **Ingredients** are materials with `ingredient: true` (same satchel, same gathering/drops/Market plumbing): kelp, mussels, mushrooms, wild herbs, black truffle (rare) in roomset `gathering`; boar, crab and eel meat from beasts; salt and ship's biscuit at every Market. **Meals** (`meals/<name>.json`, `meal.<name>`: `ingredients`, buff `stats` and/or `regen` (extra HP per regen tick), `turns`, `sold`) are `Meal` snapshots whose `value` is their ingredients'. A Tavern that `cooks` holds every meal as a `MealRecipe` (`Shop.meals`, snapshotted at creation); Cook costs the ingredients + fee (value × `cook_fee`), and `sold` meals can be bought ready-made (value × `buy_factor` × `meal_markup`). Meals can't be sold.
+- **Eating** (`core/economy/cooking.py`) is free, any time out of a fight: the meal leaves the player's `Meals` and becomes `WellFed` (one at a time; a new one replaces it). `cooking.meal_system` ticks it down each turn; at zero it wears off (health clamped, never a knock-out). The buff is a `StatSource` in the stat sheet and is included in gear comparisons; `regen` adds to `fight.regen_system`. UI: Tavern panel with Rest, a "Well fed" line and Menu / Cook tabs (the hide switch covers Cook); Satchel tab with Meals (Eat; replacing a meal asks first), Ingredients, Materials; the status row ends with "Fed: <meal> (<turns>)".
+- **Lint:** a sold meal costs more than cooking it (rule 2), and a meal's power (stat value + 3 per regen point, × turns/60) is at most `MEAL_POWER_PER_VALUE` (4) × its ingredient value, so harder meals can be stronger but never runaway.
+
 ### 8.7 Prestige pacing ("not too fast, not too slow")
 Goal: the first prestige feels earned within a few sessions, later prestiges never feel like a grind wall, and every prestige brings something new.
 
@@ -485,7 +490,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 7. **Economy**, in three parts (decided at the start of step 7):
    - ✅ **Done (v0.7.0).** **7a. Gold, value model, shops** (betas 1–4 added full-screen board/shop panels, Smithy Buy/Sell tabs with filters and sort): `Wallet`, enemy/quest gold, Smithy + Tavern in every town, buy/sell (bulk sell in the Inventory's select mode), paid inn rest (replaces free town rest), restocking, quest abandoning, area-map ¤ mark, economy sim + lint. Save schema v8 (migration gives old worlds gold and shops from their own snapshots), generator v8.
    - ✅ **Done (v0.8.0).** **7b. Materials + crafting** (betas 2–3 added Inventory tabs and Smithy Upgrade/Craft tabs with filters and a hide switch): materials (enemy drops, gathering, Market), Smithy Craft tab with upgrades and recipes (4 known, 6 found as pages or quest rewards), buy-back shelf (last 6 sold), crafting lint (rule 2 + no craft/upgrade profit loops). Save schema v9 (migration: satchel, starting recipes, Markets, upgrade tables, gear made upgradable, overfull shelves trimmed), generator v9.
-   - **7c. Cooking:** foraged/bought ingredients, Tavern food, short meal buffs (incl. a regen source).
+   - **7c. Cooking (built, unreleased):** ingredients (gathered, beast drops, Market staples), Tavern kitchens (Menu + Cook), 7 meals incl. two multi-stat ones, one buff at a time for N turns (stats or regen), meal lint (rule 2 + power budget). Save schema v10 (migration: pantry, kitchens, staples, `ingredient` on materials), generator v10.
    - Still open for step 8: world size/content density for the §8.7 pacing bands; the Settings About section and status-row toggle wait for step 10.
 8. **Prestige + difficulty + achievements** (tier scaling) + difficulty sim against the §8.7 pacing bands.
 9. **Pets** (rarity, soft pity, persistence).

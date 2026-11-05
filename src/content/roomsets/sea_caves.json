@@ -105,7 +105,7 @@
     "chance": 0.25,
     "gear": { "gear.harpoon": 1, "gear.boathook": 1, "gear.sealskin_boots": 2, "gear.oilskin_hood": 1, "gear.watchmans_coat": 1, "gear.whalebone_charm": 2 }
   },
-  "gathering": { "chance": 0.2, "materials": { "material.driftwood": 3, "material.crab_shell": 1 }, "count": [1, 3] },
+  "gathering": { "chance": 0.25, "materials": { "material.driftwood": 3, "material.crab_shell": 1, "material.kelp": 3, "material.mussels": 2 }, "count": [1, 3] },
   "enemies": {
     "placed_chance": 0.25,
     "wandering_chance": 0.12,

@@ -1,0 +1,7 @@
+{
+  "id": "material.mushrooms",
+  "name": "Mushrooms",
+  "description": "Pale caps from damp, dark places. The safe kind, probably.",
+  "value": 1,
+  "ingredient": true
+}

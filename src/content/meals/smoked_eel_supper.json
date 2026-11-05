@@ -1,0 +1,8 @@
+{
+  "id": "meal.smoked_eel_supper",
+  "name": "Smoked Eel Supper",
+  "description": "Eel smoked over driftwood, with herbs and coarse salt. Steadies the hand and the nerve.",
+  "ingredients": { "material.eel_meat": 2, "material.wild_herbs": 1, "material.salt": 1 },
+  "stats": { "atk": 2, "def": 2 },
+  "turns": 60
+}

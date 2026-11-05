@@ -1,0 +1,7 @@
+{
+  "id": "material.boar_meat",
+  "name": "Boar Meat",
+  "description": "A dark, heavy cut, already going stiff.",
+  "value": 2,
+  "ingredient": true
+}

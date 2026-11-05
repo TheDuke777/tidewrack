@@ -1,0 +1,7 @@
+{
+  "id": "material.eel_meat",
+  "name": "Eel Meat",
+  "description": "Oily grey-white flesh. Smoked, it keeps for weeks.",
+  "value": 3,
+  "ingredient": true
+}

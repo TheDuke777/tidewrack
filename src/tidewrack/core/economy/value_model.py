@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import ceil, floor
 
-from tidewrack.core.engine.components import Material
+from tidewrack.core.engine.components import Material, Meal
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stat_pipeline import item_total
 from tidewrack.core.gear.stats import STAT_VALUES, full
@@ -42,6 +42,8 @@ class EconomyRules:
     craft_fee: float = 0.5  # a smithy's fee to craft = what it makes' value × this
     upgrade_fee: float = 1.0  # per level reached, × the value one level adds
     buyback: int = 6  # gear you sold that a shop keeps on its shelf (newest)
+    meal_markup: float = 2.0  # a tavern's ready meal = its value × buy_factor × this
+    cook_fee: float = 0.5  # a tavern's fee to cook a meal = its value × this
 
 
 STANDARD_ECONOMY = EconomyRules()
@@ -96,3 +98,18 @@ def upgrade_fee(item: Item, rules: EconomyRules = STANDARD_ECONOMY) -> int:
     """A smithy's fee to raise `item` one level: more for each level up."""
     level = item.upgrade + 1
     return max(1, ceil(stats_value(item.upgrade_step) * rules.upgrade_fee * level))
+
+
+# --- meals (step 7c) ----------------------------------------------------------------
+# A meal's value is its ingredients' (worked out at world creation). Meals can't be
+# sold, so cooking and buying them can't loop into gold.
+
+
+def meal_price(meal: Meal, rules: EconomyRules = STANDARD_ECONOMY) -> int:
+    """What a tavern charges for one ready-made."""
+    return max(1, ceil(meal.value * rules.buy_factor * rules.meal_markup))
+
+
+def cook_fee(meal: Meal, rules: EconomyRules = STANDARD_ECONOMY) -> int:
+    """A tavern's fee for cooking it (the ingredients come on top)."""
+    return max(1, ceil(meal.value * rules.cook_fee))

@@ -28,6 +28,7 @@ from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import (
     MaterialDropSchema,
     MaterialSchema,
+    MealSchema,
     RecipeSchema,
     WorldRecipeSchema,
 )
@@ -35,6 +36,8 @@ from tidewrack.core.engine.components import (
     Material,
     MaterialDrop,
     MaterialStack,
+    Meal,
+    MealRecipe,
     Quest,
     Recipe,
     RecipePage,
@@ -45,7 +48,29 @@ from tidewrack.core.world.overworld import Overworld
 
 
 def make_material(schema: MaterialSchema) -> Material:
-    return Material(schema.id, schema.name, schema.description, schema.value)
+    return Material(schema.id, schema.name, schema.description, schema.value, schema.ingredient)
+
+
+def make_meal(schema: MealSchema, content: Content) -> Meal:
+    """A meal snapshot; its value is what its ingredients are worth."""
+    worth = sum(content.materials[m].value * n for m, n in schema.ingredients.items())
+    return Meal(
+        schema.id,
+        schema.name,
+        schema.description,
+        dict(schema.stats),
+        schema.regen,
+        schema.turns,
+        worth,
+    )
+
+
+def meal_recipes(content: Content) -> list[MealRecipe]:
+    """Every meal, as a tavern that cooks knows it."""
+    return [
+        MealRecipe(make_meal(m, content), stacks(m.ingredients, content), m.sold)
+        for _, m in sorted(content.meals.items())
+    ]
 
 
 def stacks(counts: dict[str, int], content: Content) -> list[MaterialStack]:

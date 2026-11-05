@@ -67,6 +67,7 @@ class MaterialSchema(Schema):
     name: Text
     description: Text
     value: int = Field(ge=1, le=100)  # gold; prices derive from it like gear's
+    ingredient: bool = False  # used for cooking (step 7c) rather than crafting
 
 
 class RecipeSchema(Schema):
@@ -79,6 +80,26 @@ class RecipeSchema(Schema):
     affix: content_id("affix") | None = None  # crafted with this affix
     materials: Counts = Field(min_length=1)
     known: bool = False
+
+
+class MealSchema(Schema):
+    """Something a tavern cooks (step 7c). Eating it gives a buff for `turns` turns;
+    one meal's buff at a time. Its value is its ingredients' (prices derive from it)."""
+
+    id: content_id("meal")
+    name: Text
+    description: Text
+    ingredients: Counts = Field(min_length=1)  # material ids (ingredients)
+    stats: StatBlock = {}
+    regen: int = Field(default=0, ge=0, le=20)  # extra HP per regeneration
+    turns: int = Field(default=60, ge=5, le=500)
+    sold: bool = False  # taverns also sell it ready-made
+
+    @model_validator(mode="after")
+    def _check(self) -> MealSchema:
+        if not (any(self.stats.values()) or self.regen):
+            raise ValueError("a meal needs a buff: stats or regen")
+        return self
 
 
 class MaterialDropSchema(Schema):
@@ -242,6 +263,7 @@ class ShopSchema(Schema):
     materials: list[content_id("material")] = []  # always for sale (never run out)
     buys_materials: bool = False
     crafts: bool = False  # upgrades gear and crafts from recipes
+    cooks: bool = False  # cooks every meal (and sells the `sold` ones ready-made)
 
     @model_validator(mode="after")
     def _check(self) -> ShopSchema:
@@ -255,6 +277,7 @@ class ShopSchema(Schema):
             or self.materials
             or self.buys_materials
             or self.crafts
+            or self.cooks
         ):
             raise ValueError("a shop must trade gear or materials, craft, or be an inn")
         return self

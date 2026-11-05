@@ -94,7 +94,7 @@ def missing(game: Game, needs: list[MaterialStack], times: int = 1) -> list[str]
     return short
 
 
-def _use(game: Game, needs: list[MaterialStack], times: int = 1) -> None:
+def use(game: Game, needs: list[MaterialStack], times: int = 1) -> None:
     for need in needs:
         _take(game, need.material.material_id, need.count * times)
 
@@ -200,7 +200,7 @@ def craft(game: Game, recipe_id: str) -> None:
     elif shops.gold(game) < fee:
         game.bus.emit(ActionRejected(f"The fee is {fee} gold; you have {shops.gold(game)}."))
     else:
-        _use(game, recipe.materials)
+        use(game, recipe.materials)
         shops.pay(game, fee, "crafting")
         item = copy.deepcopy(recipe.makes)
         entity = game.world.create(item, Carried(game.player))
@@ -237,7 +237,7 @@ def upgrade(game: Game, entity: int) -> None:
     elif shops.gold(game) < fee:
         game.bus.emit(ActionRejected(f"The fee is {fee} gold; you have {shops.gold(game)}."))
     else:
-        _use(game, needs)
+        use(game, needs)
         shops.pay(game, fee, "upgrade")
         item.upgrade += 1
         game.bus.emit(ItemUpgraded(entity, item.gear_id, item.display_name, item.upgrade, fee))

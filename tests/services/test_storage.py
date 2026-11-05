@@ -374,3 +374,34 @@ def test_an_overfull_v8_smithy_keeps_only_the_newest_sold_gear(tmp_path):
     on_shelf = [e for e, (s,) in world.query(Stocked) if s.shop == shop_id]
     assert shop.buyback == extra[-6:]
     assert len(on_shelf) == shop.cap + 6
+
+
+def test_v9_saves_get_kitchens_staples_and_a_pantry(tmp_path):
+    from tidewrack.core.economy import cooking, crafting
+    from tidewrack.core.engine.components import Shop
+
+    envelope = json.loads((FIXTURES / "v9_crafting.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert cooking.held(game) == {} and cooking.fed(game) is None
+    assert all(not s.material.ingredient for s in crafting.held(game).values())
+    found = [s for _, (s,) in game.world.query(Shop)]
+    taverns = [s for s in found if s.inn]
+    assert taverns and all(s.cooks and len(s.meals) == 7 for s in taverns)
+    assert all(not s.cooks for s in found if not s.inn)
+    market = next(s for s in found if s.buys_materials)
+    staples = [m.name for m in market.materials if m.ingredient]
+    assert staples == ["Salt", "Ship's Biscuit"]
+
+
+def test_v10_fixture_keeps_its_meals_and_buff(tmp_path):
+    from tidewrack.core.economy import cooking
+
+    envelope = json.loads((FIXTURES / "v10_cooking.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert [(m.name, m.count) for m in game.inventory().meals] == [("Kelp Broth", 1)]
+    fed = cooking.fed(game)
+    assert (
+        fed is not None and fed.meal.name == "Mussel Stew" and fed.turns_left == 57
+    )  # 3 waits after eating

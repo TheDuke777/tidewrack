@@ -21,6 +21,7 @@
     }
   },
   "materials": [
-    { "material": "material.eel_skin", "chance": 0.7, "count": [1, 1] }
+    { "material": "material.eel_skin", "chance": 0.7, "count": [1, 1] },
+    { "material": "material.eel_meat", "chance": 0.5, "count": [1, 2] }
   ]
 }

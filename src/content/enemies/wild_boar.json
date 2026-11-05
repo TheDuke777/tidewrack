@@ -15,6 +15,7 @@
     ]
   },
   "materials": [
-    { "material": "material.hide", "chance": 0.8, "count": [1, 2] }
+    { "material": "material.hide", "chance": 0.8, "count": [1, 2] },
+    { "material": "material.boar_meat", "chance": 0.6, "count": [1, 2] }
   ]
 }

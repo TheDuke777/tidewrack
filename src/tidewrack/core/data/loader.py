@@ -26,6 +26,7 @@ from tidewrack.core.data.schemas import (
     GearSchema,
     GearSetSchema,
     MaterialSchema,
+    MealSchema,
     QuestTemplateSchema,
     RecipeSchema,
     RoomsetSchema,
@@ -42,6 +43,7 @@ KINDS = {
     "gear": (GearSchema, "gear"),
     "gearsets": (GearSetSchema, "gearset"),
     "materials": (MaterialSchema, "material"),
+    "meals": (MealSchema, "meal"),
     "recipes": (RecipeSchema, "recipe"),
     "quests": (QuestTemplateSchema, "quest"),
     "roomsets": (RoomsetSchema, "roomset"),
@@ -69,6 +71,7 @@ class Content:
     shops: dict[str, ShopSchema]
     materials: dict[str, MaterialSchema]
     recipes: dict[str, RecipeSchema]
+    meals: dict[str, MealSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -127,6 +130,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         shops=loaded["shops"],
         materials=loaded["materials"],
         recipes=loaded["recipes"],
+        meals=loaded["meals"],
         content_hash=content_hash(files),
     )
 
@@ -180,6 +184,12 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
         if gear.set is not None:
             check(_path("gear", gear.id), [gear.set], "gearsets", "gear set")
         check(_path("gear", gear.id), gear.upgrade_materials, "materials", "material")
+    for meal in loaded["meals"].values():
+        path = _path("meals", meal.id)
+        check(path, meal.ingredients, "materials", "material")
+        for m in meal.ingredients:
+            if m in loaded["materials"] and not loaded["materials"][m].ingredient:
+                problems.append(f"{path}: {m} isn't an ingredient")
     for recipe in loaded["recipes"].values():
         path = _path("recipes", recipe.id)
         check(path, [recipe.makes], "gear", "gear")

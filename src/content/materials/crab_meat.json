@@ -1,0 +1,7 @@
+{
+  "id": "material.crab_meat",
+  "name": "Crab Meat",
+  "description": "Sweet white meat picked from the shell.",
+  "value": 2,
+  "ingredient": true
+}

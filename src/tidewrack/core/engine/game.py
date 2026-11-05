@@ -33,14 +33,16 @@ from tidewrack.core.data.save import (
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
-from tidewrack.core.economy import crafting, shops
+from tidewrack.core.economy import cooking, crafting, shops
 from tidewrack.core.economy.value_model import (
     STANDARD_ECONOMY,
     EconomyRules,
     buy_price,
+    cook_fee,
     craft_fee,
     material_buy_price,
     material_sell_price,
+    meal_price,
     sell_price,
     upgrade_fee,
     value,
@@ -57,6 +59,8 @@ from tidewrack.core.engine.components import (
     Health,
     Materials,
     MaterialStack,
+    Meal,
+    Meals,
     Name,
     Player,
     Position,
@@ -99,6 +103,10 @@ from tidewrack.core.engine.events import (
     MaterialsBought,
     MaterialsGained,
     MaterialsSold,
+    MealBought,
+    MealCooked,
+    MealEaten,
+    MealWoreOff,
     PlayerDefeated,
     QuestAbandoned,
     QuestAccepted,
@@ -118,7 +126,13 @@ from tidewrack.core.engine.events import (
 from tidewrack.core.gear import stats
 from tidewrack.core.gear.compare import Comparison, compare
 from tidewrack.core.gear.item import SLOT_LABELS, SLOTS, Item, slots_taken
-from tidewrack.core.gear.stat_pipeline import StatSheet, item_base, item_total, player_stats
+from tidewrack.core.gear.stat_pipeline import (
+    StatSheet,
+    StatSource,
+    item_base,
+    item_total,
+    player_stats,
+)
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
 from tidewrack.core.quests import quests as questing
 from tidewrack.core.rng import Rng
@@ -269,6 +283,27 @@ class Upgrade:
     item: int
 
 
+@dataclass(frozen=True)
+class Cook:
+    """Cook a meal from ingredients at a tavern here (free)."""
+
+    meal: str  # meal id, from a MealView
+
+
+@dataclass(frozen=True)
+class BuyMeal:
+    """Buy a ready-made meal at a tavern here (free)."""
+
+    meal: str
+
+
+@dataclass(frozen=True)
+class Eat:
+    """Eat a meal you carry: its buff replaces any meal's you have (free)."""
+
+    meal: str
+
+
 Command = (
     Move
     | Travel
@@ -291,6 +326,9 @@ Command = (
     | SellMaterials
     | Craft
     | Upgrade
+    | Cook
+    | BuyMeal
+    | Eat
 )
 COMBAT_COMMANDS = (Attack, Defend, Flee)
 ALLOWED_IN_COMBAT = (Look, *COMBAT_COMMANDS)
@@ -381,6 +419,8 @@ class InventoryView:
     buyer: str | None = None  # the shop here that buys gear (sell from the pack)
     materials: tuple[MaterialView, ...] = ()  # your satchel, by name
     recipes: tuple[str, ...] = ()  # names of the recipes you know
+    meals: tuple[MealView, ...] = ()  # cooked meals you carry
+    fed: FedView | None = None
 
 
 @dataclass(frozen=True)
@@ -390,6 +430,7 @@ class MaterialView:
     description: str
     count: int  # how many you have
     sell_price: int  # what a market pays for one
+    ingredient: bool = False  # for cooking rather than crafting
 
 
 @dataclass(frozen=True)
@@ -425,6 +466,37 @@ class UpgradeView:
 
 
 @dataclass(frozen=True)
+class MealView:
+    id: str  # meal id, for Cook / BuyMeal / Eat
+    name: str
+    description: str
+    buff: str  # "ATK +2, faster healing (+2 HP)"
+    turns: int
+    count: int  # how many you carry
+
+
+@dataclass(frozen=True)
+class MenuView:
+    """A meal at a tavern: what cooking it takes, and its price if it's sold."""
+
+    meal: MealView
+    ingredients: tuple[CostView, ...]
+    fee: int
+    can_cook: bool
+    price: int | None  # ready-made, if the tavern sells it
+    affordable: bool = False
+
+
+@dataclass(frozen=True)
+class FedView:
+    """The meal whose buff you have now."""
+
+    name: str
+    buff: str
+    turns_left: int
+
+
+@dataclass(frozen=True)
 class MaterialWareView:
     material: MaterialView
     price: int  # for one
@@ -450,6 +522,8 @@ class ShopView:
     crafts: bool = False
     recipes: tuple[RecipeView, ...] = ()  # every recipe you know, at a smithy
     upgrades: tuple[UpgradeView, ...] = ()  # your gear it can upgrade
+    cooks: bool = False
+    menu: tuple[MenuView, ...] = ()  # a tavern's meals
 
 
 @dataclass(frozen=True)
@@ -512,6 +586,7 @@ class GameView:
     board: tuple[QuestView, ...] | None = None  # at a notice board: posted + ready quests
     gold: int = 0
     shops: tuple[ShopView, ...] = ()  # shops in this room
+    fed: FedView | None = None
 
 
 # --- the game ----------------------------------------------------------------------
@@ -561,6 +636,7 @@ class Game:
             Wallet(gold),
             Materials(),
             Recipes({r.recipe_id: r for r in recipes}),
+            Meals(),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
@@ -639,6 +715,7 @@ class Game:
             fight.regen_system,
             returns.returns_system,
             shops.restock_system,
+            cooking.meal_system,
         ]
 
         # Subscription order is delivery order: exploration updates state before
@@ -705,10 +782,11 @@ class Game:
         )
         game.player = game.world.single(Player)[0]
         if not game.world.has(
-            game.player, Stats, Health, Codex, Respawn, Wallet, Materials, Recipes
+            game.player, Stats, Health, Codex, Respawn, Wallet, Materials, Recipes, Meals
         ):
             raise ValueError(
-                "the player is missing Stats, Health, Codex, Respawn, Wallet, Materials or Recipes"
+                "the player is missing Stats, Health, Codex, Respawn, Wallet, Materials, "
+                "Recipes or Meals"
             )
         for _, (shop,) in game.world.query(Shop):
             for entity in shop.buyback:
@@ -815,6 +893,12 @@ class Game:
                 crafting.craft(self, recipe_id)
             case Upgrade(item=entity):
                 crafting.upgrade(self, entity)
+            case Cook(meal=meal_id):
+                cooking.cook(self, meal_id)
+            case BuyMeal(meal=meal_id):
+                cooking.buy_meal(self, meal_id)
+            case Eat(meal=meal_id):
+                cooking.eat(self, meal_id)
             case Attack():
                 fight.attack(self)
                 took_turn = True
@@ -898,7 +982,7 @@ class Game:
             self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
         self.world.remove(entity, Carried)
         self.world.add(entity, Position(here.location, here.room))
-        self._clamp_health()
+        self.clamp_health()
         self.bus.emit(ItemDropped(self.player, entity, item.gear_id, item.display_name))
         return True
 
@@ -915,7 +999,7 @@ class Game:
         for other, _ in replaced:
             self.world.remove(other, Equipped)
         self.world.add(entity, Equipped(item.slot))
-        self._clamp_health()
+        self.clamp_health()
         self.bus.emit(
             ItemEquipped(
                 self.player,
@@ -933,7 +1017,7 @@ class Game:
             self.bus.emit(ActionRejected("You don't have that on."))
             return False
         self.world.remove(entity, Equipped)
-        self._clamp_health()
+        self.clamp_health()
         self.bus.emit(ItemUnequipped(self.player, entity, item.gear_id, item.display_name))
         return True
 
@@ -945,7 +1029,8 @@ class Game:
         ]
 
     def _item_view(self, entity: int, item: Item) -> ItemView:
-        base = self.world.get(self.player, Stats).base
+        # Compared with what you have now, meal included, so "You" stays true.
+        base = stats.add(self.world.get(self.player, Stats).base, cooking.buff(self))
         return ItemView(
             id=entity,
             name=item.display_name,
@@ -964,7 +1049,7 @@ class Game:
             sell_price=sell_price(item, self.economy),
         )
 
-    def _clamp_health(self) -> None:
+    def clamp_health(self) -> None:
         """Taking off HP gear can lower max HP, but never knocks you out."""
         health = self.world.get(self.player, Health)
         health.damage = min(health.damage, self.max_hp() - 1)
@@ -1051,7 +1136,45 @@ class Game:
         return places, rooms  # type: ignore[return-value]
 
     def sheet(self) -> StatSheet:
-        return player_stats(self.world.get(self.player, Stats).base, self._equipped())
+        well_fed = cooking.fed(self)
+        meal = (
+            [StatSource(f"{well_fed.meal.name} ({well_fed.turns_left} turns)", well_fed.meal.stats)]
+            if well_fed and any(well_fed.meal.stats.values())
+            else []
+        )
+        return player_stats(self.world.get(self.player, Stats).base, self._equipped(), meal)
+
+    def _meal_view(self, meal: Meal, count: int) -> MealView:
+        return MealView(
+            meal.meal_id, meal.name, meal.description, buff_text(meal), meal.turns, count
+        )
+
+    def _fed(self) -> FedView | None:
+        well_fed = cooking.fed(self)
+        if well_fed is None:
+            return None
+        return FedView(well_fed.meal.name, buff_text(well_fed.meal), well_fed.turns_left)
+
+    def _menu(self, shop: Shop) -> tuple[MenuView, ...]:
+        gold = shops.gold(self)
+        carried = cooking.held(self)
+        menu = []
+        for recipe in shop.meals:
+            fee = cook_fee(recipe.meal, self.economy)
+            costs = self._costs(recipe.ingredients)
+            price = meal_price(recipe.meal, self.economy) if recipe.sold else None
+            count = carried[recipe.meal.meal_id].count if recipe.meal.meal_id in carried else 0
+            menu.append(
+                MenuView(
+                    meal=self._meal_view(recipe.meal, count),
+                    ingredients=costs,
+                    fee=fee,
+                    can_cook=fee <= gold and all(c.enough for c in costs),
+                    price=price,
+                    affordable=price is not None and price <= gold,
+                )
+            )
+        return tuple(menu)
 
     def inventory(self) -> InventoryView:
         equipped = self._equipped_entities()
@@ -1089,6 +1212,11 @@ class Game:
             buyer=buyer[1].name if buyer else None,
             materials=self._materials(),
             recipes=tuple(r.name for r in crafting.known(self).values()),
+            meals=tuple(
+                self._meal_view(s.meal, s.count)
+                for s in sorted(cooking.held(self).values(), key=lambda s: s.meal.name)
+            ),
+            fed=self._fed(),
         )
 
     def _materials(self) -> tuple[MaterialView, ...]:
@@ -1102,6 +1230,7 @@ class Game:
             description=material.description,
             count=count,
             sell_price=material_sell_price(material, self.economy),
+            ingredient=material.ingredient,
         )
 
     def _costs(self, needs: list[MaterialStack]) -> tuple[CostView, ...]:
@@ -1178,6 +1307,8 @@ class Game:
                     crafts=shop.crafts,
                     recipes=recipes,
                     upgrades=upgrades,
+                    cooks=shop.cooks,
+                    menu=self._menu(shop) if shop.cooks else (),
                 )
             )
         return tuple(views)
@@ -1282,6 +1413,7 @@ class Game:
             board=self._board(),
             gold=shops.gold(self),
             shops=self._shops(),
+            fed=self._fed(),
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -1420,6 +1552,15 @@ class Game:
                 self._say(f"{how}: {name}. Any smithy can make it.")
             case ItemCrafted(name=name, fee=fee):
                 self._say(f"The smith makes you a {name} for {fee} gold.")
+            case MealCooked(name=name, fee=fee):
+                self._say(f"The cook makes you a {name} for {fee} gold. It keeps until you eat it.")
+            case MealBought(name=name, price=price, shop=shop):
+                self._say(f"You buy a {name} at the {shop} for {price} gold.")
+            case MealEaten(name=name, turns=turns, replaced=replaced):
+                gone = f" It takes the place of your {replaced}." if replaced else ""
+                self._say(f"You eat the {name}. It'll keep you going for {turns} turns.{gone}")
+            case MealWoreOff(name=name):
+                self._say(f"The {name} has worn off.")
             case ItemUpgraded(name=name, fee=fee):
                 self._say(f"The smith works on it for {fee} gold: it's now a {name}.")
             case AmbientNoticed(text=text):
@@ -1450,7 +1591,11 @@ class Game:
     def _mention_shops(self) -> None:
         for _, shop in shops.shops_here(self):
             if shop.inn:
-                self._say(f"The {shop.name} has beds for {self.economy.inn_price} gold a night.")
+                cooking_too = " and a kitchen" if shop.cooks else ""
+                self._say(
+                    f"The {shop.name} has beds for {self.economy.inn_price} gold a night"
+                    f"{cooking_too}."
+                )
             elif shop.crafts:
                 self._say(f"The {shop.name} is open for trade and takes crafting work.")
             elif shop.materials or shop.buys_materials:
@@ -1531,3 +1676,12 @@ def ambience_system(game: Game) -> None:
     location, room = game.here()
     if room.ambient and game.ambient_rng.chance(AMBIENT_CHANCE):
         game.bus.emit(AmbientNoticed(location.id, room.id, game.ambient_rng.choice(room.ambient)))
+
+
+def buff_text(meal: Meal) -> str:
+    """ "ATK +2, faster healing (+2 HP)": what a meal does while it lasts."""
+    parts = [f"{stats.STAT_LABELS[s]} +{v}" for s, v in meal.stats.items() if v]
+    if meal.regen:
+        parts.append(f"faster healing (+{meal.regen} HP)")
+    text = ", ".join(parts)
+    return text[:1].upper() + text[1:]

@@ -1,0 +1,9 @@
+{
+  "id": "meal.mussel_stew",
+  "name": "Mussel Stew",
+  "description": "Mussels steamed open in their own juice. It sits well; blows seem to matter less.",
+  "ingredients": { "material.mussels": 3, "material.salt": 1 },
+  "stats": { "def": 2 },
+  "turns": 60,
+  "sold": true
+}

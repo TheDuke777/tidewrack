@@ -1,0 +1,7 @@
+{
+  "id": "material.wild_herbs",
+  "name": "Wild Herbs",
+  "description": "Thyme, sorrel and something peppery, bundled with grass.",
+  "value": 2,
+  "ingredient": true
+}

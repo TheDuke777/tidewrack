@@ -1,0 +1,8 @@
+{
+  "id": "meal.boar_roast",
+  "name": "Boar Roast",
+  "description": "Charred outside, pink within, rubbed with herbs. You feel like hitting something.",
+  "ingredients": { "material.boar_meat": 2, "material.wild_herbs": 1 },
+  "stats": { "atk": 2 },
+  "turns": 60
+}

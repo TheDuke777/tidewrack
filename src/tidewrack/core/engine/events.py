@@ -331,6 +331,35 @@ class ItemUpgraded(Event):
 
 
 @dataclass(frozen=True)
+class MealCooked(Event):
+    meal_id: str
+    name: str
+    fee: int
+
+
+@dataclass(frozen=True)
+class MealBought(Event):
+    meal_id: str
+    name: str
+    price: int
+    shop: str
+
+
+@dataclass(frozen=True)
+class MealEaten(Event):
+    meal_id: str
+    name: str
+    turns: int
+    replaced: str | None  # the meal whose buff it replaced, if one was active
+
+
+@dataclass(frozen=True)
+class MealWoreOff(Event):
+    meal_id: str
+    name: str
+
+
+@dataclass(frozen=True)
 class ActionRejected(Event):
     reason: str
 

@@ -17,7 +17,7 @@ from math import ceil
 from typing import TYPE_CHECKING
 
 from tidewrack.core.combat.rules import damage, regen, scaled
-from tidewrack.core.economy import crafting, shops
+from tidewrack.core.economy import cooking, crafting, shops
 from tidewrack.core.engine.components import (
     Bounty,
     Codex,
@@ -226,4 +226,5 @@ def regen_system(game: Game) -> None:
         return
     health = game.world.get(game.player, Health)
     if health.damage and game.turn % game.rules.regen_every == 0:
-        health.damage = max(0, health.damage - regen(game.max_hp(), game.rules))
+        healed = regen(game.max_hp(), game.rules) + cooking.extra_regen(game)
+        health.damage = max(0, health.damage - healed)

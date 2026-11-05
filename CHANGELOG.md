@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Cooking. Every tavern has a kitchen with two tabs: a Menu of ready meals,
+  and Cook, where you make any of seven meals from ingredients for a small
+  fee (cheaper than buying).
+- Ingredients: kelp, mussels, mushrooms, wild herbs and a rare black truffle
+  in the wild; boar, crab and eel meat from beasts; salt and ship's biscuit
+  at every market. They share the satchel with crafting materials.
+- Meals keep until you eat them, any time outside a fight. Each gives a buff
+  for a number of turns: more ATK, DEF or HP, faster healing, or several at
+  once for the harder ones (Smoked Eel Supper, Harbour Feast). One meal at a
+  time; eating another replaces it (it asks first).
+- What you've eaten shows on the Satchel tab, in your stats, and at the end of
+  the status row ("Fed: Mussel Stew (57)").
+
+### Changed
+- The Satchel tab lists Meals, Ingredients and Materials separately.
+- Worlds from earlier versions get tavern kitchens and the market's new
+  staples. They have no ingredients lying about, so buy or cook from what
+  beasts drop from now on.
+
 ## [0.8.1] - 2026-11-05
 
 ### Fixed

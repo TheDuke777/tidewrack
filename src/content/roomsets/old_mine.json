@@ -73,7 +73,7 @@
     "chance": 0.25,
     "gear": { "gear.pick": 2, "gear.miners_helm": 2, "gear.storm_lantern": 1, "gear.buckler": 1 }
   },
-  "gathering": { "chance": 0.3, "materials": { "material.iron_ore": 4, "material.timber": 1 }, "count": [1, 3] },
+  "gathering": { "chance": 0.3, "materials": { "material.iron_ore": 4, "material.timber": 1, "material.mushrooms": 2 }, "count": [1, 3] },
   "enemies": {
     "placed_chance": 0.25,
     "wandering_chance": 0.1,

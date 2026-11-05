@@ -1,0 +1,8 @@
+{
+  "id": "meal.crab_cakes",
+  "name": "Crab Cakes",
+  "description": "Crab meat bound with crushed biscuit and fried. Filling enough for two.",
+  "ingredients": { "material.crab_meat": 2, "material.ships_biscuit": 1 },
+  "stats": { "hp": 6 },
+  "turns": 60
+}

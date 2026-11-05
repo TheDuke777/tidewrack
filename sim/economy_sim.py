@@ -15,7 +15,9 @@ through tests/sim/test_economy_sim.py. Per world it totals:
 The content lint also checks crafting: buying a gear the smithy sells costs more
 than the fee for crafting it from gathered materials (rule 2, the convenience
 tax), and no craft or upgrade can be sold for more than its fee plus what its
-materials would have sold for.
+materials would have sold for. Meals (step 7c): a ready-made meal costs more than
+cooking it (rule 2), and no meal's buff is worth more than MEAL_POWER_PER_VALUE
+times its ingredients, so pricier meals can be stronger but never runaway.
 
 Returning wanderers and restocks add more of both over time; they're not
 counted here (the step-8 difficulty sim plays worlds turn by turn).
@@ -30,9 +32,12 @@ from dataclasses import dataclass, field
 from tidewrack.core.data.loader import Content
 from tidewrack.core.economy.value_model import (
     buy_price,
+    cook_fee,
     craft_fee,
     material_sell_price,
+    meal_price,
     sell_price,
+    stats_value,
     upgrade_fee,
     value,
 )
@@ -43,6 +48,7 @@ from tidewrack.core.procgen.material_gen import (
     generate_gathering,
     known_recipes,
     make_material,
+    make_meal,
     make_recipe,
 )
 from tidewrack.core.procgen.quest_gen import generate_quests
@@ -147,6 +153,29 @@ def lint_content(content: Content) -> list[str]:
             if gain >= upgrade_fee(item) + per_level * better.upgrade:
                 problems.append(f"{gear.id}: upgrading it to +{better.upgrade} pays for itself")
             item = better
+    return problems + lint_meals(content)
+
+
+MEAL_POWER_PER_VALUE = 4.0
+REGEN_POWER = 3.0  # a point of extra regen, in stat value
+
+
+def meal_power(meal) -> float:
+    """A meal's buff in stat value, for 60 turns: stats, plus extra regen."""
+    return (stats_value(meal.stats) + REGEN_POWER * meal.regen) * meal.turns / 60
+
+
+def lint_meals(content: Content) -> list[str]:
+    problems = []
+    for schema in content.meals.values():
+        meal = make_meal(schema, content)
+        if schema.sold and meal_price(meal) <= cook_fee(meal):
+            problems.append(f"{schema.id}: buying it costs no more than cooking it (rule 2)")
+        if meal_power(meal) > MEAL_POWER_PER_VALUE * meal.value:
+            problems.append(
+                f"{schema.id}: its buff ({meal_power(meal):.0f}) is too strong for its "
+                f"ingredients (value {meal.value}; at most {MEAL_POWER_PER_VALUE:g}×)"
+            )
     return problems
 
 

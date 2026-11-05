@@ -1,0 +1,9 @@
+{
+  "id": "meal.kelp_broth",
+  "name": "Kelp Broth",
+  "description": "A thin green broth that warms you through. You heal faster for a while.",
+  "ingredients": { "material.kelp": 2, "material.salt": 1 },
+  "regen": 2,
+  "turns": 60,
+  "sold": true
+}

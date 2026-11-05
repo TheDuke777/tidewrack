@@ -1,0 +1,9 @@
+{
+  "id": "meal.harbour_feast",
+  "name": "Harbour Feast",
+  "description": "Roast boar, crab, a shaving of truffle and biscuit to mop it up. You could walk all day on it.",
+  "ingredients": { "material.boar_meat": 2, "material.crab_meat": 2, "material.black_truffle": 1, "material.ships_biscuit": 1 },
+  "stats": { "atk": 2, "def": 1, "hp": 8 },
+  "regen": 1,
+  "turns": 90
+}

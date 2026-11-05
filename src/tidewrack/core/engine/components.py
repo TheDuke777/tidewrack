@@ -15,6 +15,7 @@ class Material:
     name: str
     description: str = ""
     value: int = 1  # gold, before the world's EconomyRules
+    ingredient: bool = False  # food for cooking (step 7c) rather than for crafting
 
 
 @dataclass
@@ -258,6 +259,49 @@ class Wallet:
 
 
 @dataclass
+class Meal:
+    """Something cooked (step 7c): a snapshot of its buff, so saves never need content."""
+
+    meal_id: str
+    name: str
+    description: str
+    stats: dict[str, int] = field(default_factory=dict)  # added while you're fed
+    regen: int = 0  # extra HP each time you regenerate out of a fight
+    turns: int = 60  # how long the buff lasts
+    value: int = 1  # gold, before the world's EconomyRules
+
+
+@dataclass
+class MealStack:
+    meal: Meal
+    count: int = 1
+
+
+@dataclass
+class MealRecipe:
+    """How a tavern cooks a meal, and whether it sells it ready-made."""
+
+    meal: Meal
+    ingredients: list[MaterialStack] = field(default_factory=list)
+    sold: bool = False
+
+
+@dataclass
+class Meals:
+    """Cooked meals the player carries, by meal id."""
+
+    held: dict[str, MealStack] = field(default_factory=dict)
+
+
+@dataclass
+class WellFed:
+    """On the player while a meal's buff lasts. Only one at a time."""
+
+    meal: Meal
+    turns_left: int
+
+
+@dataclass
 class Materials:
     """The player's satchel of crafting materials, by material id."""
 
@@ -299,6 +343,8 @@ class Shop:
     crafts: bool = False
     upgrades: dict[str, list[MaterialStack]] = field(default_factory=dict)  # gear id ->
     # materials for one upgrade level (times the level being reached)
+    cooks: bool = False  # a tavern that cooks `meals` (and sells the `sold` ones)
+    meals: list[MealRecipe] = field(default_factory=list)
 
 
 @dataclass
@@ -339,5 +385,7 @@ COMPONENTS: dict[str, type] = {
         Materials,
         Recipes,
         RecipePage,
+        Meals,
+        WellFed,
     )
 }

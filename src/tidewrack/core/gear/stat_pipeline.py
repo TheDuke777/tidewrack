@@ -67,8 +67,11 @@ class StatSheet:
     sources: tuple[StatSource, ...]  # what adds up to the total, in order
 
 
-def player_stats(base: Mapping[str, int], equipped: Iterable[Item]) -> StatSheet:
-    """The player's stats with `equipped` on: base + item totals + set bonuses."""
+def player_stats(
+    base: Mapping[str, int], equipped: Iterable[Item], extra: Iterable[StatSource] = ()
+) -> StatSheet:
+    """The player's stats with `equipped` on: base + item totals + set bonuses, plus
+    `extra` sources (a meal's buff)."""
     equipped = list(equipped)
     sources = [StatSource("Base", stats.full(base))]
     sources += [StatSource(item.display_name, item_total(item)) for item in equipped]
@@ -76,4 +79,5 @@ def player_stats(base: Mapping[str, int], equipped: Iterable[Item]) -> StatSheet
         StatSource(f"{gear_set.name} ({bonus.pieces} pieces)", stats.full(bonus.stats))
         for gear_set, bonus in active_set_bonuses(equipped)
     ]
+    sources += [StatSource(s.label, stats.full(s.stats)) for s in extra]
     return StatSheet(stats.total(s.stats for s in sources), tuple(sources))

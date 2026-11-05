@@ -2,5 +2,6 @@
   "id": "shop.tavern",
   "name": "Tavern",
   "room": "Tavern",
-  "inn": true
+  "inn": true,
+  "cooks": true
 }

@@ -31,7 +31,7 @@ from tidewrack.core.engine.components import Shop
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import make_item
-from tidewrack.core.procgen.material_gen import make_material, stacks
+from tidewrack.core.procgen.material_gen import make_material, meal_recipes, stacks
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location
 from tidewrack.core.world.overworld import Overworld
@@ -99,6 +99,8 @@ def generate_shops(seed: int, world: Overworld, content: Content) -> list[Placed
                 buys_materials=schema.buys_materials,
                 crafts=schema.crafts,
                 upgrades=upgrade_table(content) if schema.crafts else {},
+                cooks=schema.cooks,
+                meals=meal_recipes(content) if schema.cooks else [],
             )
             placed.append(PlacedShop(location.id, shop_room(location, schema.room), shop, stock))
     return placed

@@ -1,0 +1,7 @@
+{
+  "id": "material.salt",
+  "name": "Salt",
+  "description": "Coarse grey sea salt in a twist of cloth.",
+  "value": 1,
+  "ingredient": true
+}

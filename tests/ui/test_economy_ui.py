@@ -138,7 +138,7 @@ def test_the_inn_rests_you_for_gold(tmp_path):
     game.world.get(game.player, Health).damage = 5
     shell.explore.refresh()
     [tavern_button] = _buttons(shell.explore.entrances, "Tavern · ")
-    assert tavern_button.content == "Tavern · beds 4 gold"
+    assert tavern_button.content == "Tavern · beds 4 gold · kitchen"
     tavern_button.on_click(None)
     [rest] = _buttons(shell.explore.shops, "Rest the night")
     rest.on_click(None)
@@ -333,7 +333,7 @@ def test_the_market_sells_and_buys_materials(tmp_path):
     [market] = _buttons(shell.explore.entrances, "Market · ")
     assert market.content == "Market · materials"
     market.on_click(None)
-    assert _tabs(shell) == ["Buy (4)", "Sell (0)"]
+    assert _tabs(shell) == ["Buy (6)", "Sell (0)"]
     [buy] = [b for b in _buttons(shell.explore.shops, "Buy 1 · ") if "3 gold" in b.content][:1]
     buy.on_click(None)
     assert toasts[-1].startswith("Bought 1 ") and session.game.view().gold < 10
@@ -476,3 +476,55 @@ def test_a_collapsed_card_counts_set_bonuses(tmp_path):
     assert "▲ +3" in texts
     assert any(t.startswith("Gains set bonus: Drowned Watch") for t in texts)
     assert "Drowned Watch set" in texts  # the set chip, on the line under the name
+
+
+def test_the_tavern_kitchen_has_a_menu_and_a_cook_tab(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, toasts, _ = _shell(tmp_path)
+    _at(shell, lambda s: s.cooks)
+    explore = shell.explore
+    explore.open("Tavern")
+    texts = _texts(explore.shops)
+    assert any(t.startswith("You haven't eaten.") for t in texts)
+    assert _tabs(shell) == ["Menu (2)", "Cook (7)"]
+    [buy] = [b for b in _buttons(explore.shops, "Buy · ") if "6 gold" in b.content]
+    buy.on_click(None)  # the Kelp Broth
+    assert toasts[-1] == "Kelp Broth bought for 6 gold. Eat it any time."
+    explore._shop_tab(["cook"])
+    assert "Kelp 0/2 ✗ short" in _texts(explore.shops)
+    for m, n in (("material.kelp", 2), ("material.salt", 1)):
+        crafting.add(session.game, MaterialStack(make_material(CONTENT.materials[m]), n), "x")
+    explore.refresh()
+    [cook] = [b for b in _buttons(explore.shops, "Cook · ") if not b.disabled]
+    cook.on_click(None)
+    assert toasts[-1].startswith("Kelp Broth cooked")
+    explore._craftable_only(True)
+    assert _buttons(explore.shops, "Cook · ") == []  # nothing else to cook now
+
+
+def test_eating_from_the_satchel_and_the_status_row(tmp_path):
+    from tidewrack.core.engine.components import Wallet
+    from tidewrack.core.engine.game import BuyMeal
+
+    session, shell, _, asked = _shell(tmp_path)
+    session.game.world.get(session.game.player, Wallet).gold = 50
+    _at(shell, lambda s: s.cooks)
+    session.perform(BuyMeal("meal.kelp_broth"))
+    session.perform(BuyMeal("meal.mussel_stew"))
+    shell.select(1)
+    inventory = shell.inventory
+    inventory.show_tab("satchel")
+    assert inventory.tabs.segments[2].label == "Satchel (2)"
+    [first, _] = [b for b in _walk(inventory.meals) if getattr(b, "content", None) == "Eat"]
+    first.on_click(None)  # no meal yet: eats straight away
+    assert asked == [] and session.game.view().fed.name == "Kelp Broth"
+    assert inventory.fed.value.startswith("Well fed: Kelp Broth")
+    [stew] = [b for b in _walk(inventory.meals) if getattr(b, "content", None) == "Eat"]
+    stew.on_click(None)  # replacing a meal asks first
+    assert asked == ["Eat the Mussel Stew?"]
+    assert session.game.view().fed.name == "Mussel Stew"
+    shell.select(0)
+    assert "· Fed: Mussel Stew (60)" in shell.explore.status.value

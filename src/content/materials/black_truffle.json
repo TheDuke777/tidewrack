@@ -1,0 +1,7 @@
+{
+  "id": "material.black_truffle",
+  "name": "Black Truffle",
+  "description": "A knobbly black lump that smells of earth and money. Rare.",
+  "value": 4,
+  "ingredient": true
+}

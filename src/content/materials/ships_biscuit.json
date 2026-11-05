@@ -1,0 +1,7 @@
+{
+  "id": "material.ships_biscuit",
+  "name": "Ship's Biscuit",
+  "description": "Hard enough to break teeth; soften it in something first.",
+  "value": 1,
+  "ingredient": true
+}

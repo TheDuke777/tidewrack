@@ -28,13 +28,17 @@ from tidewrack.core.engine.events import (
     ItemUpgraded,
     MaterialsBought,
     MaterialsSold,
+    MealBought,
+    MealCooked,
     QuestCompleted,
 )
 from tidewrack.core.engine.game import (
     AcceptQuest,
     Buy,
     BuyMaterials,
+    BuyMeal,
     Command,
+    Cook,
     CostView,
     Craft,
     Equip,
@@ -59,6 +63,7 @@ from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
+from tidewrack.ui.components.meal_card import fed_line, meal_card
 from tidewrack.ui.components.pack_list import (
     BulkAction,
     Confirm,
@@ -88,6 +93,7 @@ DRAG_INTERVAL = 30  # ms between drag updates sent to Python; positions are abso
 
 BOARD = "board"  # GameScreen.opened for the notice board; a shop is opened by its name
 BUY_TAB, SELL_TAB, UPGRADE_TAB, CRAFT_TAB = "buy", "sell", "upgrade", "craft"
+MENU_TAB, COOK_TAB = "menu", "cook"
 BULK = 5  # "Buy 5" at a market
 
 
@@ -462,9 +468,10 @@ class GameScreen:
 
         # Progress only: stats live in the inventory, and seed and version will go to
         # Settings → About. Settings will also get a toggle to hide this row.
+        fed = f" · Fed: {view.fed.name} ({view.fed.turns_left})" if view.fed else ""
         self.status.value = (
             f"Turn {view.turn} · Rooms {view.rooms_visited}/{view.total_rooms} · "
-            f"Places {view.locations_visited}/{view.total_locations}"
+            f"Places {view.locations_visited}/{view.total_locations}{fed}"
         )
 
     def _scroll_details_to_top(self) -> None:
@@ -497,6 +504,8 @@ class GameScreen:
             parts = []
             if shop.inn_price is not None:
                 parts.append(f"beds {shop.inn_price} gold")
+            if shop.cooks:
+                parts.append("kitchen")
             if shop.materials or shop.buys_materials:
                 parts.append("materials")
             elif shop.wares or shop.inn_price is None:
@@ -592,6 +601,8 @@ class GameScreen:
                     on_click=lambda _: self._act_and_tell(Rest()),
                 ),
             ]
+        if shop.cooks:
+            return controls + self._kitchen(shop)
         if shop.materials or shop.buys_materials:
             return controls + self._market(view, shop)
         pack = self.session.game.inventory().pack if shop.buys_gear else ()
@@ -623,9 +634,11 @@ class GameScreen:
             controls.append(self.buy_list.control)
         return controls
 
-    def _tabs(self, tabs: list[tuple[str, str, ft.IconData]]) -> ft.SegmentedButton:
+    def _tabs(
+        self, tabs: list[tuple[str, str, ft.IconData]], default: str = BUY_TAB
+    ) -> ft.SegmentedButton:
         if self.shop_tab not in {value for value, _, _ in tabs}:
-            self.shop_tab = BUY_TAB
+            self.shop_tab = default
         # Four tabs don't fit a phone with icons; the labels say it all.
         icons = len(tabs) <= 3
         return ft.SegmentedButton(
@@ -640,10 +653,14 @@ class GameScreen:
 
     # --- crafting at a smithy ------------------------------------------------------
 
-    def _materials_line(self) -> ft.Text:
-        materials = self.session.game.inventory().materials
+    def _materials_line(self, ingredients: bool = False) -> ft.Text:
+        """What you have that this counter uses: crafting materials, or ingredients."""
+        materials = [
+            m for m in self.session.game.inventory().materials if m.ingredient == ingredients
+        ]
         have = ", ".join(f"{m.name} {m.count}" for m in materials) or "none yet"
-        return _muted(f"Your materials: {have}. Markets sell the common ones.")
+        what = "ingredients" if ingredients else "materials"
+        return _muted(f"Your {what}: {have}. Markets sell the common ones.")
 
     def _hide_switch(self) -> ft.Switch:
         return ft.Switch(
@@ -711,6 +728,61 @@ class GameScreen:
                 on_click=lambda _, r=recipe.id: self._act_and_tell(Craft(r)),
             )
         ]
+
+    # --- a tavern's kitchen ------------------------------------------------------------
+
+    def _kitchen(self, shop: ShopView) -> list[ft.Control]:
+        """What you've eaten, then the ready meals (Menu) or what you can cook (Cook)."""
+        view_fed = self.session.game.view().fed
+        sold = [m for m in shop.menu if m.price is not None]
+        if self.shop_tab not in (MENU_TAB, COOK_TAB):
+            self.shop_tab = MENU_TAB
+        tabs = [
+            (MENU_TAB, f"Menu ({len(sold)})", ft.Icons.RESTAURANT_MENU),
+            (COOK_TAB, f"Cook ({len(shop.menu)})", ft.Icons.SOUP_KITCHEN_OUTLINED),
+        ]
+        controls: list[ft.Control] = [
+            ft.Text(fed_line(view_fed), size=14),
+            self._tabs(tabs, default=MENU_TAB),
+        ]
+        if self.shop_tab == MENU_TAB:
+            controls.append(_muted("Ready to eat. Cooking it yourself is cheaper."))
+            for item in sold:
+                controls.append(
+                    meal_card(
+                        item.meal,
+                        [
+                            ft.FilledButton(
+                                content=f"Buy · {item.price} gold",
+                                icon=ft.Icons.SHOPPING_BAG_OUTLINED,
+                                disabled=not item.affordable,
+                                on_click=lambda _, m=item.meal.id: self._act_and_tell(BuyMeal(m)),
+                            )
+                        ],
+                    )
+                )
+            return controls
+        cookable = [m for m in shop.menu if not self.craftable_only or _enough(m.ingredients)]
+        controls += [self._materials_line(ingredients=True), self._hide_switch()]
+        if not cookable:
+            controls.append(_muted("You don't have the ingredients for any meal yet."))
+        for item in cookable:
+            controls.append(
+                meal_card(
+                    item.meal,
+                    [
+                        ft.FilledButton(
+                            content=f"Cook · {item.fee} gold",
+                            icon=ft.Icons.SOUP_KITCHEN_OUTLINED,
+                            disabled=not item.can_cook,
+                            on_click=lambda _, m=item.meal.id: self._act_and_tell(Cook(m)),
+                        )
+                    ],
+                    details=[_costs(item.ingredients)],
+                )
+            )
+        controls.append(_muted("Ingredients come from the wild, from beasts, and from any market."))
+        return controls
 
     # --- a market --------------------------------------------------------------------
 
@@ -845,6 +917,12 @@ class GameScreen:
                 return
             if isinstance(event, ItemUpgraded):
                 self.notify(f"It's now a {event.name}, for a {event.fee} gold fee.")
+                return
+            if isinstance(event, MealCooked):
+                self.notify(f"{event.name} cooked, for a {event.fee} gold fee. Eat it any time.")
+                return
+            if isinstance(event, MealBought):
+                self.notify(f"{event.name} bought for {event.price} gold. Eat it any time.")
                 return
             if isinstance(event, MaterialsBought | MaterialsSold):
                 verb = "Bought" if isinstance(event, MaterialsBought) else "Sold"

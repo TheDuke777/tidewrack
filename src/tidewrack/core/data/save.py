@@ -50,6 +50,8 @@ class EconomyState(Schema):
     craft_fee: float = Field(default=STANDARD_ECONOMY.craft_fee, ge=0)
     upgrade_fee: float = Field(default=STANDARD_ECONOMY.upgrade_fee, ge=0)
     buyback: int = Field(default=STANDARD_ECONOMY.buyback, ge=0)
+    meal_markup: float = Field(default=STANDARD_ECONOMY.meal_markup, ge=1)
+    cook_fee: float = Field(default=STANDARD_ECONOMY.cook_fee, ge=0)
 
 
 class EntityState(Schema):

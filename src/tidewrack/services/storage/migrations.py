@@ -503,6 +503,193 @@ def _upgradable(value: Any) -> None:
             _upgradable(child)
 
 
+# What v10 gave every world, written out so later content changes can't alter this
+# migration: ingredients, the tavern's meals and the Market's new staples.
+MIGRATED_INGREDIENTS = {  # id -> (name, description, value)
+    "material.black_truffle": (
+        "Black Truffle",
+        "A knobbly black lump that smells of earth and money. Rare.",
+        4,
+    ),
+    "material.boar_meat": ("Boar Meat", "A dark, heavy cut, already going stiff.", 2),
+    "material.crab_meat": ("Crab Meat", "Sweet white meat picked from the shell.", 2),
+    "material.eel_meat": ("Eel Meat", "Oily grey-white flesh. Smoked, it keeps for weeks.", 3),
+    "material.kelp": ("Kelp", "Long brown ribbons of it, salty and rubbery. Better in a broth.", 1),
+    "material.mushrooms": (
+        "Mushrooms",
+        "Pale caps from damp, dark places. The safe kind, probably.",
+        1,
+    ),
+    "material.mussels": ("Mussels", "Blue-black shells prised off the rocks, still closed.", 1),
+    "material.salt": ("Salt", "Coarse grey sea salt in a twist of cloth.", 1),
+    "material.ships_biscuit": (
+        "Ship's Biscuit",
+        "Hard enough to break teeth; soften it in something first.",
+        1,
+    ),
+    "material.wild_herbs": (
+        "Wild Herbs",
+        "Thyme, sorrel and something peppery, bundled with grass.",
+        2,
+    ),
+}
+MIGRATED_MEALS = [  # the Meal snapshot, its ingredients, sold ready-made
+    (
+        {
+            "meal_id": "meal.boar_roast",
+            "name": "Boar Roast",
+            "description": "Charred outside, pink within, rubbed with herbs. You feel like hitting something.",  # noqa: E501
+            "stats": {"atk": 2},
+            "regen": 0,
+            "turns": 60,
+            "value": 6,
+        },
+        {"material.boar_meat": 2, "material.wild_herbs": 1},
+        False,
+    ),
+    (
+        {
+            "meal_id": "meal.crab_cakes",
+            "name": "Crab Cakes",
+            "description": "Crab meat bound with crushed biscuit and fried. Filling enough for two.",  # noqa: E501
+            "stats": {"hp": 6},
+            "regen": 0,
+            "turns": 60,
+            "value": 5,
+        },
+        {"material.crab_meat": 2, "material.ships_biscuit": 1},
+        False,
+    ),
+    (
+        {
+            "meal_id": "meal.harbour_feast",
+            "name": "Harbour Feast",
+            "description": "Roast boar, crab, a shaving of truffle and biscuit to mop it up. You could walk all day on it.",  # noqa: E501
+            "stats": {"atk": 2, "def": 1, "hp": 8},
+            "regen": 1,
+            "turns": 90,
+            "value": 13,
+        },
+        {
+            "material.boar_meat": 2,
+            "material.crab_meat": 2,
+            "material.black_truffle": 1,
+            "material.ships_biscuit": 1,
+        },
+        False,
+    ),
+    (
+        {
+            "meal_id": "meal.kelp_broth",
+            "name": "Kelp Broth",
+            "description": "A thin green broth that warms you through. You heal faster for a while.",  # noqa: E501
+            "stats": {},
+            "regen": 2,
+            "turns": 60,
+            "value": 3,
+        },
+        {"material.kelp": 2, "material.salt": 1},
+        True,
+    ),
+    (
+        {
+            "meal_id": "meal.mushroom_pie",
+            "name": "Mushroom Pie",
+            "description": "A heavy pie with a biscuit crust. Not exciting, but it lasts.",
+            "stats": {"atk": 1, "def": 1},
+            "regen": 0,
+            "turns": 90,
+            "value": 4,
+        },
+        {"material.mushrooms": 3, "material.ships_biscuit": 1},
+        False,
+    ),
+    (
+        {
+            "meal_id": "meal.mussel_stew",
+            "name": "Mussel Stew",
+            "description": "Mussels steamed open in their own juice. It sits well; blows seem to matter less.",  # noqa: E501
+            "stats": {"def": 2},
+            "regen": 0,
+            "turns": 60,
+            "value": 4,
+        },
+        {"material.mussels": 3, "material.salt": 1},
+        True,
+    ),
+    (
+        {
+            "meal_id": "meal.smoked_eel_supper",
+            "name": "Smoked Eel Supper",
+            "description": "Eel smoked over driftwood, with herbs and coarse salt. Steadies the hand and the nerve.",  # noqa: E501
+            "stats": {"atk": 2, "def": 2},
+            "regen": 0,
+            "turns": 60,
+            "value": 9,
+        },
+        {"material.eel_meat": 2, "material.wild_herbs": 1, "material.salt": 1},
+        False,
+    ),
+]
+MIGRATED_MARKET_STAPLES = ["material.salt", "material.ships_biscuit"]
+
+
+def _v9_to_v10(envelope: Envelope) -> Envelope:
+    # v10 adds cooking. Every material snapshot gets `ingredient` (none were then);
+    # the player gets an empty pantry (Meals); every shop gets `cooks` and `meals`,
+    # and taverns cook every v10 meal; markets also sell salt and ship's biscuit.
+    # Old worlds have no ingredients lying about, and their beasts drop none.
+    game = envelope["game"]
+    _not_ingredients(game)
+    for entity in game["entities"]:
+        components = entity["components"]
+        if "Player" in components:
+            components["Meals"] = {"held": {}}
+        shop = components.get("Shop")
+        if shop is None:
+            continue
+        cooks = bool(shop["inn"])
+        shop["cooks"] = cooks
+        shop["meals"] = (
+            [
+                {"meal": dict(meal), "ingredients": _ingredients(needs), "sold": sold}
+                for meal, needs, sold in MIGRATED_MEALS
+            ]
+            if cooks
+            else []
+        )
+        if shop["buys_materials"]:
+            shop["materials"] += [_ingredient(m) for m in MIGRATED_MARKET_STAPLES]
+    return envelope
+
+
+def _ingredient(material_id: str) -> dict:
+    name, description, value = MIGRATED_INGREDIENTS[material_id]
+    return {
+        "material_id": material_id,
+        "name": name,
+        "description": description,
+        "value": value,
+        "ingredient": True,
+    }
+
+
+def _ingredients(needs: dict[str, int]) -> list[dict]:
+    return [{"material": _ingredient(m), "count": n} for m, n in needs.items()]
+
+
+def _not_ingredients(value: Any) -> None:
+    """Every Material snapshot in `value`: v9 had only crafting materials."""
+    if isinstance(value, dict):
+        if "material_id" in value and "ingredient" not in value:
+            value["ingredient"] = False
+        for child in value.values():
+            _not_ingredients(child)
+    elif isinstance(value, list):
+        for child in value:
+            _not_ingredients(child)
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -513,6 +700,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     6: _v6_to_v7,
     7: _v7_to_v8,
     8: _v8_to_v9,
+    9: _v9_to_v10,
 }
 
 

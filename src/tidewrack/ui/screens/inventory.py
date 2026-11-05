@@ -19,6 +19,7 @@ from tidewrack.core.engine.events import ActionRejected
 from tidewrack.core.engine.game import (
     Command,
     Drop,
+    Eat,
     Equip,
     InventoryView,
     ItemView,
@@ -32,6 +33,7 @@ from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
+from tidewrack.ui.components.meal_card import fed_line, meal_card
 from tidewrack.ui.components.pack_list import (
     BulkAction,
     Confirm,
@@ -61,10 +63,18 @@ class InventoryScreen:
 
         self.sheet = ft.Column(spacing=4)
         self.materials = ft.Column(spacing=4)
+        self.ingredients = ft.Column(spacing=4)
+        self.meals = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
+        self.fed = ft.Text(size=14)
         self.recipes = ft.Column(spacing=4)
         self.satchel = ft.Column(
             spacing=12,
             controls=[
+                self.fed,
+                _heading("Meals"),
+                self.meals,
+                _heading("Ingredients"),
+                self.ingredients,
                 _heading("Materials"),
                 self.materials,
                 _heading("Recipes you know"),
@@ -135,6 +145,18 @@ class InventoryScreen:
                     self.notify(event.reason)
                     return
 
+    def _eat(self, meal, fed) -> None:
+        if fed is None:
+            self.act(Eat(meal.id))
+            return
+        self.confirm(
+            f"Eat the {meal.name}?",
+            f"It replaces your {fed.name} ({fed.turns_left} turns left). "
+            f"You'll have {meal.buff} for {meal.turns} turns.",
+            "Eat",
+            lambda: self.act(Eat(meal.id)),
+        )
+
     def _drop(self, item: ItemView) -> None:
         def drop() -> None:
             self.act(Drop(item.id))
@@ -183,21 +205,46 @@ class InventoryScreen:
         equipped, pack, satchel = self.tabs.segments
         equipped.label = f"Equipped ({worn})"
         pack.label = f"Pack ({len(view.pack)})"
-        satchel.label = f"Satchel ({len(view.materials)})"
+        satchel.label = f"Satchel ({len(view.materials) + len(view.meals)})"
         self.tabs.selected = [self.tab]
         self.equipped.visible = self.tab == EQUIPPED
         self.pack_list.control.visible = self.tab == PACK
         self.satchel.visible = self.tab == SATCHEL
-        self.materials.controls = [
-            ft.Column(
-                spacing=0,
-                controls=[
-                    ft.Text(f"{m.name} × {m.count}", size=15, weight=ft.FontWeight.BOLD),
-                    _muted(m.description),
+
+        def listed(materials) -> list[ft.Control]:
+            return [
+                ft.Column(
+                    spacing=0,
+                    controls=[
+                        ft.Text(f"{m.name} × {m.count}", size=15, weight=ft.FontWeight.BOLD),
+                        _muted(m.description),
+                    ],
+                )
+                for m in materials
+            ]
+
+        crafting = [m for m in view.materials if not m.ingredient]
+        food = [m for m in view.materials if m.ingredient]
+        self.materials.controls = listed(crafting) or [
+            _muted("None yet. Defeated beasts, wild places and markets all have some.")
+        ]
+        self.ingredients.controls = listed(food) or [
+            _muted("None yet. Look in wild places, at what beasts drop, and at markets.")
+        ]
+        self.fed.value = fed_line(view.fed)
+        self.meals.controls = [
+            meal_card(
+                m,
+                [
+                    ft.FilledButton(
+                        content="Eat",
+                        icon=ft.Icons.RESTAURANT,
+                        on_click=lambda _, meal=m: self._eat(meal, view.fed),
+                    )
                 ],
             )
-            for m in view.materials
-        ] or [_muted("None yet. Defeated beasts, wild places and markets all have some.")]
+            for m in view.meals
+        ] or [_muted("None yet. Cook or buy meals at any tavern.")]
         self.recipes.controls = (
             [ft.Text(", ".join(view.recipes) + ". Craft them at any smithy.", size=14)]
             if view.recipes
