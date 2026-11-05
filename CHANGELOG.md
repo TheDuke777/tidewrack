@@ -6,15 +6,51 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-05
+
 ### Changed
 - A dot now always means something new to find. The Smithy and Tavern tabs
   dot only for what's newly doable since you last looked there, and clear
   once you've looked (they used to come back every time). There's no dot any
   more for a meal running low, or for learning more about a foe already in
   the Codex.
+- The Satchel tab's Meals, Ingredients, Materials and Recipes are
+  collapsible sections with counts.
+- Sea caves have more to gather (kelp and mussels were too scarce).
+- The Satchel tab lists Meals, Ingredients and Materials separately.
+- Worlds from earlier versions get tavern kitchens and the market's new
+  staples. They have no ingredients lying about, so buy or cook from what
+  beasts drop from now on.
 
 ### Fixed
 - Dots on the Smithy's tabs no longer push its tab labels out of line.
+
+### Added
+- Gathering spots grow back. Every so often each wild place regrows a spot
+  in an empty room (never the one you're in), up to about as many as it
+  started with, so materials and ingredients don't run out. Worlds from
+  earlier versions regrow too.
+- Unread dots:
+  - Quests: a quest is ready to turn in, or one has been added since you
+    last looked.
+  - Codex: you've met a new foe or learned more about one.
+  - Inventory: new gear in your pack, a new kind of material or meal, a new
+    recipe, or your meal has 10 turns or fewer left. The Pack and Satchel
+    tabs get their own dots.
+  - Smithy and Tavern tabs: an upgrade you can afford for gear you have on,
+    or something you can craft or cook right now.
+- Cooking. Every tavern has a kitchen with two tabs: a Menu of ready meals,
+  and Cook, where you make any of seven meals from ingredients for a small
+  fee (cheaper than buying).
+- Ingredients: kelp, mussels, mushrooms, wild herbs and a rare black truffle
+  in the wild; boar, crab and eel meat from beasts; salt and ship's biscuit
+  at every market. They share the satchel with crafting materials.
+- Meals keep until you eat them, any time outside a fight. Each gives a buff
+  for a number of turns: more ATK, DEF or HP, faster healing, or several at
+  once for the harder ones (Smoked Eel Supper, Harbour Feast). One meal at a
+  time; eating another replaces it (it asks first).
+- What you've eaten shows on the Satchel tab, in your stats, and at the end of
+  the status row ("Fed: Mussel Stew (57)").
 
 ## [0.8.2-beta.2] - 2026-11-05
 
