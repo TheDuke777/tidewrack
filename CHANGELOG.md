@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0-beta.3] - 2026-11-04
+
 ### Changed
 - The smithy has Buy and Sell tabs, so a shelf full of gear you've sold
   doesn't bury your pack (or the other way round). It opens on Buy.
