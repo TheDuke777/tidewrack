@@ -60,7 +60,7 @@ company = "Duke Digital"
 copyright = "Copyright (C) 2026 Duke Digital"
 # Android versionCode. Strictly increases every release; never reused.
 # Bumped by tools/release.py; do not edit by hand.
-build_number = 32
+build_number = 33
 
 # src/assets/icon.png is the icon for every platform. Keep it transparent and
 # filling the whole canvas: web, Windows and Linux show it as-is, and Flet

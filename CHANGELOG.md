@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.0-beta.2] - 2026-11-04
+
 ### Added
 - The Craft tab has a switch to hide recipes you don't have the materials
   for. It stays as you left it while the world is open.
