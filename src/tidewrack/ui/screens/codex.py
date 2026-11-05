@@ -13,13 +13,15 @@ import flet as ft
 from tidewrack.core.codex.foes import FoeView
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
+from tidewrack.ui.components.unread import Unread, new_chip
 
 UNKNOWN = "???"
 
 
 class CodexScreen:
-    def __init__(self, session: GameSession) -> None:
+    def __init__(self, session: GameSession, unread: Unread | None = None) -> None:
         self.session = session
+        self.unread = unread  # for "New" chips
         self.open: dict[str, bool] = {}  # section/group key -> expanded (default: open)
         self.sections = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.control = ft.SafeArea(
@@ -48,7 +50,7 @@ class CodexScreen:
                 self._tile(
                     f"foes/{heading}",
                     f"{heading} ({len(group)})",
-                    [foe_card(foe) for foe in group],
+                    [foe_card(foe, new=self._new(foe)) for foe in group],
                     size=15,
                 )
                 for heading, group in groups
@@ -62,6 +64,9 @@ class CodexScreen:
                 )
             ]
         return self._tile("foes", f"Foes ({len(foes.foes)})", inner, size=18)
+
+    def _new(self, foe: FoeView) -> bool:
+        return self.unread is not None and self.unread.is_new("codex", foe.enemy_id)
 
     def _tile(
         self, key: str, title: str, controls: list[ft.Control], size: int
@@ -97,7 +102,7 @@ def foe_lines(foe: FoeView) -> list[str]:
     return lines
 
 
-def foe_card(foe: FoeView) -> ft.Card:
+def foe_card(foe: FoeView, new: bool = False) -> ft.Card:
     facts = foe_lines(foe)
     return ft.Card(
         content=ft.Container(
@@ -105,7 +110,13 @@ def foe_card(foe: FoeView) -> ft.Card:
             content=ft.Column(
                 spacing=6,
                 controls=[
-                    ft.Text(foe.name, size=17, weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        spacing=8,
+                        controls=[
+                            ft.Text(foe.name, size=17, weight=ft.FontWeight.BOLD),
+                            *([new_chip()] if new else []),
+                        ],
+                    ),
                     ft.Text(foe.description, size=14),
                     *(ft.Text(line, size=13, color=ft.Colors.ON_SURFACE_VARIANT) for line in facts),
                 ],

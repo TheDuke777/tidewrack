@@ -43,7 +43,7 @@ from tidewrack.ui.components.pack_list import (
     name_list,
     sell_message,
 )
-from tidewrack.ui.components.unread import Unread, dot_icon
+from tidewrack.ui.components.unread import Unread, dot_icon, new_chip
 
 EQUIPPED, PACK, SATCHEL = "equipped", "pack", "satchel"
 
@@ -93,6 +93,7 @@ class InventoryScreen:
             bulk=self._bulk_actions,
             refresh=lambda: self.refresh(),
             folds=Folds("pack", settings, lambda: self.refresh()),
+            is_new=lambda item: self._new(PACK, item.id),
         )
         self.pack = self.pack_list.cards
         self.control = ft.SafeArea(
@@ -121,8 +122,18 @@ class InventoryScreen:
         self.refresh()
 
     def show_tab(self, tab: str) -> None:
+        if tab != self.tab:
+            self.leave()
         self.tab = tab
         self.refresh()
+
+    def leave(self) -> None:
+        """Leaving the open inner tab (or the Inventory): its "New" chips go."""
+        if self.unread is not None and self.tab in (PACK, SATCHEL):
+            self.unread.leave(self.tab)
+
+    def _new(self, part: str, key) -> bool:
+        return self.unread is not None and self.unread.is_new(part, key)
 
     # --- actions -----------------------------------------------------------------
 
@@ -190,6 +201,10 @@ class InventoryScreen:
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
+        # First, so the cards drawn below know what was new: you're looking at it
+        # now, which clears the dot and leaves "New" chips on those cards.
+        if self.unread is not None and self.control.visible and self.tab in (PACK, SATCHEL):
+            self.unread.look(self.tab)
         view = self.session.game.inventory()
         self._buyer = view.buyer
         self.sheet.controls = self._sheet(view)
@@ -202,8 +217,6 @@ class InventoryScreen:
         satchel.label = f"Satchel ({len(view.materials) + len(view.meals)})"
         self.tabs.selected = [self.tab]
         if self.unread is not None and self.control.visible:
-            if self.tab in (PACK, SATCHEL):
-                self.unread.mark_seen(self.tab)  # you're looking at it now
             pack.icon = dot_icon(ft.Icons.BACKPACK_OUTLINED, bool(self.unread.new(PACK)))
             satchel.icon = dot_icon(ft.Icons.INVENTORY_2_OUTLINED, bool(self.unread.new(SATCHEL)))
         self.equipped.visible = self.tab == EQUIPPED
@@ -215,7 +228,15 @@ class InventoryScreen:
                 ft.Column(
                     spacing=0,
                     controls=[
-                        ft.Text(f"{m.name} × {m.count}", size=15, weight=ft.FontWeight.BOLD),
+                        ft.Row(
+                            spacing=8,
+                            controls=[
+                                ft.Text(
+                                    f"{m.name} × {m.count}", size=15, weight=ft.FontWeight.BOLD
+                                ),
+                                *([new_chip()] if self._new(SATCHEL, ("material", m.id)) else []),
+                            ],
+                        ),
                         _muted(m.description),
                     ],
                 )
@@ -241,11 +262,19 @@ class InventoryScreen:
                         on_click=lambda _, meal=m: self._eat(meal, view.fed),
                     )
                 ],
+                new=self._new(SATCHEL, ("meal", m.id)),
             )
             for m in view.meals
         ] or [_muted("None yet. Cook or buy meals at any tavern.")]
+        new_recipes = [r for r in view.recipes if self._new(SATCHEL, ("recipe", r))]
         self.recipes.controls = (
-            [ft.Text(", ".join(view.recipes) + ". Craft them at any smithy.", size=14)]
+            [
+                *(
+                    ft.Row(spacing=8, controls=[new_chip(), ft.Text(r, size=14)])
+                    for r in new_recipes
+                ),
+                ft.Text(", ".join(view.recipes) + ". Craft them at any smithy.", size=14),
+            ]
             if view.recipes
             else [_muted("None yet.")]
         )

@@ -676,3 +676,35 @@ def test_learning_more_about_a_foe_isnt_a_new_codex_entry(tmp_path):
     codex.kills["enemy.cave_rat"] = 3  # stats and drops revealed
     shell.select(0)
     assert not _dot(shell, 3)
+
+
+def _new_chips(control) -> int:
+    return sum(1 for t in _texts(control) if t == "New")
+
+
+def test_cards_behind_a_cleared_dot_say_new_until_you_leave(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    _buy_first(shell)
+    inventory = shell.inventory
+    shell.select(1)
+    assert _new_chips(inventory.pack) == 0  # on Equipped, not looking at the pack yet
+    inventory.show_tab("pack")
+    assert _new_chips(inventory.pack) == 1  # the dot cleared; the bought card says so
+    inventory.refresh()
+    assert _new_chips(inventory.pack) == 1  # still there while you stay
+    shell.select(0)
+    shell.select(1)
+    assert _new_chips(inventory.pack) == 0  # you left: gone
+
+
+def test_switching_inner_tabs_clears_the_new_chips(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    _buy_first(shell)
+    shell.select(1)
+    inventory = shell.inventory
+    inventory.show_tab("pack")
+    inventory.show_tab("satchel")
+    inventory.show_tab("pack")
+    assert _new_chips(inventory.pack) == 0

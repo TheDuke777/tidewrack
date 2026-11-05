@@ -101,3 +101,31 @@ def test_the_menu_switches_world_and_nothing_up_top_means_back(make_app):
     (switch,) = [i for i in menu.items if i.content == "Switch world"]
     switch.on_click(None)
     assert not in_world(page)
+
+
+def test_unread_keeps_what_was_new_until_you_leave():
+    from tidewrack.ui.components.unread import Unread
+
+    class Fake:
+        pass
+
+    unread = Unread.__new__(Unread)
+    current = {"quests": {"q1"}}
+    unread.seen = {"quests": set()}
+    unread.fresh = {"quests": set()}
+    import tidewrack.ui.components.unread as module
+
+    original = module.keys
+    module.keys = lambda game, part: current[part]
+    try:
+        unread.game = Fake()
+        assert unread.new("quests") == {"q1"}
+        unread.look("quests")
+        assert unread.new("quests") == set() and unread.is_new("quests", "q1")
+        current["quests"] = {"q1", "q2"}
+        unread.look("quests")  # something else arrived while you looked
+        assert unread.is_new("quests", "q1") and unread.is_new("quests", "q2")
+        unread.leave("quests")
+        assert not unread.is_new("quests", "q1")
+    finally:
+        module.keys = original

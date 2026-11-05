@@ -8,6 +8,7 @@ from collections.abc import Sequence
 import flet as ft
 
 from tidewrack.core.engine.game import FedView, MealView
+from tidewrack.ui.components.unread import new_chip
 
 
 def buff_line(meal: MealView) -> str:
@@ -24,6 +25,7 @@ def meal_card(
     meal: MealView,
     actions: Sequence[ft.Control] = (),
     details: Sequence[ft.Control] = (),
+    new: bool = False,  # a "New" chip: it's behind a dot you just cleared
 ) -> ft.Card:
     carried = f"You have {meal.count}" if meal.count else None
     return ft.Card(
@@ -35,6 +37,7 @@ def meal_card(
                     ft.Row(
                         controls=[
                             ft.Text(meal.name, size=17, weight=ft.FontWeight.BOLD, expand=True),
+                            *([new_chip()] if new else []),
                             *(
                                 [ft.Text(carried, size=13, color=ft.Colors.ON_SURFACE_VARIANT)]
                                 if carried

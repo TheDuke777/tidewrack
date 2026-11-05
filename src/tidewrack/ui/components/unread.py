@@ -6,6 +6,10 @@ starts as everything present when the world opens, and is kept only while it's
 open (UI state, not saved), so reopening a world never shows stale dots. A dot
 always means a new thing you'll find when you look; the one exception is a quest
 ready to turn in, which stays until you hand it in.
+
+Arriving clears the dot (`look`), but the cards behind it keep a "New" chip
+while you stay on that tab (`is_new`), so you can tell which ones they are;
+leaving the tab (`leave`) clears the chips.
 """
 
 from __future__ import annotations
@@ -50,16 +54,41 @@ def dot_label(text: str, dot: bool) -> ft.Control | str:
     return ft.Text(f"{text}\u2002", badge=ft.Badge(small_size=8))  # the dot sits on the space
 
 
+def new_chip() -> ft.Container:
+    """ "New" on a card behind a cleared dot: a word, not only a colour (§11)."""
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=8, vertical=2),
+        bgcolor=ft.Colors.PRIMARY_CONTAINER,
+        border_radius=ft.BorderRadius.all(10),
+        content=ft.Text(
+            "New", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.ON_PRIMARY_CONTAINER
+        ),
+    )
+
+
 class Unread:
     def __init__(self, game: Game) -> None:
         self.game = game
         self.seen = {part: keys(game, part) for part in PARTS}
+        self.fresh: dict[str, set[Hashable]] = {part: set() for part in PARTS}
 
     def new(self, part: str) -> set[Hashable]:
         return keys(self.game, part) - self.seen[part]
 
     def mark_seen(self, part: str) -> None:
         self.seen[part] = keys(self.game, part)
+
+    def look(self, part: str) -> None:
+        """You're looking at `part`: clear its dot, keep "New" chips on what was new."""
+        self.fresh[part] |= self.new(part)
+        self.mark_seen(part)
+
+    def leave(self, part: str) -> None:
+        """You left the tab showing `part`: its "New" chips go."""
+        self.fresh[part] = set()
+
+    def is_new(self, part: str, key: Hashable) -> bool:
+        return key in self.fresh[part]
 
     # --- the dots ----------------------------------------------------------------
 

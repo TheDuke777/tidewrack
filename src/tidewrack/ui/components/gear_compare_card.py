@@ -19,6 +19,7 @@ from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.ui import theme
 from tidewrack.ui.components.set_chip import set_chip
 from tidewrack.ui.components.stat_delta import delta_color, stat_delta
+from tidewrack.ui.components.unread import new_chip
 
 VERDICTS = {
     "better": ("▲ Better", None),  # theme.good(), which depends on brightness
@@ -136,6 +137,7 @@ def gear_compare_card(
     details: Sequence[ft.Control] = (),  # e.g. what crafting it costs, above the actions
     collapsed: bool = False,  # top row, a one-line summary, details and actions only
     on_toggle: Callable[[], None] | None = None,  # makes it foldable (tap the top row)
+    new: bool = False,  # a "New" chip: it's behind a dot you just cleared
 ) -> ft.Card:
     comparison = item.comparison
     # Top row: name, verdict, the fold arrow. Under it, full width: the set chip and
@@ -153,6 +155,7 @@ def gear_compare_card(
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
                     ft.Text(item.name, size=17, weight=ft.FontWeight.BOLD, expand=True),
+                    *([new_chip()] if new else []),
                     *verdict,
                     *([fold_button(collapsed, on_toggle)] if on_toggle else []),
                 ],

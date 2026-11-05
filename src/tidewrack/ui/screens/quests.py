@@ -19,6 +19,7 @@ from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
 from tidewrack.ui.components.folds import Folds
 from tidewrack.ui.components.quest_card import quest_card
+from tidewrack.ui.components.unread import Unread
 
 EMPTY = "No quests yet. Check the notice board at a town gate, or keep an eye out on your travels."
 SECTIONS = (
@@ -43,7 +44,9 @@ class QuestsScreen:
         confirm: Confirm = _no_confirm,
         notify: Callable[[str], None] = lambda _: None,
         settings: SettingsStore | None = None,
+        unread: Unread | None = None,  # for "New" chips
     ) -> None:
+        self.unread = unread
         self.folds = Folds("quests", settings, lambda: self.refresh())
         self.fold_all = ft.Row()
         self.session = session
@@ -105,6 +108,7 @@ class QuestsScreen:
                 full_reward=key != "done",
                 collapsed=self.folds.collapsed(q.id),
                 on_toggle=lambda i=q.id: self.folds.toggle(i),
+                new=self.unread is not None and self.unread.is_new("quests", q.id),
             )
             for q in quests
         ]

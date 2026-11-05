@@ -145,8 +145,10 @@ class PackList:
         price: Callable[[ItemView], int] = sale_price,
         details: Callable[[ItemView], list[ft.Control]] | None = None,  # under each card
         folds: Folds | None = None,  # which cards are collapsed (ui.components.folds)
+        is_new: Callable[[ItemView], bool] | None = None,  # "New" chip on the card
     ) -> None:
         self.folds = folds
+        self._is_new = is_new or (lambda _: False)
         self._price = price
         self._details = details
         self.choices = choices
@@ -250,14 +252,16 @@ class PackList:
 
     def _card(self, item: ItemView) -> ft.Card:
         details = self._details(item) if self._details else ()
+        new = self._is_new(item)
         if self.folds is None:
-            return gear_compare_card(item, self._card_actions(item), details)
+            return gear_compare_card(item, self._card_actions(item), details, new=new)
         return gear_compare_card(
             item,
             self._card_actions(item),
             details,
             collapsed=self.folds.collapsed(item.id),
             on_toggle=lambda: self.folds.toggle(item.id),
+            new=new,
         )
 
     def chosen(self) -> list[ItemView]:

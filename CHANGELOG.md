@@ -11,6 +11,9 @@ All notable changes to this project are documented here. The format follows
   wallpaper, in light and dark. It picks up a new palette when you come back
   to the app (on Samsung, once you've applied it in the system settings).
 - The Tidewrack logo on the world list.
+- "New" chips: when a dot clears because you opened a tab, the cards it was
+  about (new quests, Codex foes, pack items, satchel materials, meals and
+  recipes) say "New" until you leave that tab.
 
 ### Changed
 - The top-left back arrow in a world is now a menu with "Switch world", so

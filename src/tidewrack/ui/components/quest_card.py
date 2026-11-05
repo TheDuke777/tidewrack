@@ -11,6 +11,7 @@ import flet as ft
 from tidewrack.core.engine.game import QuestView
 from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.gear_compare_card import fold_button, gear_compare_card, verdict_chip
+from tidewrack.ui.components.unread import new_chip
 
 KIND_ICONS = {
     "Bounty": ft.Icons.GPS_FIXED,
@@ -66,11 +67,13 @@ def quest_card(
     full_reward: bool = False,
     collapsed: bool = False,  # title, progress, the one-line reward and actions only
     on_toggle: Callable[[], None] | None = None,  # makes it foldable (tap the title)
+    new: bool = False,  # a "New" chip: it's behind a dot you just cleared
 ) -> ft.Card:
     title = ft.Row(
         vertical_alignment=ft.CrossAxisAlignment.START,
         controls=[
             ft.Text(quest.title, size=17, weight=ft.FontWeight.BOLD, expand=True),
+            *([new_chip()] if new else []),
             kind_chip(quest.kind),
             *([fold_button(collapsed, on_toggle)] if on_toggle else []),
         ],

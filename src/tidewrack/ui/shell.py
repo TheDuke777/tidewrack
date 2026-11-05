@@ -57,8 +57,10 @@ class WorldShell:
             settings=settings,
             unread=self.unread,
         )
-        self.quests = QuestsScreen(session, confirm=confirm, notify=notify, settings=settings)
-        self.codex = CodexScreen(session)
+        self.quests = QuestsScreen(
+            session, confirm=confirm, notify=notify, settings=settings, unread=self.unread
+        )
+        self.codex = CodexScreen(session, unread=self.unread)
         self.tabs = [
             (self.explore, "Explore", ft.Icons.EXPLORE_OUTLINED, ft.Icons.EXPLORE),
             (self.inventory, "Inventory", ft.Icons.BACKPACK_OUTLINED, ft.Icons.BACKPACK),
@@ -87,15 +89,25 @@ class WorldShell:
         return self.navigation_bar.selected_index or 0
 
     def select(self, index: int) -> None:
+        if index != self.current:  # leaving a tab clears its "New" chips
+            self._leave(self.current)
         for i, (screen, *_) in enumerate(self.tabs):
             screen.control.visible = i == index
         self.navigation_bar.selected_index = index
         if index == QUESTS:
-            self.unread.mark_seen("quests")
+            self.unread.look("quests")
         elif index == CODEX:
-            self.unread.mark_seen("codex")
+            self.unread.look("codex")
         self.tabs[index][0].refresh()  # Inventory marks its own inner tab as seen
         self.update_dots()
+
+    def _leave(self, index: int) -> None:
+        if index == QUESTS:
+            self.unread.leave("quests")
+        elif index == CODEX:
+            self.unread.leave("codex")
+        elif index == INVENTORY:
+            self.inventory.leave()
 
     def update_dots(self) -> None:
         """A dot on a tab with something new in it (CLAUDE.md §8.5's "unread" marks)."""
