@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.2-beta.2] - 2026-11-05
+
 ### Added
 - Gathering spots grow back. Every so often each wild place regrows a spot
   in an empty room (never the one you're in), up to about as many as it
