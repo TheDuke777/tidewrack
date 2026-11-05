@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The Craft tab has a switch to hide recipes you don't have the materials
+  for. It stays as you left it while the world is open.
+
+### Changed
+- The Inventory tab is split into Equipped, Pack and Satchel tabs under your
+  stats, each with a count.
+
 ## [0.8.0-beta.1] - 2026-11-04
 
 ### Added

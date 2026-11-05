@@ -336,3 +336,51 @@ def test_the_inventory_lists_materials_and_recipes(tmp_path):
     texts = _texts(shell.inventory.control)
     assert "Hide × 2" in texts
     assert any(t.startswith("Buckler, Cutlass") for t in texts)
+
+
+def test_inventory_tabs_show_one_part_at_a_time(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    crafting.add(
+        session.game, MaterialStack(make_material(CONTENT.materials["material.hide"]), 2), "x"
+    )
+    shell.select(1)
+    inventory = shell.inventory
+    labels = [s.label for s in inventory.tabs.segments]
+    assert labels == ["Equipped (2)", "Pack (0)", "Satchel (1)"]
+    assert inventory.equipped.visible and not inventory.pack_list.control.visible
+    assert not inventory.satchel.visible
+    inventory.show_tab("satchel")
+    assert inventory.satchel.visible and not inventory.equipped.visible
+    shell.select(0)
+    shell.select(1)  # the tab is kept while the world is open
+    assert inventory.tab == "satchel" and inventory.satchel.visible
+
+
+def test_the_craft_tab_can_hide_recipes_you_lack_materials_for(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    for material, n in (("material.iron_ore", 3), ("material.timber", 1)):
+        crafting.add(
+            session.game, MaterialStack(make_material(CONTENT.materials[material]), n), "x"
+        )
+    explore = shell.explore
+    explore.open("Smithy")
+    explore._shop_tab(["craft"])
+    assert "Recipes (4)" in _texts(explore.shops)
+    [switch] = [c for c in _walk(explore.shops) if isinstance(c, ft.Switch)]
+    assert switch.value is False
+    explore._craftable_only(True)
+    texts = _texts(explore.shops)
+    assert "Recipes (1 of 4)" in texts  # just the Cutlass: 3 iron ore, 1 timber
+    assert len(_buttons(explore.shops, "Craft · ")) == 1
+    explore.close()
+    explore.open("Smithy")
+    explore._shop_tab(["craft"])
+    assert "Recipes (1 of 4)" in _texts(explore.shops)  # kept while the world is open

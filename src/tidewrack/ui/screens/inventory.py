@@ -1,8 +1,10 @@
 """The inventory: your stats, what you have on, and what's in your pack.
 
 Reads only Game.inventory() and sends only commands, through the GameSession so
-every change autosaves (CLAUDE.md §4, §6). The pack is a PackList (filters,
-sort and select mode, shared with a smithy's sell list); select mode drops, or
+every change autosaves (CLAUDE.md §4, §6). Under the stat sheet, tabs show
+what you have on, your pack, or your satchel (materials and known recipes).
+The pack is a PackList (filters, sort and select mode, shared with a smithy's
+sell list); select mode drops, or
 sells while you're at a shop that buys gear. Dropping and selling always ask
 first.
 """
@@ -37,6 +39,8 @@ from tidewrack.ui.components.pack_list import (
     sell_message,
 )
 
+EQUIPPED, PACK, SATCHEL = "equipped", "pack", "satchel"
+
 
 class InventoryScreen:
     def __init__(
@@ -54,6 +58,26 @@ class InventoryScreen:
         self.sheet = ft.Column(spacing=4)
         self.materials = ft.Column(spacing=4)
         self.recipes = ft.Column(spacing=4)
+        self.satchel = ft.Column(
+            spacing=12,
+            controls=[
+                _heading("Materials"),
+                self.materials,
+                _heading("Recipes you know"),
+                self.recipes,
+            ],
+        )
+        self.tab = EQUIPPED  # kept while the world is open
+        self.tabs = ft.SegmentedButton(
+            selected=[self.tab],
+            show_selected_icon=False,
+            segments=[
+                ft.Segment(value=EQUIPPED, icon=ft.Icons.SHIELD_OUTLINED),
+                ft.Segment(value=PACK, icon=ft.Icons.BACKPACK_OUTLINED),
+                ft.Segment(value=SATCHEL, icon=ft.Icons.INVENTORY_2_OUTLINED),
+            ],
+            on_change=lambda e: self.show_tab((e.control.selected or [EQUIPPED])[0]),
+        )
         self.equipped = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.pack_list = PackList(
             choices if choices is not None else PackChoices(),
@@ -75,19 +99,20 @@ class InventoryScreen:
                             spacing=12,
                             controls=[
                                 self.sheet,
-                                _heading("Equipped"),
+                                self.tabs,
                                 self.equipped,
                                 self.pack_list.control,
-                                _heading("Materials"),
-                                self.materials,
-                                _heading("Recipes you know"),
-                                self.recipes,
+                                self.satchel,
                             ],
                         ),
                     ],
                 ),
             ),
         )
+        self.refresh()
+
+    def show_tab(self, tab: str) -> None:
+        self.tab = tab
         self.refresh()
 
     # --- actions -----------------------------------------------------------------
@@ -149,6 +174,15 @@ class InventoryScreen:
         self.sheet.controls = self._sheet(view)
         self.equipped.controls = [self._slot(slot) for slot in view.slots]
         self.pack_list.show(view.pack)
+        worn = sum(1 for slot in view.slots if slot.item)
+        equipped, pack, satchel = self.tabs.segments
+        equipped.label = f"Equipped ({worn})"
+        pack.label = f"Pack ({len(view.pack)})"
+        satchel.label = f"Satchel ({len(view.materials)})"
+        self.tabs.selected = [self.tab]
+        self.equipped.visible = self.tab == EQUIPPED
+        self.pack_list.control.visible = self.tab == PACK
+        self.satchel.visible = self.tab == SATCHEL
         self.materials.controls = [
             ft.Column(
                 spacing=0,

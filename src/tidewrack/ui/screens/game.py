@@ -139,6 +139,7 @@ class GameScreen:
         self.opened: str | None = None  # BOARD, a shop's name, or None
         self._buyer: str | None = None  # the open shop that buys gear
         self.shop_tab = BUY_TAB  # a shop that buys gear has Buy and Sell tabs
+        self.craftable_only = False  # Craft tab: hide recipes you lack materials for
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
@@ -613,10 +614,31 @@ class GameScreen:
                     ],
                 )
             )
-        controls.append(_heading(f"Recipes ({len(shop.recipes)})"))
+        recipes = [
+            r for r in shop.recipes if not self.craftable_only or all(c.enough for c in r.materials)
+        ]
+        count = (
+            f"{len(recipes)} of {len(shop.recipes)}" if self.craftable_only else len(shop.recipes)
+        )
+        controls.append(
+            ft.Row(
+                wrap=True,
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                controls=[
+                    _heading(f"Recipes ({count})"),
+                    ft.Switch(
+                        label="Hide what I can't make",
+                        value=self.craftable_only,
+                        on_change=lambda e: self._craftable_only(bool(e.control.value)),
+                    ),
+                ],
+            )
+        )
         if not shop.recipes:
             controls.append(_muted("You don't know any recipes yet."))
-        for recipe in shop.recipes:
+        elif not recipes:
+            controls.append(_muted("You don't have the materials for any recipe yet."))
+        for recipe in recipes:
             controls.append(
                 gear_compare_card(
                     recipe.item,
@@ -714,6 +736,10 @@ class GameScreen:
                 on_click=lambda _, i=item.id: self._act_and_tell(Buy(i)),
             )
         ]
+
+    def _craftable_only(self, on: bool) -> None:
+        self.craftable_only = on
+        self.refresh()
 
     def _shop_tab(self, selected: list[str] | None) -> None:
         self.shop_tab = (selected or [BUY_TAB])[0]
