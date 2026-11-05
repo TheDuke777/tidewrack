@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0-beta.1] - 2026-11-04
+
 ### Added
 - Gold. People you defeat (wreckers, smugglers, the odd drowned sailor) carry
   some, quests pay gold as well as their gear reward, and every new world
