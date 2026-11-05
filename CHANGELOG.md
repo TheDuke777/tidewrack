@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Material You: on Android 12 and later the app takes its colours from your
+  wallpaper, in light and dark. It picks up a new palette when you come back
+  to the app (on Samsung, once you've applied it in the system settings).
+
+### Fixed
+- When Android rebuilds the app's window (for example after a new system
+  colour palette), you stay in the world you had open instead of landing back
+  on the world list.
+
 ## [0.8.2] - 2026-11-05
 
 ### Changed

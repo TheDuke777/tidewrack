@@ -47,7 +47,7 @@ Orientation file for an AI coding assistant (or future-you) working in this repo
 
 | Concern | Choice | Notes |
 |---|---|---|
-| UI | **Flet** (Material Design 3) | Theming via MD3 seed color; light/dark/system |
+| UI | **Flet** (Material Design 3) | Light/dark/system. **Material You** on Android 12+ (`ui/theme.py`): Flet has no dynamic-colour API, so `services/system_colours.py` reads Android's `system_<role>_light/_dark` colour resources (tonal palettes on 12–13) through **pyjnius**, an Android-only dependency (`[tool.flet.android] dependencies`). Read via a fresh configuration context of the application (a palette change recreates the activity and Flet keeps handing Python the first one); cached in `Settings.system_colours`, applied at launch, refreshed on resume and whenever `main()` reruns. Off Android or on any failure: Flet's default theme |
 | Map rendering | Flet `canvas` (`ui/map_canvas.py`) | Point-crawl diagram with fog of war, for both the area and the world map; tap a ringed neighbour to go there (tapping a road neighbour away from a gate toasts `MapNode.blocked`, the reason). Gate rooms are rounded squares; world-map labels start with a kind glyph (`KIND_GLYPHS`; add one per new roomset name) and end with ✓ (every room visited) and ◆ (an active quest leads there); area-map rooms get badges for items left lying (✦) and a seen bounty (◆). Marks only ever show what the player has seen. Pinch-zoom/pan is our own `Viewport` (spreads the map out instead of magnifying dots and labels), not Flet's `InteractiveViewer` |
 | World structure | Hand-rolled (`core/procgen/grid.py`, `location_gen.py`, `world_gen.py`) | One grid-based spanning tree + loops layout for both rooms and the overworld; gives map positions directly and stays deterministic. Chosen over `networkx` (layouts need numpy, ~2 MB, little benefit at 10–60 nodes) |
 | Overworld regions | *Later, if they add something:* `scipy.spatial.Voronoi` | Not needed for the grid overworld; heavy compiled dependency (check pypi.flet.dev, and Pyodide if web is pursued) |
@@ -187,6 +187,7 @@ tidewrack/
 │   │   ├── storage/                 # SaveStore interface + FileSaveStore (store.py),
 │   │   │                            #   migrations.py; browser backend later
 │   │   ├── session.py               # GameSession: a Game bound to a slot, autosaves
+│   │   ├── system_colours.py        # Material You: Android wallpaper scheme via pyjnius
 │   │   ├── cloud/                   # CloudProvider interface; google_drive/; sync_engine.py;
 │   │   │                            #   conflict.py  (onedrive/ later, same interface)
 │   │   ├── auth/                    # OAuth wrappers, token storage
@@ -197,7 +198,8 @@ tidewrack/
 │       ├── app.py                   # slot picker ⇄ open world; confirm dialogs
 │       ├── shell.py                 # open world: Material 3 navigation bar over tabs
 │       │                            #   (Explore, Inventory, Quests, Codex); add tabs here
-│       ├── theme.py                 # MD3 theming, palettes (incl. colorblind-safe)
+│       ├── theme.py                 # MD3 theming: Material You (Theming), later seed
+│       │                            #   colour + colorblind-safe palettes
 │       ├── components/              # gear_compare_card, quest_card, meal_card, pack_list
 │       │                            #   (filters/sort/select, shared by Inventory + shops),
 │       │                            #   folds (collapsible cards), unread (dots), stat_delta, …
@@ -437,6 +439,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 - **Content is data, not code.** New monster/item/pet/recipe = new data file unless behavior truly diverges.
 - **Loading content:** `core/data/loader.py` is pure (takes `{relative path: text}`), so it never reads files; `services/content` does the reading. A new content kind = a schema in `schemas.py` + an entry in `loader.KINDS`. Schemas reject unknown keys, and all problems are reported together with file paths; `tests/content/` validates every bundled file in CI. The app shows load errors on screen instead of crashing.
 - **`core/` is pure.** No UI/IO imports, clock or system randomness; enforced by `tests/core/test_purity.py`.
+- **Never use `page.run_thread`** (Flet 1.0.5): when Android rebuilds the window (e.g. a new system palette), Flet shuts its shared executor down and keeps using it, so jobs are silently dropped. Start a `threading.Thread` (see `ui/theme.py`). After such a rebuild `main()` runs again in the same process; `App.start` reopens the world that was open.
 - **Subscribe, don't reach in.** New cross-cutting features (achievements, tutorial hints, codex) hook the event bus.
 - **Difficulty and economy are validated by simulation**, not by feel.
 - **Accessibility is default:** never color-only signaling; scalable text; large touch targets.

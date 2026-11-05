@@ -5,11 +5,14 @@ from tidewrack.services.content import load_bundled_content
 from tidewrack.services.settings import SettingsStore, settings_path
 from tidewrack.services.storage import FileSaveStore, saves_dir
 from tidewrack.ui.app import App
+from tidewrack.ui.theme import Theming
 
 
 def main(page: ft.Page):
     page.title = "Tidewrack"
     page.theme_mode = ft.ThemeMode.SYSTEM
+    settings = SettingsStore(settings_path())
+    Theming(page, settings).start()
     try:
         content = load_bundled_content()
     except ContentError as e:
@@ -26,7 +29,7 @@ def main(page: ft.Page):
             )
         )
         return
-    App(page, FileSaveStore(saves_dir()), SettingsStore(settings_path()), content).show_picker()
+    App(page, FileSaveStore(saves_dir()), settings, content).start()
 
 
 if __name__ == "__main__":

@@ -17,6 +17,12 @@ from tidewrack.version import get_build_info, version_label
 
 WORLD_RECIPE = "world.standard"
 
+# The world open in this process. Android rebuilds the app's window on changes
+# the manifest doesn't absorb (e.g. a new system colour palette), and Flet then
+# runs main() again in the same process; `App.start` reopens this world instead
+# of dropping the player at the picker. A cold start begins with None.
+_open_world: str | None = None
+
 
 def new_seed() -> int:
     # The UI picks fresh seeds; core itself never touches system randomness.
@@ -48,7 +54,19 @@ class App:
 
     # --- screens -----------------------------------------------------------------
 
+    def start(self) -> None:
+        """The world this process had open, if any (and still loadable); else the picker."""
+        if _open_world is not None:
+            try:
+                self.show_game(GameSession.open(self.store, _open_world, self.content))
+                return
+            except SaveError:
+                pass
+        self.show_picker()
+
     def show_picker(self) -> None:
+        global _open_world
+        _open_world = None
         self._show(
             SlotPickerScreen(
                 self.store.list_slots(),
@@ -60,6 +78,8 @@ class App:
         )
 
     def show_game(self, session: GameSession) -> None:
+        global _open_world
+        _open_world = session.meta.slot_id
         shell = WorldShell(
             session,
             self.settings,

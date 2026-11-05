@@ -14,6 +14,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from tidewrack.services.storage import data_dir
+from tidewrack.services.system_colours import SystemColours
 
 
 class Settings(BaseModel):
@@ -22,6 +23,9 @@ class Settings(BaseModel):
     log_visible: bool = True
     log_share: float = Field(default=0.4, ge=0.1, le=0.8)  # of the game screen's text area
     collapsed: dict[str, bool] = {}  # card list name -> starts collapsed (ui.components.folds)
+    # Material You: the last wallpaper scheme read, applied at launch before the
+    # (slower) fresh read so the app never flashes the built-in colours first.
+    system_colours: SystemColours | None = None
 
 
 def settings_path() -> Path:
