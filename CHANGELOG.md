@@ -6,6 +6,44 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-04
+
+### Added
+- The smithy's Buy tab can be filtered and sorted too, including by price.
+  It keeps its own choices, separate from your pack's.
+- The smithy's sell list has the same filters, sorting and select mode as
+  your pack on the Inventory tab, so you can sell several items at once.
+  Filters and sorting carry over between the two.
+- Sorting your pack by sale price.
+- Gold. People you defeat (wreckers, smugglers, the odd drowned sailor) carry
+  some, quests pay gold as well as their gear reward, and every new world
+  starts you with 10.
+- Shops. Every town has a Smithy that sells plain gear and buys yours, and a
+  Tavern with beds. Each shop is in a room named for it, or at the town gate
+  if the town hasn't got one. Every item for sale shows the usual comparison
+  card and its price. Smithies slowly restock, and gear you sell goes on their
+  shelves.
+- Selling, inside the smithy or from the Inventory tab while you're there (one
+  item at a time, or several at once in select mode). Selling always asks
+  first.
+- Abandoning quests from the Quests tab. A quest from a notice board goes
+  back up on its board; a quest you found goes up on the board of the last
+  town you visited. A cull's count starts again.
+- Area map: rooms with a shop or inn show ¤.
+
+### Changed
+- The smithy has Buy and Sell tabs, so a shelf full of gear you've sold
+  doesn't bury your pack (or the other way round). It opens on Buy.
+- Shop and notice board headings fit better on a phone: no second back arrow
+  (the one at the top goes back to your worlds), and your gold is shorter.
+- Notice boards and shops show in the room as one button each. Tapping one
+  opens it over the whole screen, like a fight, until you leave it.
+- Resting to full health in town is no longer free: it's a night at a tavern,
+  for 4 gold. Waiting anywhere still heals slowly.
+- Worlds from earlier versions get gold and shops too. You start with 10 gold,
+  enemies and unfinished quests carry gold, and every town gets a Smithy and a
+  Tavern. The Smithy stocks plain copies of gear already in that world.
+
 ## [0.7.0-beta.4] - 2026-11-04
 
 ### Added
