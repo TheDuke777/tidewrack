@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-05
+
+### Fixed
+- A collapsed card's stat line now counts set bonuses (it shows what happens
+  to your stats, like the open card's "You" column), and says when you'd gain
+  or lose a set bonus.
+
+### Changed
+- Gear cards are laid out so the name and its details aren't squeezed into a
+  narrow column: name, verdict and arrow on top, then the set and the
+  slot/upgrade line across the full width.
+
+### Added
+- Gear and quest cards can be collapsed to their top row and a one-line
+  summary: what the gear changes (e.g. "DEF ▲ +1  HP ▲ +3"), or a quest's
+  progress and reward. Its buttons stay. Tap a card's top row or its arrow
+  to open or fold it.
+- Shop lists, your pack and the quest log start collapsed; what you have on
+  and gear lying in a room start open. "Expand all" / "Collapse all" by each
+  list changes how it starts, and the app remembers that.
+
 ## [0.8.1-beta.2] - 2026-11-05
 
 ### Fixed
