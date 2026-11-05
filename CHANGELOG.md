@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0-beta.1] - 2026-11-05
+
 ### Added
 - Material You: on Android 12 and later the app takes its colours from your
   wallpaper, in light and dark. It picks up a new palette when you come back
