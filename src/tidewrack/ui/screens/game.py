@@ -42,9 +42,15 @@ from tidewrack.services.session import GameSession
 from tidewrack.services.settings import Settings, SettingsStore
 from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.gear_compare_card import gear_compare_card
+from tidewrack.ui.components.pack_list import (
+    BulkAction,
+    Confirm,
+    PackChoices,
+    PackList,
+    sell_message,
+)
 from tidewrack.ui.components.quest_card import quest_card
 from tidewrack.ui.map_canvas import MapCanvas, kinds_legend
-from tidewrack.ui.screens.inventory import Confirm
 
 LOG_LINES_SHOWN = 40
 
@@ -108,11 +114,13 @@ class GameScreen:
         on_back: Callable[[], None],
         notify: Callable[[str], None] = lambda _: None,
         confirm: Confirm = _confirm_now,
+        choices: PackChoices | None = None,
     ) -> None:
         self.session = session
         self.notify = notify
         self.confirm = confirm
         self.opened: str | None = None  # BOARD, a shop's name, or None
+        self._buyer: str | None = None  # the open shop that buys gear
         self.settings = settings
         saved = settings.load()
         self.split = LogSplit(saved.log_visible, saved.log_share)
@@ -124,6 +132,15 @@ class GameScreen:
         # One button per board or shop in the room; the open one's panel below.
         self.entrances = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.panel_heading = ft.Row()
+        # A smithy's sell list: your pack, with the Inventory tab's filters and sort.
+        self.sell_list = PackList(
+            choices if choices is not None else PackChoices(),
+            actions=self._sell_actions,
+            bulk=lambda: [BulkAction("Sell selected", ft.Icons.SELL_OUTLINED, self._sell)],
+            refresh=lambda: self.refresh(),
+            empty="Nothing in your pack to sell. Take off worn gear on the Inventory "
+            "tab to sell it.",
+        )
         self.board = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.shops = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
@@ -510,38 +527,37 @@ class GameScreen:
             )
         if shop.buys_gear:
             controls.append(_section(f"Sell to the {shop.name}"))
-            pack = self.session.game.inventory().pack
-            if not pack:
-                controls.append(
-                    ft.Text(
-                        "Nothing in your pack to sell. Take off worn gear on the "
-                        "Inventory tab to sell it.",
-                        size=14,
-                        color=ft.Colors.ON_SURFACE_VARIANT,
-                    )
-                )
-            for item in pack:
-                controls.append(
-                    gear_compare_card(
-                        item,
-                        [
-                            ft.OutlinedButton(
-                                content=f"Sell · {item.sell_price} gold",
-                                icon=ft.Icons.SELL_OUTLINED,
-                                on_click=lambda _, i=item, s=shop.name: self._sell(i, s),
-                            )
-                        ],
-                    )
-                )
+            self._buyer = shop.name
+            self.sell_list.show(self.session.game.inventory().pack)
+            controls.append(self.sell_list.control)
         return controls
 
-    def _sell(self, item: ItemView, shop: str) -> None:
-        self.confirm(
-            f"Sell the {item.name}?",
-            f"The {shop} pays {item.sell_price} gold. Buying it back costs more.",
-            f"Sell for {item.sell_price} gold",
-            lambda: self._act_and_tell(Sell(item.id)),
-        )
+    def _sell_actions(self, item: ItemView) -> list[ft.Control]:
+        return [
+            ft.OutlinedButton(
+                content=f"Sell · {item.sell_price} gold",
+                icon=ft.Icons.SELL_OUTLINED,
+                on_click=lambda _, i=item: self._sell([i]),
+            )
+        ]
+
+    def _sell(self, items: list[ItemView]) -> None:
+        if items and self._buyer:
+            self.confirm(*sell_message(items, self._buyer), lambda: self._sell_now(items))
+
+    def _sell_now(self, items: list[ItemView]) -> None:
+        results = [self.session.perform(Sell(item.id)) for item in items]
+        self.sell_list.end_selection()
+        self.refresh()  # before any toast: showing one updates the page at once
+        events = [e for r in results for e in r.events]
+        refused = next((e for e in events if isinstance(e, ActionRejected)), None)
+        sold = [e for e in events if isinstance(e, ItemSold)]
+        if refused is not None:
+            self.notify(refused.reason)
+        elif len(sold) == 1:
+            self.notify(f"Sold the {sold[0].name} for {sold[0].price} gold.")
+        elif sold:
+            self.notify(f"Sold {len(sold)} items for {sum(e.price for e in sold)} gold.")
 
     def _act_and_tell(self, command: Command) -> None:
         """Do it, then toast the outcome: what was bought, or why it was refused."""
@@ -553,9 +569,6 @@ class GameScreen:
                 return
             if isinstance(event, ItemBought):
                 self.notify(f"{event.name} added to your pack for {event.price} gold.")
-                return
-            if isinstance(event, ItemSold):
-                self.notify(f"Sold the {event.name} for {event.price} gold.")
                 return
 
     def _turn_in(self, quest: str) -> None:

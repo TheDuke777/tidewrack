@@ -161,3 +161,52 @@ def _moves(town):
     from tidewrack.core.engine.game import Move
 
     yield Move(town.room(town.start).exits[0].label)
+
+
+def _rich_smithy(tmp_path):
+    """A shell open at the start town's Smithy, with gold to buy everything."""
+    from tidewrack.core.engine.components import Wallet
+
+    session, shell, toasts, asked = _shell(tmp_path)
+    session.game.world.get(session.game.player, Wallet).gold = 500
+    shell.explore.open("Smithy")
+    while buys := _buttons(shell.explore.shops, "Buy · "):
+        buys[0].on_click(None)
+    return session, shell, toasts, asked
+
+
+def test_bulk_selling_in_the_smithy(tmp_path):
+    session, shell, toasts, asked = _rich_smithy(tmp_path)
+    packs = shell.explore.sell_list
+    pack = session.game.inventory().pack
+    assert len(pack) == 3 and packs.heading.value == "Pack (3)"
+    packs._toggle_select(None)
+    packs._select_all_shown(None)
+    [sell] = [
+        b for b in packs.selection_bar.controls if getattr(b, "content", None) == "Sell selected"
+    ]
+    gold = session.game.view().gold
+    sell.on_click(None)
+    total = sum(i.sell_price for i in pack)
+    assert asked[-1] == "Sell 3 items?"
+    assert toasts[-1] == f"Sold 3 items for {total} gold."
+    assert session.game.view().gold == gold + total and session.game.inventory().pack == ()
+    assert not packs.selecting and shell.explore.opened == "Smithy"
+
+
+def test_the_smithy_and_inventory_share_filters_and_sort(tmp_path):
+    session, shell, _, _ = _rich_smithy(tmp_path)
+    slot = session.game.inventory().pack[0].slot
+    shell.select(1)
+    inventory = shell.inventory.pack_list
+    inventory.filters["slot"].value = slot
+    inventory._filter_changed()
+    inventory.sort.value = "price"
+    inventory._sort_changed()
+    assert inventory.order_button.content == "Highest first"
+    shell.select(0)
+    smithy = shell.explore.sell_list
+    assert smithy.filters["slot"].value == slot and smithy.sort.value == "price"
+    assert {i.id for i in smithy.shown} == {i.id for i in inventory.shown}
+    prices = [i.sell_price for i in smithy.shown]
+    assert prices == sorted(prices, reverse=True)

@@ -18,9 +18,10 @@ import flet as ft
 
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.pack_list import Confirm, PackChoices
 from tidewrack.ui.screens.codex import CodexScreen
 from tidewrack.ui.screens.game import GameScreen
-from tidewrack.ui.screens.inventory import Confirm, InventoryScreen
+from tidewrack.ui.screens.inventory import InventoryScreen
 from tidewrack.ui.screens.quests import QuestsScreen
 
 
@@ -33,10 +34,11 @@ class WorldShell:
         confirm: Confirm,
         notify: Callable[[str], None],
     ) -> None:
+        choices = PackChoices()  # one set of pack filters and sort for the whole world
         self.explore = GameScreen(
-            session, settings, on_back=on_back, notify=notify, confirm=confirm
+            session, settings, on_back=on_back, notify=notify, confirm=confirm, choices=choices
         )
-        self.inventory = InventoryScreen(session, confirm=confirm, notify=notify)
+        self.inventory = InventoryScreen(session, confirm=confirm, notify=notify, choices=choices)
         self.quests = QuestsScreen(session, confirm=confirm, notify=notify)
         self.codex = CodexScreen(session)
         self.tabs = [

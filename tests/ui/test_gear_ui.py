@@ -143,17 +143,23 @@ def test_bulk_drop_drops_only_selected_and_shown(tmp_path):
     pack = _fill_pack(session)
     screen = shell.inventory
     screen.refresh()
-    screen._toggle_select(None)
-    screen._select_all_shown(None)
-    screen._select(pack[0].id, False)
-    screen._drop_selected(None)
+    packs = screen.pack_list
+    packs._toggle_select(None)
+    packs._select_all_shown(None)
+    packs._select(pack[0].id, False)
+    _bulk(packs, "Drop selected").on_click(None)
     assert asked == ["Drop 2 items?"]
     assert [i.id for i in session.game.inventory().pack] == [pack[0].id]
-    assert not screen.selecting and screen.selected == set()
+    assert not packs.selecting and packs.selected == set()
+
+
+def _bulk(packs, label):
+    [button] = [b for b in packs.selection_bar.controls if getattr(b, "content", None) == label]
+    return button
 
 
 def test_pack_filters():
-    from tidewrack.ui.screens.inventory import ANY_AFFIX, NO_AFFIX, NO_SET, PackFilter
+    from tidewrack.ui.components.pack_list import ANY_AFFIX, NO_AFFIX, NO_SET, PackFilter
 
     def item(slot, affixes=(), gear_set=None):
         view = _game().view().items_here[0]
@@ -176,7 +182,7 @@ def test_pack_filters():
 
 
 def test_filter_options_come_from_the_pack():
-    from tidewrack.ui.screens.inventory import filter_options
+    from tidewrack.ui.components.pack_list import filter_options
 
     view = _game().view().items_here[0]
     options = filter_options([replace(view, affixes=("Keen",)), replace(view, slot="Feet")])
@@ -212,7 +218,7 @@ def _pack_item(name, slot="Feet", verdict="better", affixes=(), gear_set=None, *
 
 
 def test_sort_pack_by_each_key_and_direction():
-    from tidewrack.ui.screens.inventory import sort_pack
+    from tidewrack.ui.components.pack_list import sort_pack
 
     boots = _pack_item("Boots", verdict="better", hp=0, **{"def": 1})
     helm = _pack_item("Helm", "Head", verdict="mixed", hp=4, **{"def": 1})
@@ -238,32 +244,44 @@ def test_sorting_applies_to_the_filtered_pack_and_survives_refreshes(tmp_path):
     for _ in range(3):  # a few more, so there's something to sort
         _fill_pack(session)
     screen = shell.inventory
+    packs = screen.pack_list
     pack = session.game.inventory().pack
     feet = [i for i in pack if i.slot == pack[0].slot]
 
-    screen.filters["slot"].value = pack[0].slot
-    screen._filter_changed("slot")
-    screen.sort.value = "hp"
-    screen._sort_changed()
-    shown = [i.id for i in screen._shown]
+    packs.filters["slot"].value = pack[0].slot
+    packs._filter_changed()
+    packs.sort.value = "hp"
+    packs._sort_changed()
+    shown = [i.id for i in packs.shown]
     expected = [i.id for i in sorted(feet, key=lambda i: (-i.total["hp"],))]
     assert sorted(shown) == sorted(i.id for i in feet)  # filter still applied
-    assert [screen_item.total["hp"] for screen_item in screen._shown] == sorted(
+    assert [screen_item.total["hp"] for screen_item in packs.shown] == sorted(
         (i.total["hp"] for i in feet), reverse=True
     )
-    assert screen.order_button.content == "Best first"
+    assert packs.order_button.content == "Best first"
 
-    screen._flip_order()
-    assert [i.total["hp"] for i in screen._shown] == sorted(i.total["hp"] for i in feet)
-    assert screen.order_button.content == "Worst first"
+    packs._flip_order()
+    assert [i.total["hp"] for i in packs.shown] == sorted(i.total["hp"] for i in feet)
+    assert packs.order_button.content == "Worst first"
 
     screen.refresh()  # e.g. switching tabs
-    assert screen.sort.value == "hp" and not screen.descending
-    assert len(expected) == len(screen._shown)
+    assert packs.sort.value == "hp" and not packs.choices.descending
+    assert len(expected) == len(packs.shown)
 
     # Selecting "all shown" and dropping touches exactly the filtered, sorted items.
-    screen._toggle_select(None)
-    screen._select_all_shown(None)
-    screen._drop_selected(None)
+    packs._toggle_select(None)
+    packs._select_all_shown(None)
+    _bulk(packs, "Drop selected").on_click(None)
     left = {i.id for i in session.game.inventory().pack}
     assert left == {i.id for i in pack} - {i.id for i in feet}
+
+
+def test_sorting_by_sale_price():
+    from dataclasses import replace as with_
+
+    from tidewrack.ui.components.pack_list import sort_pack
+
+    base = _pack_item("Boots", verdict="worse", hp=0, **{"def": 1})
+    cheap, dear = with_(base, id=1, sell_price=2), with_(base, id=2, name="Helm", sell_price=9)
+    assert [i.id for i in sort_pack([cheap, dear], "price")] == [2, 1]
+    assert [i.id for i in sort_pack([cheap, dear], "price", descending=False)] == [1, 2]
