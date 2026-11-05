@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.8.1-beta.2] - 2026-11-05
+
 ### Fixed
 - A collapsed card's stat line now counts set bonuses (it shows what happens
   to your stats, like the open card's "You" column), and says when you'd gain
