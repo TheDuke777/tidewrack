@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0-beta.3] - 2026-11-05
+
 ### Changed
 - Your gold total in the Inventory uses the same coin as prices (tinted
   gold) instead of a money bag, so it doesn't look like a second currency.
