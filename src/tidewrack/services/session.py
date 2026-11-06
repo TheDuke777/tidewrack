@@ -31,11 +31,12 @@ from tidewrack.core.engine.components import (
     RecipePage,
     Shop,
     Spawner,
+    Warden,
 )
 from tidewrack.core.engine.game import Command, Game, TurnResult
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
-from tidewrack.core.procgen.enemy_gen import generate_enemies
+from tidewrack.core.procgen.enemy_gen import generate_enemies, generate_wardens
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
 from tidewrack.core.procgen.material_gen import (
     generate_gathering,
@@ -93,8 +94,9 @@ class GameSession:
         """Generate a fresh world from a recipe (layout, kit, finds, enemies,
         quests, shops, materials and recipes) in a new slot."""
         recipe = content.world(recipe_id)
-        world = generate_world(seed, recipe, content.roomsets)
+        world = generate_world(seed, recipe, content.roomsets, content.regions)
         enemies, spawners = generate_enemies(seed, world, content)
+        wardens = generate_wardens(seed, world, content)
         plan = generate_quests(seed, world, content, recipe, enemies, spawners)
         recipes = generate_recipes(seed, world, content, recipe, plan.quests)
         quests = [replace(q, recipe=recipes.rewards.get(q.quest_id)) for q in plan.quests]
@@ -119,6 +121,7 @@ class GameSession:
             recipes=known_recipes(content),
             recipe_pages=recipes.pages,
             growers=generate_growers(world, content),
+            wardens=wardens,
         )
 
     @classmethod
@@ -147,6 +150,7 @@ class GameSession:
         recipes: Iterable[Recipe] = (),
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
         growers: Iterable[Grower] = (),
+        wardens: Iterable[tuple[str, str, Enemy, Warden]] = (),
     ) -> GameSession:
         """Start a world in a new slot (saved immediately)."""
         game = Game(
@@ -168,6 +172,7 @@ class GameSession:
             recipes,
             recipe_pages,
             growers,
+            wardens,
         )
         now = clock()
         meta = SlotMeta(

@@ -174,6 +174,24 @@ class EnemyKilled(Event):
 
 
 @dataclass(frozen=True)
+class WayBarred(Event):
+    """You took a guarded road: its warden steps in (a fight starts next)."""
+
+    enemy: int
+    name: str
+    crossing: str
+    region: str  # the region's name
+
+
+@dataclass(frozen=True)
+class RegionOpened(Event):
+    """A warden is beaten: the road into its region is open for good."""
+
+    region: str  # its id
+    name: str
+
+
+@dataclass(frozen=True)
 class PlayerDefeated(Event):
     enemy_id: str
     name: str

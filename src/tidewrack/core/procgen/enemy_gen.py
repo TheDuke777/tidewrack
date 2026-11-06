@@ -21,7 +21,7 @@ from typing import NamedTuple
 
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import EnemySchema
-from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner
+from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner, Warden
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import roll_item
 from tidewrack.core.procgen.material_gen import drop_table, roll_drops
@@ -103,6 +103,43 @@ def generate_enemies(
                 Spawner(location.id, table.wandering_chance, queue, table.wanderers, templates)
             )
     return placed, spawners
+
+
+class PlacedWarden(NamedTuple):
+    """A region's warden at the gate before its border; Game takes these as
+    (location, room, enemy, warden)."""
+
+    location: str
+    room: str
+    enemy: Enemy
+    warden: Warden
+
+
+def generate_wardens(seed: int, world: Overworld, content: Content) -> list[PlacedWarden]:
+    """One warden on every road into a deeper region, at the near side's gate, on
+    the seed's "wardens" substream (one sub-substream per border)."""
+    rng = Rng(seed).derive("wardens")
+    placed = []
+    for here, there in world.borders():
+        region = content.regions.get(world.locations[there].region)
+        if region is None or region.warden is None:
+            continue
+        enemy = make_enemy(rng.derive(f"{here}.{there}"), content.enemies[region.warden], content)
+        location = world.location(here)
+        placed.append(
+            PlacedWarden(
+                location.id, location.start, enemy, Warden(region.id, there, region.crossing)
+            )
+        )
+    return placed
+
+
+def wardens_hash(wardens: Iterable[PlacedWarden]) -> str:
+    """Stable fingerprint of a world's wardens, for golden-seed tests (§9)."""
+    blob = json.dumps(
+        [[w.location, w.room, asdict(w.enemy), asdict(w.warden)] for w in wardens], sort_keys=True
+    )
+    return hashlib.sha256(blob.encode()).hexdigest()
 
 
 def make_template(rng: Rng, schema: EnemySchema, weight: float, content: Content) -> EnemyTemplate:

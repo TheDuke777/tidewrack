@@ -1,0 +1,27 @@
+{
+  "id": "enemy.marsh_light",
+  "name": "Marsh Light",
+  "category": "spirit",
+  "description": "A cold blue flame that bobs ahead, always just out of reach, until suddenly it isn't.",
+  "stats": {
+    "atk": 8,
+    "def": 1,
+    "hp": 12
+  },
+  "loot": {
+    "chance": 0.3,
+    "gear": {
+      "gear.amber_charm": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.wisp_essence",
+      "chance": 0.6,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

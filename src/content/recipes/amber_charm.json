@@ -1,0 +1,8 @@
+{
+  "id": "recipe.amber_charm",
+  "makes": "gear.amber_charm",
+  "materials": {
+    "material.bog_amber": 2,
+    "material.reeds": 1
+  }
+}

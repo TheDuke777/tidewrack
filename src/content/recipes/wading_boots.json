@@ -1,0 +1,8 @@
+{
+  "id": "recipe.wading_boots",
+  "makes": "gear.wading_boots",
+  "materials": {
+    "material.toad_skin": 2,
+    "material.reeds": 1
+  }
+}

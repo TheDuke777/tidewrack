@@ -92,7 +92,9 @@ def test_gates_and_kinds_are_marked():
     from tidewrack.ui.map_canvas import kinds_legend, label
 
     content = load_bundled_content()
-    world = generate_world(20261103, content.world("world.standard"), content.roomsets)
+    world = generate_world(
+        20261103, content.world("world.standard"), content.roomsets, content.regions
+    )
     view = Game(20261103, world).view()
     assert [n.gate for n in view.map.nodes if n.state == "current"] == [True]  # you start at a gate
     assert all(n.kind is None for n in view.map.nodes)
@@ -111,7 +113,7 @@ def test_tapping_a_place_away_from_a_gate_says_why_you_cant_go():
     from tidewrack.ui.map_canvas import MapCanvas
 
     content = load_bundled_content()
-    world = generate_world(7, content.world("world.standard"), content.roomsets)
+    world = generate_world(7, content.world("world.standard"), content.roomsets, content.regions)
     town = world.location(world.start)
     game = Game(7, world)
     at_gate = {n.id: n for n in game.view().world_map.nodes}
@@ -129,3 +131,46 @@ def test_tapping_a_place_away_from_a_gate_says_why_you_cant_go():
     x, y = canvas._points[town.roads[0]]
     canvas._tapped(SimpleNamespace(local_position=SimpleNamespace(x=x, y=y)))
     assert told == [reason] and commands == []
+
+
+def test_every_place_kind_has_a_glyph():
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.ui.map_canvas import KIND_GLYPHS
+
+    content = load_bundled_content()
+    assert {r.name for r in content.roomsets.values()} <= set(KIND_GLYPHS)
+
+
+def test_region_names_and_guarded_roads_on_the_world_map():
+    from tidewrack.core.engine.components import Position, Warden
+    from tidewrack.core.engine.events import LocationEntered
+    from tidewrack.core.engine.game import Game
+    from tidewrack.core.procgen.enemy_gen import generate_wardens
+    from tidewrack.core.procgen.world_gen import generate_world
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.ui.map_canvas import MapCanvas, label
+
+    content = load_bundled_content()
+    world = generate_world(7, content.world("world.standard"), content.roomsets, content.regions)
+    game = Game(7, world, wardens=generate_wardens(7, world, content))
+    coast, fens = (r.name for r in world.regions.values())
+    assert [m.name for m in game.view().world_map.regions] == [coast]  # the Fens aren't known yet
+
+    [(near, far)] = world.borders()
+    position = game.world.get(game.player, Position)
+    position.location, position.room = near, world.location(near).start
+    game.bus.emit(LocationEntered(game.player, near, None, first_visit=True))
+    game.bus.flush()
+    view = game.view()
+    assert [m.name for m in view.world_map.regions] == [coast, fens]
+    beyond = next(n for n in view.world_map.nodes if n.id == far)
+    assert beyond.guarded and label("Thornea", "Stilt Village", guarded=True) == "⌂ Thornea ⚔"
+
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.show(view.world_map, "", "world", labels=True)
+    texts = [s.value for s in canvas.canvas.shapes if hasattr(s, "value") and s.value]
+    assert coast.upper() in texts and fens.upper() in texts
+
+    for entity, _ in list(game.world.query(Warden)):
+        game.world.destroy(entity)
+    assert not next(n for n in game.view().world_map.nodes if n.id == far).guarded

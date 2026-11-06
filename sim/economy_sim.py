@@ -76,7 +76,7 @@ class WorldReport:
 
 def simulate(seed: int, content: Content, recipe_id: str = "world.standard") -> WorldReport:
     recipe = content.world(recipe_id)
-    world = generate_world(seed, recipe, content.roomsets)
+    world = generate_world(seed, recipe, content.roomsets, content.regions)
     placed, spawners = generate_enemies(seed, world, content)
     plan = generate_quests(seed, world, content, recipe, placed, spawners)
     finds = generate_finds(seed, world, content)

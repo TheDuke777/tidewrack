@@ -1,0 +1,14 @@
+{
+  "id": "shop.fen_market",
+  "name": "Market",
+  "room": "Market",
+  "materials": [
+    "material.reeds",
+    "material.bog_iron",
+    "material.timber",
+    "material.hide",
+    "material.salt",
+    "material.ships_biscuit"
+  ],
+  "buys_materials": true
+}

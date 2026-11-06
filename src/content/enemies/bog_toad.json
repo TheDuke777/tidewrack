@@ -1,0 +1,27 @@
+{
+  "id": "enemy.bog_toad",
+  "name": "Bog Toad",
+  "category": "beast",
+  "description": "A toad the size of a sheep, sunk to its eyes in the black water. Its tongue could take your hand off.",
+  "stats": {
+    "atk": 7,
+    "def": 3,
+    "hp": 16
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.toad_skin",
+      "chance": 0.7,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

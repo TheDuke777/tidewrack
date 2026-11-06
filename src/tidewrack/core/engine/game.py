@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from tidewrack.core.codex.foes import FoesView, foes_view
@@ -77,6 +77,7 @@ from tidewrack.core.engine.components import (
     Stats,
     Stocked,
     Wallet,
+    Warden,
 )
 from tidewrack.core.engine.ecs import World
 from tidewrack.core.engine.events import (
@@ -117,12 +118,14 @@ from tidewrack.core.engine.events import (
     QuestProgress,
     QuestReady,
     RecipeLearned,
+    RegionOpened,
     Respawned,
     Rested,
     RoomDiscovered,
     RoomEntered,
     TurnEnded,
     Waited,
+    WayBarred,
 )
 from tidewrack.core.gear import stats
 from tidewrack.core.gear.compare import Comparison, compare
@@ -356,6 +359,8 @@ class RoadView:
     name: str
     kind: str
     visited: bool
+    guard: str | None = None  # the warden barring it (taking the road challenges it)
+    region: str | None = None  # the region it leads into, when that's another one
 
 
 @dataclass(frozen=True)
@@ -373,6 +378,16 @@ class MapNode:
     charted: bool = False  # every room visited (world maps)
     shop: bool = False  # a visited room with a shop or inn in it (area maps)
     blocked: str | None = None  # why you can't go there from here yet (tap to be told)
+    guarded: bool = False  # a warden bars the road there (world maps)
+
+
+@dataclass(frozen=True)
+class RegionMark:
+    """A region's name on the world map, centred on the places known in it."""
+
+    name: str
+    x: float
+    y: float
 
 
 @dataclass(frozen=True)
@@ -382,6 +397,7 @@ class MapView:
     nodes: tuple[MapNode, ...]
     edges: tuple[tuple[str, str], ...]
     size: int  # nodes in the whole map, known or not (for scaling)
+    regions: tuple[RegionMark, ...] = ()  # world maps with more than one region
 
 
 @dataclass(frozen=True)
@@ -589,6 +605,7 @@ class GameView:
     shops: tuple[ShopView, ...] = ()  # shops in this room
     fed: FedView | None = None
     log_total: int = 0  # lines ever written while open (log keeps the last LOG_LIMIT)
+    region: str | None = None  # the region you're in, e.g. "The Sallow Fens"
 
 
 # --- the game ----------------------------------------------------------------------
@@ -615,6 +632,7 @@ class Game:
         recipes: Iterable[Recipe] = (),
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
         growers: Iterable[Grower] = (),
+        wardens: Iterable[tuple[str, str, Enemy, Warden]] = (),
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
@@ -622,7 +640,8 @@ class Game:
         world's `quests`, their `bounties` and their items and clues; `gold` to
         start with; its `shops` (location, room, shop, stock) under `economy`;
         materials to `gathering`, the `recipes` known from the start, and found
-        `recipe_pages` (location, room, thing)."""
+        `recipe_pages` (location, room, thing), and the `wardens` at the gates
+        of the roads into deeper regions (location, room, enemy, warden)."""
         self._setup(seed, world)
         self.rules = rules
         self.economy = economy
@@ -681,6 +700,11 @@ class Game:
         for grower in growers:
             world.location(grower.location)  # must exist
             self.world.create(grower)
+        for location_id, room_id, enemy, warden in wardens:
+            location = world.location(location_id)
+            if room_id not in location.gates or warden.road not in location.roads:
+                raise ValueError(f"warden not at a gate on its road: {location_id}/{room_id}")
+            self.world.create(enemy, warden, Position(location_id, room_id))
         for location_id, room_id, thing in [*gathering, *recipe_pages]:
             location = world.location(location_id)
             if room_id not in location.rooms or room_id in location.gates:
@@ -866,6 +890,11 @@ class Game:
                     self.bus.emit(ActionRejected(_leave_from(location)))
                 elif destination_id not in location.roads:
                     self.bus.emit(ActionRejected("No road leads there from here."))
+                elif (
+                    guard := fight.warden_on(self, location.id, position.room, destination_id)
+                ) is not None:
+                    fight.challenge(self, guard)
+                    took_turn = True
                 else:
                     destination = self.overworld.location(destination_id)
                     position.location, position.room = destination.id, destination.start
@@ -1333,6 +1362,36 @@ class Game:
             p.room for _, (_, p) in self.world.query(Shop, Position) if p.location == location_id
         }
 
+    def _guard(self, location_id: str, to: str) -> str | None:
+        """The name of the warden barring the road from here to `to`, if any."""
+        location = self.overworld.location(location_id)
+        for room_id in location.gates:
+            entity = fight.warden_on(self, location_id, room_id, to)
+            if entity is not None:
+                return self.world.get(entity, Enemy).name
+        return None
+
+    def _region_change(self, location_id: str, to: str) -> str | None:
+        here, there = self.overworld.region_of(location_id), self.overworld.region_of(to)
+        return there.name if there and there != here else None
+
+    def _region_marks(self, shown: MapView) -> tuple[RegionMark, ...]:
+        if len(self.overworld.regions) < 2:
+            return ()
+        marks = []
+        for region in self.overworld.regions.values():
+            known = [n for n in shown.nodes if self.overworld.locations[n.id].region == region.id]
+            if known:
+                x = sum(n.x for n in known) / len(known)
+                y = sum(n.y for n in known) / len(known)
+                marks.append(RegionMark(region.name, round(x, 4), round(y, 4)))
+        return tuple(marks)
+
+    def region(self) -> str | None:
+        """The name of the region the player is in (None in a world without regions)."""
+        region = self.overworld.region_of(self.world.get(self.player, Position).location)
+        return region.name if region else None
+
     def _explorer(self) -> Explorer:
         return self.world.get(self.player, Explorer)
 
@@ -1358,6 +1417,8 @@ class Game:
                 name=self.overworld.location(to).name,
                 kind=self.overworld.location(to).kind,
                 visited=to in explorer.locations_visited,
+                guard=self._guard(location.id, to),
+                region=self._region_change(location.id, to),
             )
             for to in location.roads
         )
@@ -1398,7 +1459,9 @@ class Game:
                     for loc in self.overworld.locations.values()
                     if len(explorer.rooms_visited.get(loc.id, ())) >= len(loc.rooms)
                 },
+                guarded={w.road for _, (w,) in self.world.query(Warden)},
             )
+            world_map = replace(world_map, regions=self._region_marks(world_map))
         return GameView(
             location=location.name,
             kind=location.kind,
@@ -1425,11 +1488,12 @@ class Game:
             hp=self.hp(),
             max_hp=self.max_hp(),
             combat=self._combat_view(),
-            in_town=location.kind == fight.TOWN,
+            in_town=location.town,
             board=self._board(),
             gold=shops.gold(self),
             shops=self._shops(),
             fed=self._fed(),
+            region=self.region(),
         )
 
     # --- subscribers -----------------------------------------------------------------
@@ -1465,6 +1529,9 @@ class Game:
                     location = self.overworld.location(location_id)
                     if origin is not None:
                         self._say(f"You take the road to {location.name}.")
+                        crossed = self._region_change(origin, location_id)
+                        if crossed:
+                            self._say(f"You cross into {crossed}.")
                     self._say(f"— {location.name} · {location.kind} —")
             case RoomEntered(
                 entity=entity,
@@ -1484,6 +1551,7 @@ class Game:
                     self._mention_items(location_id, room_id)
                     self._mention_board()
                     self._mention_shops()
+                    self._mention_wardens()
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
                     s.text
@@ -1509,10 +1577,13 @@ class Game:
                 self._say("Time passes.")
             case Rested(price=price):
                 self._say(f"You pay {price} gold for a bed and wake whole again.")
-            case CombatStarted(name=name, wandering=wandering):
-                self._say(
-                    f"A {name} comes upon you!" if wandering else f"A {name} blocks your way!"
-                )
+            case WayBarred(name=name, crossing=crossing, region=region):
+                self._say(f"The {name} bars {crossing} into {region}!")
+            case CombatStarted(enemy=enemy, name=name, wandering=wandering):
+                if not self.world.has(enemy, Warden):  # WayBarred said it
+                    self._say(
+                        f"A {name} comes upon you!" if wandering else f"A {name} blocks your way!"
+                    )
             case Attacked(attacker=attacker, target_name=target, attacker_name=by, damage=hit):
                 if attacker == self.player:
                     self._say(f"You hit the {target} for {hit}.")
@@ -1528,6 +1599,8 @@ class Game:
                 dropped = [f"a {n}" for n in loot] + ([f"{gold} gold"] if gold else [])
                 if dropped:
                     self._say(f"It drops {_and(dropped)}.")
+            case RegionOpened(name=name):
+                self._say(f"The way into {name} lies open.")
             case PlayerDefeated(name=name):
                 self._say(f"The {name} strikes you down. Everything goes dark.")
             case Respawned(location=location_id):
@@ -1604,6 +1677,13 @@ class Game:
         if ready:
             self._say(f"You can turn in {ready} finished quest{'s' * (ready != 1)} here.")
 
+    def _mention_wardens(self) -> None:
+        position = self.world.get(self.player, Position)
+        for _, (enemy, warden, at) in self.world.query(Enemy, Warden, Position):
+            if (at.location, at.room) == (position.location, position.room):
+                region = self.overworld.regions[warden.region].name
+                self._say(f"A {enemy.name} stands across {warden.crossing} into {region}.")
+
     def _mention_shops(self) -> None:
         for _, shop in shops.shops_here(self):
             if shop.inn:
@@ -1654,6 +1734,7 @@ def _fog_map(
     charted: set[str] = frozenset(),  # type: ignore[assignment]
     blocked: dict[str, str] | None = None,
     shops: set[str] = frozenset(),  # type: ignore[assignment]
+    guarded: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -1677,6 +1758,7 @@ def _fog_map(
                 charted=node_id in charted,
                 blocked=(blocked or {}).get(node_id),
                 shop=node_id in shops,
+                guarded=node_id in guarded,
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

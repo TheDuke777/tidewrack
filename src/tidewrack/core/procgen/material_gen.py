@@ -23,7 +23,6 @@ from collections.abc import Iterable
 from dataclasses import asdict
 from typing import NamedTuple
 
-from tidewrack.core.combat.fight import TOWN
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import (
     MaterialDropSchema,
@@ -222,7 +221,7 @@ def generate_recipes(
     wild = [
         loc
         for loc in world.locations.values()
-        if loc.kind != TOWN and any(r not in loc.gates for r in loc.rooms)
+        if not loc.town and any(r not in loc.gates for r in loc.rooms)
     ]
     plan = RecipePlan({}, [])
     for _, schema in sorted(content.recipes.items()):

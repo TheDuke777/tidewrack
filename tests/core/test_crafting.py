@@ -50,7 +50,7 @@ from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.content import load_bundled_content
 
 CONTENT = load_bundled_content()
-WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
 TOWN = WORLD.location(WORLD.start)
 GATE = TOWN.start
 CAVES = WORLD.location("loc_02")
@@ -426,5 +426,5 @@ def test_new_worlds_regrow_every_wild_kind_of_place():
 
     growers = generate_growers(WORLD, CONTENT)
     kinds = {WORLD.location(g.location).kind for g in growers}
-    assert kinds == {loc.kind for loc in WORLD.locations.values()} - {"Town"}
+    assert kinds == {loc.kind for loc in WORLD.locations.values() if not loc.town}
     assert all(g.cap >= 2 and g.materials for g in growers)

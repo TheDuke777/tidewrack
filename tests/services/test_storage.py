@@ -442,3 +442,29 @@ def test_renaming_a_world_saves_a_new_revision_but_not_a_new_play_time(tmp_path)
     assert len(GameSession.open(store, before.slot_id, CONTENT).meta.name) == 40
     with pytest.raises(ValueError):
         session.rename("   ")
+
+
+def test_v11_saves_are_all_coast_with_their_towns_flagged(tmp_path):
+    envelope = json.loads((FIXTURES / "v11_regrowth.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    world = session.game.overworld
+    assert [r.name for r in world.regions.values()] == ["The Wrack Coast"]
+    assert all(loc.region == "region.wrack_coast" for loc in world.locations.values())
+    assert {loc.kind for loc in world.locations.values() if loc.town} == {"Town"}
+    assert world.borders() == []
+    assert session.game.view().region == "The Wrack Coast"
+    assert session.game.view().world_map.regions == ()  # one region: no names drawn
+
+
+def test_v12_fixture_resumes_mid_fight_with_a_warden(tmp_path):
+    from tidewrack.core.engine.components import Fighting, Warden
+    from tidewrack.core.engine.game import Attack
+
+    envelope = json.loads((FIXTURES / "v12_regions.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    fighting = game.world.get(game.player, Fighting)
+    assert game.world.has(fighting.enemy, Warden)
+    assert game.view().combat is not None
+    session.perform(Attack())
+    assert len(game.overworld.regions) == 2

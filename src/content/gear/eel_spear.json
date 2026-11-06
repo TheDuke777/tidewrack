@@ -1,0 +1,24 @@
+{
+  "id": "gear.eel_spear",
+  "name": "Eel Spear",
+  "slot": "main_hand",
+  "two_handed": true,
+  "base": {
+    "atk": 9,
+    "def": 1
+  },
+  "rolls": {
+    "atk": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 3,
+  "upgrade_step": {
+    "atk": 1
+  },
+  "upgrade_materials": {
+    "material.bog_iron": 2,
+    "material.reeds": 1
+  }
+}

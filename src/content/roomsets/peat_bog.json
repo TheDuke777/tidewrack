@@ -1,0 +1,145 @@
+{
+  "id": "roomset.peat_bog",
+  "name": "Peat Bog",
+  "location_names": [
+    "Blackcut Moss",
+    "The Sinking Mire",
+    "Hollow Moss",
+    "Grimsmire",
+    "Deadman's Flow",
+    "The Black Hags",
+    "Corpse Moss"
+  ],
+  "size": [
+    12,
+    18
+  ],
+  "layout": {
+    "spread": 2.0,
+    "loops": 0.3,
+    "corridors": 0.45
+  },
+  "adjectives": [
+    "Black",
+    "Sodden",
+    "Quaking",
+    "Steaming",
+    "Bitter",
+    "Sunken",
+    "Still",
+    "Rotten",
+    "Brown",
+    "Hollow",
+    "Treacherous",
+    "Silent"
+  ],
+  "entrance": {
+    "noun": "Bog Edge",
+    "descriptions": [
+      "Firm ground gives out here. Beyond, the bog stretches away, brown and black, with paths of laid planks that disappear into the mist."
+    ],
+    "features": [
+      "A cairn of stones with a broken spade on top."
+    ],
+    "ambient": [
+      "The bog sighs and settles."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Peat Cutting",
+      "weight": 1.5,
+      "descriptions": [
+        "Neat black walls of cut peat stand drying in stacks, the trench below full of brown water.",
+        "An old peat cutting, its edges slumped, half drowned."
+      ],
+      "features": [
+        "A peat spade, its handle worn pale."
+      ],
+      "ambient": [
+        "A clod of peat slides into the water."
+      ]
+    },
+    {
+      "noun": "Duckboards",
+      "weight": 1.8,
+      "descriptions": [
+        "A track of old planks laid across the bog. Some of them are missing.",
+        "The duckboards sink a little under each step, and water wells up between them."
+      ],
+      "ambient": [
+        "Bubbles rise somewhere to your left."
+      ]
+    },
+    {
+      "noun": "Bog Pool",
+      "descriptions": [
+        "A round pool of water so dark it looks like a hole in the world.",
+        "A pool ringed with cotton grass, its water the colour of strong tea."
+      ],
+      "features": [
+        "A leather shoe floating in the middle, very old."
+      ],
+      "ambient": [
+        "Something moves under the surface, and then doesn't."
+      ]
+    },
+    {
+      "noun": "Hummock",
+      "weight": 0.8,
+      "descriptions": [
+        "A low island of heather and birch, the only dry ground for a long way.",
+        "A hummock of moss, springy underfoot, with a twisted birch on top."
+      ],
+      "features": [
+        "Bones of a sheep, picked clean, among the heather."
+      ],
+      "ambient": [
+        "A curlew calls, long and falling."
+      ]
+    },
+    {
+      "noun": "Sink",
+      "weight": 0.6,
+      "descriptions": [
+        "The ground here quakes like a pudding. Every step sinks to the ankle.",
+        "A soft green hollow where the moss grows too bright. You know better than to stand still."
+      ],
+      "ambient": [
+        "The ground shivers under you."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.22,
+    "gear": {
+      "gear.eel_spear": 1,
+      "gear.waxed_jerkin": 1,
+      "gear.fowlers_cap": 1,
+      "gear.wading_boots": 2,
+      "gear.amber_charm": 2
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.bog_iron": 3,
+      "material.cranberries": 2,
+      "material.reeds": 1,
+      "material.bog_amber": 0.4
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.25,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.bog_toad": 3,
+      "enemy.bog_walker": 2,
+      "enemy.marsh_light": 2
+    }
+  }
+}

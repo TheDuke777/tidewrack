@@ -1,0 +1,8 @@
+{
+  "id": "recipe.eel_spear",
+  "makes": "gear.eel_spear",
+  "materials": {
+    "material.bog_iron": 4,
+    "material.reeds": 2
+  }
+}

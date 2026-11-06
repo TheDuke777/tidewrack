@@ -29,6 +29,7 @@ from tidewrack.core.data.schemas import (
     MealSchema,
     QuestTemplateSchema,
     RecipeSchema,
+    RegionSchema,
     RoomsetSchema,
     ShopSchema,
     WorldRecipeSchema,
@@ -45,6 +46,7 @@ KINDS = {
     "materials": (MaterialSchema, "material"),
     "meals": (MealSchema, "meal"),
     "recipes": (RecipeSchema, "recipe"),
+    "regions": (RegionSchema, "region"),
     "quests": (QuestTemplateSchema, "quest"),
     "roomsets": (RoomsetSchema, "roomset"),
     "shops": (ShopSchema, "shop"),
@@ -72,6 +74,7 @@ class Content:
     materials: dict[str, MaterialSchema]
     recipes: dict[str, RecipeSchema]
     meals: dict[str, MealSchema]
+    regions: dict[str, RegionSchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -131,6 +134,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         materials=loaded["materials"],
         recipes=loaded["recipes"],
         meals=loaded["meals"],
+        regions=loaded["regions"],
         content_hash=content_hash(files),
     )
 
@@ -144,11 +148,32 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
 
     for recipe in loaded["worlds"].values():
         path = _path("worlds", recipe.id)
-        check(path, [recipe.start, *recipe.roomsets], "roomsets", "roomset")
+        check(path, [r.region for r in recipe.regions], "regions", "region")
+        tiers = [
+            loaded["regions"][r.region].tier
+            for r in recipe.regions
+            if r.region in loaded["regions"]
+        ]
+        if tiers != sorted(set(tiers)):
+            problems.append(f"{path}: regions must be listed coast first, each a higher tier")
+        if recipe.regions and recipe.regions[0].region in loaded["regions"]:
+            if loaded["regions"][recipe.regions[0].region].warden is not None:
+                problems.append(f"{path}: the first region can't have a warden")
+        for plan in recipe.regions[1:]:
+            region = loaded["regions"].get(plan.region)
+            if region is not None and region.warden is None:
+                problems.append(f"{path}: {plan.region} needs a warden to guard the way in")
         check(path, recipe.kit, "gear", "gear")
         slots = [s for g in recipe.kit if g in loaded["gear"] for s in _slots(loaded["gear"][g])]
         if len(slots) != len(set(slots)):
             problems.append(f"{path}: kit has more than one item for a slot")
+    for region in loaded["regions"].values():
+        path = _path("regions", region.id)
+        check(path, [region.town, *region.roomsets], "roomsets", "roomset")
+        if region.town in loaded["roomsets"] and not loaded["roomsets"][region.town].town:
+            problems.append(f"{path}: {region.town} isn't a town")
+        if region.warden is not None:
+            check(path, [region.warden], "enemies", "enemy")
     names: dict[str, str] = {}
     for roomset in loaded["roomsets"].values():
         path = _path("roomsets", roomset.id)

@@ -872,6 +872,19 @@ def _v10_to_v11(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v11_to_v12(envelope: Envelope) -> Envelope:
+    # v12 groups places into regions (step 8a) and flags towns on the place
+    # itself instead of by its kind's name. Older worlds are all coast.
+    world = envelope["game"]["world"]
+    world["regions"] = [
+        {"id": "region.wrack_coast", "name": "The Wrack Coast", "kind": "Coast", "tier": 1}
+    ]
+    for location in world["locations"]:
+        location["region"] = "region.wrack_coast"
+        location["town"] = location["kind"] == "Town"
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -884,6 +897,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     8: _v8_to_v9,
     9: _v9_to_v10,
     10: _v10_to_v11,
+    11: _v11_to_v12,
 }
 
 

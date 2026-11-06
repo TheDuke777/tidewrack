@@ -9,7 +9,8 @@ are placed now too, in rooms that aren't gates and hold no other enemy.
 Types (content quests/<type>.json): bounty (a tougher, named enemy), cull
 (defeat N of a kind, counted after accepting), explore (visit every room of a
 location) and recover (find an item and bring it back). Every quest is turned
-in at any town's notice board.
+in at any town's notice board. Boards send you within their own region, and
+each region has its own found quests (step 8a).
 
 Any change to this module's output for a given seed must bump
 core.versions.GENERATOR_VERSION (tests/core/test_procgen.py pins golden hashes).
@@ -25,7 +26,6 @@ from dataclasses import asdict, replace
 from math import ceil
 from typing import NamedTuple
 
-from tidewrack.core.combat.fight import TOWN
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import (
     QUEST_TYPES,
@@ -82,12 +82,13 @@ class _Builder:
         self.roomset: dict[str, RoomsetSchema] = {
             loc.id: roomsets[loc.kind] for loc in world.locations.values() if loc.kind in roomsets
         }
-        self.towns = [loc for loc in world.locations.values() if loc.kind == TOWN]
+        self.towns = [loc for loc in world.locations.values() if loc.town]
         # Generated places outside towns: where quests send you.
         self.wild = [
-            loc for loc in world.locations.values() if loc.kind != TOWN and loc.id in self.roomset
+            loc for loc in world.locations.values() if not loc.town and loc.id in self.roomset
         ]
         self.hunting = [loc for loc in self.wild if self.roomset[loc.id].enemies.pool]
+        self.all_wild, self.all_hunting = self.wild, self.hunting
         enemies = list(enemies)
         self.taken = {(p.location, p.room) for p in enemies}
         self.supply = Counter(p.enemy.enemy_id for p in enemies)
@@ -98,6 +99,11 @@ class _Builder:
         self.items_used: set[str] = set()
         self.words: dict[str, dict] = {}  # quest id -> its placeholder values (for clues)
         self.plan = QuestPlan([], [], [])
+
+    def scope(self, region: str) -> None:
+        """Send the next quests only to places in `region` (all, if it has none)."""
+        self.wild = [loc for loc in self.all_wild if loc.region == region] or self.all_wild
+        self.hunting = [loc for loc in self.all_hunting if loc.region == region] or self.all_hunting
 
     def free_room(self, rng: Rng, location: Location) -> str | None:
         rooms = [
@@ -235,30 +241,35 @@ def generate_quests(
     enemies: Iterable[PlacedEnemy] = (),
     spawners: Iterable[Spawner] = (),
 ) -> QuestPlan:
-    """Each town's board, then the found quests, each type in a shuffled turn."""
+    """Each town's board, then each region's found quests, each type in a shuffled
+    turn. Quests send you to places in their board's (or clue's) region."""
     rng = Rng(seed).derive("quests")
     builder = _Builder(world, content, recipe, enemies, spawners)
     for town in builder.towns:
+        builder.scope(town.region)
         board_rng = rng.derive(f"board.{town.id}")
         for quest in _batch(board_rng, builder, recipe.quests.per_board, town.id):
             builder.plan.quests.append(replace(quest, board=town.id))
-    found_rng = rng.derive("found")
-    for quest in _batch(found_rng, builder, recipe.quests.found, "found"):
-        # Every quest needs a wild place, so there is one. A clue may share a room.
-        location = found_rng.choice(builder.wild)
-        room = found_rng.choice([r for r in location.rooms if r not in location.gates])
-        template = builder.templates[quest.kind]
-        builder.plan.placed.append(
-            Placed(
-                location.id,
-                room,
-                Clue(
-                    quest.quest_id,
-                    found_rng.choice(template.clues).format(**builder.words[quest.quest_id]),
-                ),
+    for region in world.regions or {"": None}:
+        builder.scope(region)
+        found_rng = rng.derive(f"found.{region}" if region else "found")
+        prefix = f"found.{region.partition('.')[2]}" if region else "found"
+        for quest in _batch(found_rng, builder, recipe.quests.found, prefix):
+            # Every quest needs a wild place, so there is one. A clue may share a room.
+            location = found_rng.choice(builder.wild)
+            room = found_rng.choice([r for r in location.rooms if r not in location.gates])
+            template = builder.templates[quest.kind]
+            builder.plan.placed.append(
+                Placed(
+                    location.id,
+                    room,
+                    Clue(
+                        quest.quest_id,
+                        found_rng.choice(template.clues).format(**builder.words[quest.quest_id]),
+                    ),
+                )
             )
-        )
-        builder.plan.quests.append(replace(quest, source="found", state="hidden"))
+            builder.plan.quests.append(replace(quest, source="found", state="hidden"))
     return builder.plan
 
 

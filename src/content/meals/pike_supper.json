@@ -1,0 +1,15 @@
+{
+  "id": "meal.pike_supper",
+  "name": "Pike Supper",
+  "description": "Baked pike on a bed of cress. Mind the bones; your arm feels heavier, in a good way.",
+  "ingredients": {
+    "material.pike_meat": 2,
+    "material.watercress": 1,
+    "material.salt": 1
+  },
+  "stats": {
+    "atk": 3
+  },
+  "turns": 60,
+  "sold": true
+}

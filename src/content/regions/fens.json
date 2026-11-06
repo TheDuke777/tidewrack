@@ -1,0 +1,20 @@
+{
+  "id": "region.fens",
+  "name": "Fens",
+  "tier": 2,
+  "names": [
+    "The Sallow Fens",
+    "The Drowned Levels",
+    "The Mire Country",
+    "The Reedlands"
+  ],
+  "town": "roomset.stilt_village",
+  "roomsets": {
+    "roomset.peat_bog": 1.0,
+    "roomset.reed_maze": 1.0,
+    "roomset.black_mere": 0.8,
+    "roomset.stilt_village": 0.5
+  },
+  "warden": "enemy.reed_warden",
+  "crossing": "the causeway"
+}

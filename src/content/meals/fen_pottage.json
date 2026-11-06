@@ -1,0 +1,15 @@
+{
+  "id": "meal.fen_pottage",
+  "name": "Fen Pottage",
+  "description": "Cress, cranberries and biscuit stewed to a sour red mush. It sticks to your ribs and mends what's under them.",
+  "ingredients": {
+    "material.watercress": 2,
+    "material.cranberries": 2,
+    "material.ships_biscuit": 1
+  },
+  "stats": {
+    "hp": 6
+  },
+  "regen": 1,
+  "turns": 80
+}

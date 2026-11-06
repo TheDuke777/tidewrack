@@ -1,0 +1,19 @@
+{
+  "id": "shop.fen_smithy",
+  "name": "Smithy",
+  "room": "Smithy",
+  "stock": [
+    3,
+    4
+  ],
+  "wares": 6,
+  "gear": {
+    "gear.billhook": 2,
+    "gear.reed_shield": 2,
+    "gear.fowlers_cap": 1,
+    "gear.wading_boots": 1,
+    "gear.waxed_jerkin": 1
+  },
+  "buys_gear": true,
+  "crafts": true
+}

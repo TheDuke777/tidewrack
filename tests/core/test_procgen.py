@@ -2,7 +2,12 @@ import pytest
 
 from tidewrack.core.engine.events import LocationDiscovered, LocationEntered
 from tidewrack.core.engine.game import Game, Move, Travel
-from tidewrack.core.procgen.enemy_gen import enemies_hash, generate_enemies
+from tidewrack.core.procgen.enemy_gen import (
+    enemies_hash,
+    generate_enemies,
+    generate_wardens,
+    wardens_hash,
+)
 from tidewrack.core.procgen.gear_gen import finds_hash, generate_finds, generate_kit
 from tidewrack.core.procgen.grid import DIRECTIONS
 from tidewrack.core.procgen.location_gen import generate_location
@@ -24,42 +29,43 @@ from tidewrack.services.content import load_bundled_content
 CONTENT = load_bundled_content()
 RECIPE = CONTENT.world("world.standard")
 ROOMSETS = CONTENT.roomsets
+REGIONS = CONTENT.regions
 SEA_CAVES = ROOMSETS["roomset.sea_caves"]
 
 
 def new_world(seed: int) -> Overworld:
-    return generate_world(seed, RECIPE, ROOMSETS)
+    return generate_world(seed, RECIPE, ROOMSETS, REGIONS)
 
 
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -68,8 +74,14 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 11
+    assert GENERATOR_VERSION == 12
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
+
+
+def test_golden_wardens():
+    assert GENERATOR_VERSION == 12
+    world = new_world(20261103)
+    assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
 
 
 def quests_for(seed: int):
@@ -78,13 +90,14 @@ def quests_for(seed: int):
     return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
 
 
-GOLDEN_QUESTS = "836fe7259aeb65fd83ce0bc58f41cc6466f467c45be2cfd69c7766b3b139dbd2"
-GOLDEN_STANDARD = "85dcbb3f1e5e3749f402a569df178414074f47f99394e20867aead837bd63e9f"
-GOLDEN_ENEMIES = "f09be01d4d0f5c513c4dc939cb558b1f1dbe6e8fc408b53f1011edd102a13077"
-GOLDEN_SHOPS = "f7a74b3214fc9b304f3baf645165ee240bc7d626e62c3c0754ce6c33a5dac36c"
-GOLDEN_GATHERING = "348f48d732ce6f438ccd34161479270a8b252fdc93c955c178a25ae2eea2b859"
-GOLDEN_RECIPES = "1bd997b26f118a4ae5da5819a3c24c73a3fc1aa7b1056047d9bf012db13d3077"
-GOLDEN_FINDS = "3497af4ed6ebf32c1744084326575d128310b5061dd52117f6069b6d4ee0e506"
+GOLDEN_QUESTS = "803a54f986f90f809c9808e39ae5653caa7bee3654473c23678fd3424f5e5364"
+GOLDEN_STANDARD = "34cda369825808fc0bacd22cf608a94d6f27ae78afc95d4a4145e171f798450e"
+GOLDEN_ENEMIES = "78e0c9deb9ff74659ef705304de6b062e723030d8b935d460f509a2653a7e0d8"
+GOLDEN_SHOPS = "c14d793a083b08cc83c2222c179fbfa4d9af42d46f0797cc58758fa95481a390"
+GOLDEN_GATHERING = "767364035b15805a723e575124d219f424648465970a4a2c3b61611fb1812f9d"
+GOLDEN_RECIPES = "a1fe13d70582fa6abd2e9048ad54f66e991510721545d8d01213793ee362a160"
+GOLDEN_WARDENS = "b5fab1b93f56b14ed47a79d7196a68f2082fc20503242fd10ff4defbee575a94"
+GOLDEN_FINDS = "77e522c9acd27ec9ebf96b8e45376b3982dcb0657803ac1af64f151b541bd022"
 
 
 # --- worlds ------------------------------------------------------------------------
@@ -94,11 +107,50 @@ def test_many_seeds_produce_valid_connected_worlds():
     for seed in range(40):
         world = new_world(seed)
         assert world.problems() == []  # roads two-way, rooms valid, everything reachable
-        assert len(world.locations) == RECIPE.locations
+        assert len(world.locations) == sum(r.locations for r in RECIPE.regions)
         assert world.has_map and all(loc.has_map for loc in world.locations.values())
         names = [loc.name for loc in world.locations.values()]
         assert len(set(names)) == len(names), "location names must be unique"
-        assert world.location(world.start).kind == "Town"
+        assert world.location(world.start).town
+
+
+def test_regions_are_clusters_joined_by_one_road_each():
+    for seed in range(40):
+        world = new_world(seed)
+        plans = [(REGIONS[p.region], p.locations) for p in RECIPE.regions]
+        assert [r.id for r in world.regions.values()] == [r.id for r, _ in plans]
+        for region, count in plans:
+            members = [loc for loc in world.locations.values() if loc.region == region.id]
+            assert len(members) == count
+            assert members[0].town  # its first place, over the border, is a town
+            # connected using only roads inside the region
+            seen, todo = {members[0].id}, [members[0].id]
+            while todo:
+                for to in world.location(todo.pop()).roads:
+                    if to not in seen and world.locations[to].region == region.id:
+                        seen.add(to)
+                        todo.append(to)
+            assert seen == {loc.id for loc in members}
+        # each deeper region has exactly one road in, from the region before it
+        borders = world.borders()
+        tiers = [(world.region_of(a).tier, world.region_of(b).tier) for a, b in borders]
+        assert tiers == [(t, t + 1) for t in range(1, len(plans))]
+        crossings = {
+            (a.id, b)
+            for a in world.locations.values()
+            for b in a.roads
+            if world.locations[b].region != a.region
+        }
+        assert len(crossings) == 2 * (len(plans) - 1)  # each border road, both ways
+
+
+def test_every_border_has_a_warden_at_the_near_gate():
+    world = new_world(7)
+    wardens = generate_wardens(7, world, CONTENT)
+    assert [(w.location, w.warden.road) for w in wardens] == world.borders()
+    for w in wardens:
+        assert w.room == world.location(w.location).start
+        assert w.enemy.enemy_id == REGIONS[w.warden.region].warden
 
 
 def test_locations_follow_their_roomset():
@@ -117,7 +169,16 @@ def test_same_seed_same_world_and_seeds_differ():
 
 def test_kinds_are_drawn_by_weight():
     kinds = [loc.kind for seed in range(30) for loc in list(new_world(seed).locations.values())[1:]]
-    assert {"Sea Caves", "Forest", "Mine", "Town"} == set(kinds)
+    assert {
+        "Sea Caves",
+        "Forest",
+        "Mine",
+        "Town",
+        "Stilt Village",
+        "Peat Bog",
+        "Reed Maze",
+        "Mere",
+    } == set(kinds)
 
 
 # --- locations ---------------------------------------------------------------------
@@ -342,12 +403,12 @@ def test_enemies_are_valid_deterministic_and_never_at_gates_or_in_towns():
         for p in placed:
             location = world.location(p.location)
             assert p.room in location.rooms and p.room not in location.gates
-            assert location.kind != "Town"
+            assert not location.town
             roomset = next(r for r in ROOMSETS.values() if r.name == location.kind)
             assert p.enemy.enemy_id in roomset.enemies.pool
         for spawner in spawners:
             location = world.location(spawner.location)
-            assert location.kind != "Town" and len(spawner.queue) == 6
+            assert not location.town and len(spawner.queue) == 6
     assert placed_total > 20 * 5
 
 
@@ -366,11 +427,19 @@ def test_quests_are_valid_deterministic_and_placed_away_from_gates_and_towns():
         assert plan == generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
         ids = [q.quest_id for q in plan.quests]
         assert len(ids) == len(set(ids))
-        towns = [loc for loc in world.locations.values() if loc.kind == "Town"]
+        towns = [loc for loc in world.locations.values() if loc.town]
         board = [q for q in plan.quests if q.source == "board"]
         assert len(board) == 3 * len(towns) and all(q.state == "posted" for q in board)
+        for quest in board:  # boards send you around their own region
+            assert world.location(quest.location).region == world.location(quest.board).region
         found = [q for q in plan.quests if q.source == "found"]
-        assert len(found) == 2 and all(q.state == "hidden" for q in found)
+        assert len(found) == 2 * len(world.regions) and all(q.state == "hidden" for q in found)
+        clues = {p.thing.quest_id: p.location for p in plan.placed if hasattr(p.thing, "text")}
+        for quest in found:  # a clue sends you somewhere in its own region
+            assert (
+                world.location(quest.location).region
+                == world.location(clues[quest.quest_id]).region
+            )
         enemy_rooms = {(p.location, p.room) for p in placed}
         supply = {}
         for p in placed:
@@ -380,7 +449,7 @@ def test_quests_are_valid_deterministic_and_placed_away_from_gates_and_towns():
                 supply[e.enemy_id] = supply.get(e.enemy_id, 0) + 1
         for quest in plan.quests:
             kinds.add(quest.kind)
-            assert world.location(quest.location).kind != "Town"
+            assert not world.location(quest.location).town
             assert "{" not in quest.title + quest.summary
             if quest.kind == "cull":
                 assert supply[quest.enemy_id] >= 2 * quest.needed
@@ -388,12 +457,12 @@ def test_quests_are_valid_deterministic_and_placed_away_from_gates_and_towns():
                 assert quest.needed == len(world.location(quest.location).rooms)
         for b in plan.bounties:
             location = world.location(b.location)
-            assert b.room not in location.gates and location.kind != "Town"
+            assert b.room not in location.gates and not location.town
             assert (b.location, b.room) not in enemy_rooms
             assert b.enemy.stats["hp"] > b.bounty.kind_stats["hp"]
         for p in plan.placed:
             location = world.location(p.location)
-            assert p.room not in location.gates and location.kind != "Town"
+            assert p.room not in location.gates and not location.town
             assert "{" not in getattr(p.thing, "text", "")
     assert kinds == {"bounty", "cull", "explore", "recover"}
 
@@ -414,15 +483,12 @@ def test_every_town_has_each_shop_in_its_room_or_at_its_gate():
         world = new_world(seed)
         shops = generate_shops(seed, world, CONTENT)
         assert shops == generate_shops(seed, world, CONTENT)
-        towns = [loc for loc in world.locations.values() if loc.kind == "Town"]
+        towns = [loc for loc in world.locations.values() if loc.town]
         assert len(shops) == 3 * len(towns)
         for town in towns:
             here = [s for s in shops if s.location == town.id]
-            assert sorted(s.shop.shop_id for s in here) == [
-                "shop.market",
-                "shop.smithy",
-                "shop.tavern",
-            ]
+            roomset = next(r for r in ROOMSETS.values() if r.name == town.kind)
+            assert sorted(s.shop.shop_id for s in here) == sorted(roomset.shops)
             for placed in here:
                 noun = CONTENT.shops[placed.shop.shop_id].room
                 named = [r for r in town.rooms.values() if noun in r.name.split()]
@@ -480,7 +546,7 @@ def test_gathering_lies_in_wild_rooms_and_is_deterministic():
         assert placed
         for g in placed:
             location = world.location(g.location)
-            assert location.kind != "Town" and g.room not in location.gates
+            assert not location.town and g.room not in location.gates
             assert g.stack.count >= 1 and g.stack.material.material_id in CONTENT.materials
 
 
@@ -499,7 +565,7 @@ def test_every_found_recipe_turns_up_once_on_a_quest_or_as_a_page():
         saw_page |= bool(plan.pages)
         for page in plan.pages:
             location = world.location(page.location)
-            assert location.kind != "Town" and page.room not in location.gates
+            assert not location.town and page.room not in location.gates
     assert saw_quest and saw_page
 
 

@@ -110,11 +110,36 @@ def test_reports_every_problem_with_its_path():
     ]
 
 
-def test_world_recipes_must_name_existing_roomsets():
+def test_regions_must_name_existing_roomsets():
+    region = json.loads(BUNDLED["regions/fens.json"])
+    region["roomsets"]["roomset.lava_tubes"] = 1.0
+    problems = _problems(dict(BUNDLED, **{"regions/fens.json": json.dumps(region)}))
+    assert problems == ["regions/fens.json: unknown roomset 'roomset.lava_tubes'"]
+
+
+def test_world_recipes_must_name_existing_regions():
     recipe = json.loads(BUNDLED["worlds/standard.json"])
-    recipe["roomsets"]["roomset.lava_tubes"] = 1.0
+    recipe["regions"].append({"region": "region.lava_fields", "locations": 5})
     problems = _problems(dict(BUNDLED, **{"worlds/standard.json": json.dumps(recipe)}))
-    assert problems == ["worlds/standard.json: unknown roomset 'roomset.lava_tubes'"]
+    assert problems == ["worlds/standard.json: unknown region 'region.lava_fields'"]
+
+
+def test_regions_go_inland_and_deeper_ones_have_wardens():
+    recipe = json.loads(BUNDLED["worlds/standard.json"])
+    recipe["regions"].reverse()
+    problems = _problems(dict(BUNDLED, **{"worlds/standard.json": json.dumps(recipe)}))
+    assert (
+        "worlds/standard.json: regions must be listed coast first, each a higher tier" in problems
+    )
+    assert "worlds/standard.json: the first region can't have a warden" in problems
+    assert "worlds/standard.json: region.wrack_coast needs a warden to guard the way in" in problems
+
+
+def test_a_regions_first_place_must_be_a_town():
+    region = json.loads(BUNDLED["regions/fens.json"])
+    region["town"] = "roomset.peat_bog"
+    problems = _problems(dict(BUNDLED, **{"regions/fens.json": json.dumps(region)}))
+    assert problems == ["regions/fens.json: roomset.peat_bog isn't a town"]
 
 
 def test_roomset_sizes_must_make_sense():

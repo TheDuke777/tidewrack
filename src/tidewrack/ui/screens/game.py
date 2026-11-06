@@ -84,7 +84,7 @@ ROOM_LEGEND = (
     "Tap a ringed room to go there."
 )
 WORLD_LEGEND = (
-    "● visited   ○ unexplored   ◉ you   ✓ fully explored   ◆ quest\n"
+    "● visited   ○ unexplored   ◉ you   ✓ fully explored   ◆ quest   ⚔ guarded\n"
     "At a gate, tap a ringed place to travel."
 )
 
@@ -1051,13 +1051,22 @@ class GameScreen:
             ]
         return [
             ft.FilledButton(
-                content=f"Travel to {road.name} · {road.kind}"
-                + ("" if road.visited else "  (unexplored)"),
-                icon=ft.Icons.SIGNPOST_OUTLINED,
+                content=_road_label(road),
+                icon=ft.Icons.SHIELD_OUTLINED if road.guard else ft.Icons.SIGNPOST_OUTLINED,
                 on_click=lambda _, to=road.location: self.act(Travel(to)),
             )
             for road in view.roads
         ]
+
+
+def _road_label(road) -> str:
+    """ "Travel to Thornea · Stilt Village", plus what's unknown or in the way."""
+    text = f"Travel to {road.name} · {road.kind}"
+    if road.region:
+        text += f" · into {road.region}"
+    if road.guard:
+        return text + f"  (the {road.guard} bars the way)"
+    return text + ("" if road.visited else "  (unexplored)")
 
 
 def _heading(text: str) -> ft.Text:

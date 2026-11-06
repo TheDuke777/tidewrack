@@ -59,6 +59,87 @@ def grow_layout(rng: Rng, size: int, shape: Shape) -> GridLayout:
     return GridLayout(side, cells, edges)
 
 
+@dataclass(frozen=True)
+class RegionLayout(GridLayout):
+    regions: list[list[Cell]]  # each region's cells, in growth order (its entry first)
+
+
+MAX_ATTEMPTS = 12  # layouts tried on one grid size before trying a bigger grid
+
+
+def grow_regions(rng: Rng, sizes: list[int], shape: Shape) -> RegionLayout:
+    """Regions grown one after another on one grid, so each is a cluster: the
+    first from the south edge, each later one from a free cell beside the deepest
+    part of the one before (northward when it can), joined to it by one road.
+    Loops only join cells of the same region, so that road is the only way in.
+
+    A region can box itself in before it's full; then the whole layout is tried
+    again on a fresh substream, and after a few tries on a bigger grid."""
+    side = math.ceil(math.sqrt(sum(sizes) * shape.spread))
+    attempt = 0
+    while True:
+        layout = _try_regions(rng.derive(f"attempt.{attempt}"), side, sizes, shape)
+        if layout is not None:
+            return layout
+        attempt += 1
+        if attempt % MAX_ATTEMPTS == 0:
+            side += 1
+
+
+def _try_regions(rng: Rng, side: int, sizes: list[int], shape: Shape) -> RegionLayout | None:
+    taken: set[Cell] = set()
+    edges: set[Edge] = set()
+    regions: list[list[Cell]] = []
+    for size in sizes:
+        if not regions:
+            entry, parent = (rng.below(side), side - 1), None
+        else:
+            depth = _depths(regions[0][0], edges)
+            previous = regions[-1]
+            open_cells = [c for c in previous if any(n not in taken for n in _neighbours(c, side))]
+            if not open_cells:
+                return None
+            deepest = max(depth[c] for c in open_cells)
+            parent = rng.choice([c for c in open_cells if depth[c] == deepest])
+            free = [n for n in _neighbours(parent, side) if n not in taken]
+            north = min(n[1] for n in free)
+            entry = rng.choice([n for n in free if n[1] == north])
+        cells = [entry]
+        taken.add(entry)
+        if parent is not None:
+            edges.add(frozenset((parent, entry)))
+        while len(cells) < size:
+            frontier = [c for c in cells if any(n not in taken for n in _neighbours(c, side))]
+            if not frontier:
+                return None
+            grow_from = frontier[-1] if rng.chance(shape.corridors) else rng.choice(frontier)
+            child = rng.choice([n for n in _neighbours(grow_from, side) if n not in taken])
+            cells.append(child)
+            taken.add(child)
+            edges.add(frozenset((grow_from, child)))
+        regions.append(cells)
+    for cells in regions:
+        edges |= _loops(rng, cells, edges, shape.loops)
+    return RegionLayout(side, [c for cells in regions for c in cells], edges, regions)
+
+
+def _depths(start: Cell, edges: set[Edge]) -> dict[Cell, int]:
+    """Road steps from `start` to every cell joined to it."""
+    links: dict[Cell, list[Cell]] = {}
+    for edge in edges:
+        a, b = tuple(edge)
+        links.setdefault(a, []).append(b)
+        links.setdefault(b, []).append(a)
+    depth, todo = {start: 0}, [start]
+    while todo:
+        cell = todo.pop(0)
+        for nxt in sorted(links.get(cell, ())):
+            if nxt not in depth:
+                depth[nxt] = depth[cell] + 1
+                todo.append(nxt)
+    return depth
+
+
 def _neighbours(cell: Cell, side: int) -> list[Cell]:
     x, y = cell
     return [(x + dx, y + dy) for dx, dy in DIRECTIONS if 0 <= x + dx < side and 0 <= y + dy < side]

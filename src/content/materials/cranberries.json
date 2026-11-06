@@ -1,0 +1,7 @@
+{
+  "id": "material.cranberries",
+  "name": "Bog Cranberries",
+  "description": "Hard red berries that grow on the sphagnum. Sour enough to wake the dead.",
+  "value": 2,
+  "ingredient": true
+}

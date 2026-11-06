@@ -229,6 +229,17 @@ class Bounty:
 
 
 @dataclass
+class Warden:
+    """On the enemy guarding a border (step 8a): it stands at the gate of the last
+    place before a deeper region and bars the road `road` into it. It never
+    attacks first; taking that road challenges it, and beating it opens the way."""
+
+    region: str  # the region it guards (its id)
+    road: str  # the location just over the border
+    crossing: str  # what it bars, e.g. "the causeway"
+
+
+@dataclass
 class Quest:
     """A quest, on an entity of its own: a snapshot, reward included.
 
@@ -409,5 +420,6 @@ COMPONENTS: dict[str, type] = {
         Meals,
         WellFed,
         Grower,
+        Warden,
     )
 }

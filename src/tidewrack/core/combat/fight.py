@@ -29,6 +29,7 @@ from tidewrack.core.engine.components import (
     Position,
     Respawn,
     Spawner,
+    Warden,
 )
 from tidewrack.core.engine.events import (
     Attacked,
@@ -38,14 +39,14 @@ from tidewrack.core.engine.events import (
     FleeFailed,
     LocationEntered,
     PlayerDefeated,
+    RegionOpened,
     Respawned,
     RoomEntered,
+    WayBarred,
 )
 
 if TYPE_CHECKING:
     from tidewrack.core.engine.game import Game
-
-TOWN = "Town"  # the location kind that's safe: no wanderers (its inn sells a full rest)
 
 
 # --- starting fights ---------------------------------------------------------------
@@ -53,7 +54,7 @@ TOWN = "Town"  # the location kind that's safe: no wanderers (its inn sells a fu
 
 def note_town(game: Game, event: LocationEntered) -> None:
     """Remember the last town visited: that's where a defeat wakes you."""
-    if event.entity == game.player and game.overworld.location(event.location).kind == TOWN:
+    if event.entity == game.player and game.overworld.location(event.location).town:
         game.world.get(game.player, Respawn).location = event.location
 
 
@@ -62,11 +63,12 @@ def encounter(game: Game, event: RoomEntered) -> None:
     if event.entity != game.player or game.world.has(game.player, Fighting):
         return
     for entity, (enemy, position) in game.world.query(Enemy, Position):
-        if (position.location, position.room) == (event.location, event.room):
-            _start(game, entity, enemy, event, wandering=False)
+        here = (position.location, position.room) == (event.location, event.room)
+        if here and not game.world.has(entity, Warden):  # wardens wait to be challenged
+            _start(game, entity, enemy, event.from_room or event.room, wandering=False)
             return
     location = game.overworld.location(event.location)
-    if event.fleeing or event.room in location.gates or location.kind == TOWN:
+    if event.fleeing or event.room in location.gates or location.town:
         return
     spawner = next(
         (s for _, (s,) in game.world.query(Spawner) if s.location == event.location), None
@@ -74,16 +76,31 @@ def encounter(game: Game, event: RoomEntered) -> None:
     if spawner and spawner.queue and game.encounter_rng.chance(spawner.chance):
         enemy = spawner.queue.pop(0)
         entity = game.world.create(enemy, Position(event.location, event.room))
-        _start(game, entity, enemy, event, wandering=True)
+        _start(game, entity, enemy, event.from_room or event.room, wandering=True)
 
 
-def _start(game: Game, entity: int, enemy: Enemy, event: RoomEntered, wandering: bool) -> None:
-    location = game.overworld.location(event.location)
+def warden_on(game: Game, location_id: str, room_id: str, road: str) -> int | None:
+    """The warden barring `road` from this room, if one still stands there."""
+    for entity, (warden, position) in game.world.query(Warden, Position):
+        if warden.road == road and (position.location, position.room) == (location_id, room_id):
+            return entity
+    return None
+
+
+def challenge(game: Game, entity: int) -> None:
+    """Take a guarded road: its warden steps in. Fleeing keeps you where you are."""
+    enemy, warden = game.world.get(entity, Enemy), game.world.get(entity, Warden)
+    region = game.overworld.regions[warden.region]
+    game.bus.emit(WayBarred(entity, enemy.name, warden.crossing, region.name))
+    _start(game, entity, enemy, game.world.get(entity, Position).room, wandering=False)
+
+
+def _start(game: Game, entity: int, enemy: Enemy, retreat_room: str, wandering: bool) -> None:
     game.world.add(
         game.player,
         Fighting(
             enemy=entity,
-            retreat_room=event.from_room or location.start,
+            retreat_room=retreat_room,
             enemy_stats=scaled(enemy.stats, game.rules),
         ),
     )
@@ -171,6 +188,7 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
     codex = game.world.get(game.player, Codex)
     codex.kills[enemy.enemy_id] = codex.kills.get(enemy.enemy_id, 0) + 1
     bounty = game.world.try_get(fighting.enemy, Bounty)
+    warden = game.world.try_get(fighting.enemy, Warden)
     game.world.remove(game.player, Fighting)
     game.world.destroy(fighting.enemy)
     game.bus.emit(
@@ -187,6 +205,8 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
     shops.gain(game, enemy.gold, "loot")
     for stack in enemy.materials:
         crafting.add(game, stack, "loot")
+    if warden is not None:
+        game.bus.emit(RegionOpened(warden.region, game.overworld.regions[warden.region].name))
 
 
 def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:

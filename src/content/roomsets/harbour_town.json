@@ -1,6 +1,7 @@
 {
   "id": "roomset.harbour_town",
   "name": "Town",
+  "town": true,
   "location_names": [
     "Saltmere", "Gullhaven", "Wrackport", "Brinewick", "Kelpford", "Low Harrow",
     "Fathom Rest", "Cragmouth"

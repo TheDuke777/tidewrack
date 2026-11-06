@@ -1,0 +1,160 @@
+{
+  "id": "roomset.stilt_village",
+  "name": "Stilt Village",
+  "town": true,
+  "location_names": [
+    "Heronsey",
+    "Wadmarsh",
+    "Pollbridge",
+    "Eelholm",
+    "Sallowby",
+    "Rushmere Staithe",
+    "Thornea",
+    "Coldwater Hythe"
+  ],
+  "size": [
+    8,
+    11
+  ],
+  "layout": {
+    "spread": 1.4,
+    "loops": 0.5,
+    "corridors": 0.25
+  },
+  "adjectives": [
+    "Creaking",
+    "Tarred",
+    "Mossy",
+    "Leaning",
+    "Reed-Thatched",
+    "Slippery",
+    "Smoky",
+    "Narrow",
+    "Sagging",
+    "Lamplit",
+    "Damp",
+    "Quiet"
+  ],
+  "entrance": {
+    "noun": "Landing Stage",
+    "descriptions": [
+      "A wide stage of black planks on stilts, where the causeway ends and the punts tie up. Paths of duckboard lead off between the houses, and roads leave from here across the fen."
+    ],
+    "features": [
+      "A post carved with notches, one for every flood the village has outlasted.",
+      "A pile of eel traps, woven from willow, waiting to be mended."
+    ],
+    "ambient": [
+      "A punt slides past, poled by someone who doesn't look up.",
+      "Water slaps against the stilts below your feet."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Boardwalk",
+      "weight": 2.0,
+      "descriptions": [
+        "Duckboards wind between the stilt-houses, a hand's width above the water.",
+        "A boardwalk, patched with whatever planks came to hand, sags under each step."
+      ],
+      "features": [
+        "A child's toy boat, tied to a stilt by a string."
+      ],
+      "ambient": [
+        "The boards creak and settle behind you."
+      ]
+    },
+    {
+      "noun": "Smithy",
+      "weight": 0.4,
+      "descriptions": [
+        "A smithy on a raft of logs, its forge built on a bed of stone carried in by boat. The smith works bog iron here, soft and red."
+      ],
+      "features": [
+        "Bundles of rusty ore, still caked with peat."
+      ],
+      "ambient": [
+        "Hammer blows ring out over the water."
+      ]
+    },
+    {
+      "noun": "Tavern",
+      "weight": 0.4,
+      "descriptions": [
+        "A low tavern on thick stilts, smoky with peat fires and loud with fen-folk. Eels hang drying from the rafters."
+      ],
+      "features": [
+        "A slate of prices, written in a hand that slopes uphill."
+      ],
+      "ambient": [
+        "Somebody laughs too long at their own joke."
+      ]
+    },
+    {
+      "noun": "Market",
+      "weight": 0.4,
+      "descriptions": [
+        "A floating market of punts lashed together, piled with reeds, ore and baskets of berries."
+      ],
+      "features": [
+        "A heron perched on a mooring post, watching the fish baskets."
+      ],
+      "ambient": [
+        "A trader calls out prices nobody pays."
+      ]
+    },
+    {
+      "noun": "Net Loft",
+      "descriptions": [
+        "A long loft where nets hang drying like grey curtains. It smells of tar and old fish."
+      ],
+      "features": [
+        "A net with a hole in it the shape of something very large."
+      ],
+      "ambient": [
+        "The nets sway, though there's no wind."
+      ]
+    },
+    {
+      "noun": "Eel Weir",
+      "weight": 0.8,
+      "descriptions": [
+        "A fence of stakes and wicker across a channel, where the eels are trapped on their way to the sea."
+      ],
+      "features": [
+        "A basket of eels, still twisting."
+      ],
+      "ambient": [
+        "Something heavy bumps against the weir."
+      ]
+    },
+    {
+      "noun": "Chapel",
+      "weight": 0.5,
+      "descriptions": [
+        "A small chapel of tarred planks, leaning a little towards the water. Candles burn in jars on the sill."
+      ],
+      "features": [
+        "Offerings of reed dolls left at the door."
+      ],
+      "ambient": [
+        "A bell somewhere rings once, softly."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.15,
+    "gear": {
+      "gear.billhook": 2,
+      "gear.reed_shield": 2,
+      "gear.fowlers_cap": 1,
+      "gear.wading_boots": 1,
+      "gear.amber_charm": 1
+    }
+  },
+  "shops": [
+    "shop.fen_smithy",
+    "shop.tavern",
+    "shop.fen_market"
+  ]
+}

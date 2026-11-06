@@ -32,6 +32,7 @@ DEFAULT_WIDTH = 360  # until the first resize event reports the real size
 MIN_TOUCH_RADIUS = 24  # px; generous, since dots can be small on big maps
 LABEL_WIDTH = 96  # px; place names wrap onto a second line beyond this
 LABEL_SIZE = 11
+REGION_SIZE = 13
 CHAR_WIDTH = 0.58 * LABEL_SIZE  # rough average glyph width, for estimating label boxes
 LINE_HEIGHT = 1.3 * LABEL_SIZE
 MAX_ZOOM = 4.0
@@ -41,7 +42,17 @@ REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
 
 # A glyph per location kind for world-map labels and the legend; unknown kinds
 # (new roomsets before this list is updated) fall back to a plain dot.
-KIND_GLYPHS = {"Town": "⌂", "Sea Caves": "≈", "Forest": "♣", "Mine": "⚒", "Dungeon": "▼"}
+KIND_GLYPHS = {
+    "Town": "⌂",
+    "Sea Caves": "≈",
+    "Forest": "♣",
+    "Mine": "⚒",
+    "Dungeon": "▼",
+    "Stilt Village": "⌂",
+    "Peat Bog": "∴",
+    "Reed Maze": "¦",
+    "Mere": "○",
+}
 DEFAULT_GLYPH = "•"
 
 Point = tuple[float, float]
@@ -269,13 +280,35 @@ class MapCanvas:
             if not self.labels:  # area maps: badges (world maps say it in the labels)
                 shapes += _badges(node, x, y, r)
         if self.labels:
-            shapes += self._labels(r)
+            shapes = self._region_names() + shapes + self._labels(r)
         self.canvas.shapes = shapes
+
+    def _region_names(self) -> list[cv.Shape]:
+        """Region names behind everything else, faint, where their places are."""
+        assert self.view is not None
+        w, h = self.width, self.height
+        return [
+            cv.Text(
+                *self.viewport.to_screen(
+                    (PAD + mark.x * (w - 2 * PAD), PAD + mark.y * (h - 2 * PAD))
+                ),
+                mark.name.upper(),
+                style=ft.TextStyle(
+                    size=REGION_SIZE,
+                    color=ft.Colors.OUTLINE,
+                    weight=ft.FontWeight.BOLD,
+                    letter_spacing=2,
+                ),
+                alignment=ft.Alignment.CENTER,
+                text_align=ft.TextAlign.CENTER,
+            )
+            for mark in self.view.regions
+        ]
 
     def _labels(self, r: float) -> list[cv.Shape]:
         assert self.view is not None
         names = {
-            n.id: label(n.name, n.kind, quest=n.quest, charted=n.charted)
+            n.id: label(n.name, n.kind, quest=n.quest, charted=n.charted, guarded=n.guarded)
             for n in self.view.nodes
             if n.name
         }
@@ -296,13 +329,26 @@ class MapCanvas:
 
 
 QUEST_MARK, CHARTED_MARK, ITEMS_MARK, SHOP_MARK = "◆", "✓", "✦", "¤"
+GUARD_MARK = "⚔"
 
 
-def label(name: str, kind: str | None, quest: bool = False, charted: bool = False) -> str:
+def label(
+    name: str,
+    kind: str | None,
+    quest: bool = False,
+    charted: bool = False,
+    guarded: bool = False,
+) -> str:
     """A node's label: world-map places start with their kind's glyph, and end with
-    ✓ once every room is visited and ◆ while an active quest leads there."""
+    ✓ once every room is visited, ◆ while an active quest leads there and ⚔ while
+    a warden bars the road to it."""
     text = name if kind is None else f"{KIND_GLYPHS.get(kind, DEFAULT_GLYPH)} {name}"
-    return text + (f" {CHARTED_MARK}" if charted else "") + (f" {QUEST_MARK}" if quest else "")
+    return (
+        text
+        + (f" {CHARTED_MARK}" if charted else "")
+        + (f" {QUEST_MARK}" if quest else "")
+        + (f" {GUARD_MARK}" if guarded else "")
+    )
 
 
 def badges(node: MapNode) -> str:

@@ -1,0 +1,29 @@
+{
+  "id": "enemy.bog_walker",
+  "name": "Bog Walker",
+  "category": "spirit",
+  "description": "Leather-brown and peat-stained, a man who went into the bog a thousand years ago and has decided to come back out.",
+  "stats": {
+    "atk": 9,
+    "def": 5,
+    "hp": 22
+  },
+  "loot": {
+    "chance": 0.45,
+    "gear": {
+      "gear.waxed_jerkin": 1,
+      "gear.reed_shield": 1,
+      "gear.eel_spear": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.bog_amber",
+      "chance": 0.3,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

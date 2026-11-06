@@ -1,0 +1,144 @@
+{
+  "id": "roomset.black_mere",
+  "name": "Mere",
+  "location_names": [
+    "Blackwater Mere",
+    "The Cold Mere",
+    "Wychmere",
+    "Sorrow Water",
+    "Hornmere",
+    "The Silent Broad",
+    "Ely Mere"
+  ],
+  "size": [
+    10,
+    15
+  ],
+  "layout": {
+    "spread": 2.2,
+    "loops": 0.25,
+    "corridors": 0.4
+  },
+  "adjectives": [
+    "Grey",
+    "Cold",
+    "Misty",
+    "Still",
+    "Wide",
+    "Reedy",
+    "Lonely",
+    "Dark",
+    "Windswept",
+    "Shallow",
+    "Drowned",
+    "Pale"
+  ],
+  "entrance": {
+    "noun": "Mere Shore",
+    "descriptions": [
+      "A shingle shore at the edge of a wide grey mere. The far side is lost in mist."
+    ],
+    "features": [
+      "An upturned boat, its keel green with weed."
+    ],
+    "ambient": [
+      "Wind ruffles the water into small grey waves."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Shallows",
+      "weight": 1.5,
+      "descriptions": [
+        "Knee-deep water over soft mud, with the bottom shelving away into darkness.",
+        "Warm shallows full of weed that wraps your ankles."
+      ],
+      "ambient": [
+        "Something brushes past your leg."
+      ]
+    },
+    {
+      "noun": "Boathouse",
+      "weight": 0.6,
+      "descriptions": [
+        "A ruined boathouse, its roof fallen in, its slipway cracked.",
+        "A boathouse on piles, the boats long gone. The water under the floor is black."
+      ],
+      "features": [
+        "A rotten oar with a name burnt into it."
+      ],
+      "ambient": [
+        "Water drips through the roof."
+      ]
+    },
+    {
+      "noun": "Willow Holt",
+      "descriptions": [
+        "A holt of pollard willows, their heads bristling with new shoots.",
+        "Old willows with hollow trunks big enough to stand in."
+      ],
+      "features": [
+        "A hollow willow with a nest of rags inside."
+      ],
+      "ambient": [
+        "The willows creak."
+      ]
+    },
+    {
+      "noun": "Drowned Lane",
+      "weight": 0.8,
+      "descriptions": [
+        "A lane that once ran between hedges, now under a foot of water. The hedgetops stick out like green islands.",
+        "The tops of fence posts mark a road that went somewhere, once."
+      ],
+      "features": [
+        "A milestone, just showing above the water."
+      ],
+      "ambient": [
+        "A bell rings under the water, or you imagine it."
+      ]
+    },
+    {
+      "noun": "Spit",
+      "weight": 1.0,
+      "descriptions": [
+        "A long spit of gravel running out into the mere, with water on both sides.",
+        "A narrow spit where the gulls stand all facing the same way."
+      ],
+      "ambient": [
+        "A gull screams and wheels away."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": {
+      "gear.eel_spear": 1,
+      "gear.reed_shield": 1,
+      "gear.waxed_jerkin": 1,
+      "gear.amber_charm": 1,
+      "gear.wading_boots": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.watercress": 3,
+      "material.reeds": 2,
+      "material.bog_amber": 0.3
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.2,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.fen_pike": 3,
+      "enemy.bog_toad": 2,
+      "enemy.bog_walker": 1
+    }
+  }
+}

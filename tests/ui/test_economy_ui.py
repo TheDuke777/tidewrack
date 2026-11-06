@@ -1,5 +1,7 @@
 """Shops, the inn, selling and abandoning in the UI (step 7a)."""
 
+import re
+
 import flet as ft
 
 from tidewrack.core.engine.components import Health, Position, Shop
@@ -500,8 +502,10 @@ def test_the_tavern_kitchen_has_a_menu_and_a_cook_tab(tmp_path):
     explore.open("Tavern")
     texts = _texts(explore.shops)
     assert any(t.startswith("You haven't eaten.") for t in texts)
-    assert _tabs(shell) == ["Menu (2)", "Cook (7)"]
-    [buy] = [b for b in _buttons(explore.shops, "Buy · ") if "6 gold" in label_of(b.content)]
+    assert _tabs(shell) == ["Menu (3)", "Cook (9)"]
+    [buy] = [
+        b for b in _buttons(explore.shops, "Buy · ") if re.search(r"\b6 gold", label_of(b.content))
+    ]
     buy.on_click(None)  # the Kelp Broth
     assert toasts[-1] == "Kelp Broth bought for 6 gold. Eat it any time."
     explore._shop_tab(["cook"])

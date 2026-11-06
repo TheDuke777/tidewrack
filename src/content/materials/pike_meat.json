@@ -1,0 +1,7 @@
+{
+  "id": "material.pike_meat",
+  "name": "Pike Meat",
+  "description": "A thick white fillet, full of fine bones.",
+  "value": 3,
+  "ingredient": true
+}

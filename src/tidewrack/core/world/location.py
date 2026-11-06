@@ -39,6 +39,8 @@ class Location:
     gates: tuple[str, ...]  # rooms the player can travel onward from
     pos: tuple[float, float] | None = None  # overworld map position
     roads: tuple[str, ...] = ()  # neighbouring location ids, in travel-list order
+    region: str = ""  # the region (core.world.overworld.Region) it belongs to, if any
+    town: bool = False  # safe: no wanderers; has a notice board, shops, an inn
 
     def room(self, room_id: str) -> Room:
         return self.rooms[room_id]

@@ -1,0 +1,144 @@
+{
+  "id": "roomset.reed_maze",
+  "name": "Reed Maze",
+  "location_names": [
+    "The Whispering Beds",
+    "Rushmaze",
+    "Heron Carr",
+    "The Long Sedge",
+    "Bittern Reach",
+    "The Green Labyrinth",
+    "Sallow Reeds"
+  ],
+  "size": [
+    12,
+    18
+  ],
+  "layout": {
+    "spread": 1.8,
+    "loops": 0.45,
+    "corridors": 0.35
+  },
+  "adjectives": [
+    "Rustling",
+    "Tall",
+    "Golden",
+    "Tangled",
+    "Whispering",
+    "Narrow",
+    "Winding",
+    "Flattened",
+    "Shadowed",
+    "Broken",
+    "Dry",
+    "Hidden"
+  ],
+  "entrance": {
+    "noun": "Reed Gap",
+    "descriptions": [
+      "A gap in a wall of reeds twice your height, where a channel of still water leads in. Someone has cut a path along it."
+    ],
+    "features": [
+      "A red rag tied to a reed stem, marking the way out."
+    ],
+    "ambient": [
+      "The reeds hiss in the wind."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Channel",
+      "weight": 1.8,
+      "descriptions": [
+        "A channel of slow water winds between the reeds, too deep to wade far.",
+        "A narrow channel where the reeds meet overhead like a roof."
+      ],
+      "features": [
+        "A punt pole stuck upright in the mud."
+      ],
+      "ambient": [
+        "A fish jumps, somewhere close."
+      ]
+    },
+    {
+      "noun": "Reedbed",
+      "weight": 1.5,
+      "descriptions": [
+        "Reeds on every side, so tall and close you can see only straight up.",
+        "A trampled reedbed, as if something heavy lay down here."
+      ],
+      "ambient": [
+        "The reeds whisper together, and fall silent as you pass."
+      ]
+    },
+    {
+      "noun": "Islet",
+      "descriptions": [
+        "A little island of willow roots, just big enough to stand on.",
+        "A muddy islet where someone once lit a fire."
+      ],
+      "features": [
+        "A ring of blackened stones and fish bones."
+      ],
+      "ambient": [
+        "A frog plops into the water."
+      ]
+    },
+    {
+      "noun": "Heronry",
+      "weight": 0.6,
+      "descriptions": [
+        "Tall dead trees stand in the water here, crowned with untidy nests.",
+        "A stand of alders full of herons, who watch you with yellow eyes."
+      ],
+      "features": [
+        "A heron's feather, as long as your forearm."
+      ],
+      "ambient": [
+        "A heron croaks like a door hinge."
+      ]
+    },
+    {
+      "noun": "Backwater",
+      "weight": 0.8,
+      "descriptions": [
+        "A still backwater, green with duckweed, where the channel gives up.",
+        "A dead end of open water, ringed with reeds, very quiet."
+      ],
+      "ambient": [
+        "Midges rise in a cloud and settle again."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.22,
+    "gear": {
+      "gear.billhook": 2,
+      "gear.reed_shield": 1,
+      "gear.fowlers_cap": 2,
+      "gear.wading_boots": 1,
+      "gear.eel_spear": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.35,
+    "materials": {
+      "material.reeds": 4,
+      "material.watercress": 2,
+      "material.cranberries": 1
+    },
+    "count": [
+      1,
+      3
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.22,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.fen_raider": 3,
+      "enemy.fen_pike": 2,
+      "enemy.marsh_light": 1
+    }
+  }
+}

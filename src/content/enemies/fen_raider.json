@@ -1,0 +1,47 @@
+{
+  "id": "enemy.fen_raider",
+  "name": "Fen Raider",
+  "category": "person",
+  "description": "Mud to the thigh, a billhook in hand, and a punt hidden in the reeds for the getaway.",
+  "stats": {
+    "atk": 8,
+    "def": 4,
+    "hp": 20
+  },
+  "rolls": {
+    "atk": [
+      0,
+      2
+    ]
+  },
+  "loot": {
+    "chance": 0.5,
+    "gear": {
+      "gear.billhook": 2,
+      "gear.fowlers_cap": 1,
+      "gear.wading_boots": 1
+    }
+  },
+  "gold": [
+    5,
+    12
+  ],
+  "materials": [
+    {
+      "material": "material.reeds",
+      "chance": 0.5,
+      "count": [
+        1,
+        3
+      ]
+    },
+    {
+      "material": "material.bog_iron",
+      "chance": 0.3,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

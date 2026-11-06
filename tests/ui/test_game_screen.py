@@ -52,3 +52,17 @@ def test_log_lines_mark_the_latest_action_with_weight_and_a_divider():
     ]
     # Nothing new (a world just opened): plain.
     assert all(c.weight is None for c in log_lines(["a"], total=5, fresh_from=5))
+
+
+def test_road_buttons_say_where_a_region_starts_and_who_bars_it():
+    from tidewrack.core.engine.game import RoadView
+    from tidewrack.ui.screens.game import _road_label
+
+    plain = RoadView("loc_01", "Saltmere", "Town", visited=False)
+    assert _road_label(plain) == "Travel to Saltmere · Town  (unexplored)"
+    guarded = RoadView(
+        "loc_07", "Thornea", "Stilt Village", False, "Reed Warden", "The Sallow Fens"
+    )
+    assert _road_label(guarded) == (
+        "Travel to Thornea · Stilt Village · into The Sallow Fens  (the Reed Warden bars the way)"
+    )

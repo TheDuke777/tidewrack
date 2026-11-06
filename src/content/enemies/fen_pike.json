@@ -1,0 +1,34 @@
+{
+  "id": "enemy.fen_pike",
+  "name": "Fen Pike",
+  "category": "beast",
+  "plural": "Fen Pike",
+  "description": "A long green shadow under the duckboards that strikes faster than you can step back.",
+  "stats": {
+    "atk": 9,
+    "def": 2,
+    "hp": 14
+  },
+  "rolls": {
+    "atk": [
+      0,
+      1
+    ]
+  },
+  "loot": {
+    "chance": 0.15,
+    "gear": {
+      "gear.amber_charm": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.pike_meat",
+      "chance": 0.6,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

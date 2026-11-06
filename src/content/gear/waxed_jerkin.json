@@ -1,0 +1,22 @@
+{
+  "id": "gear.waxed_jerkin",
+  "name": "Waxed Jerkin",
+  "slot": "body",
+  "base": {
+    "def": 3,
+    "hp": 3
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.toad_skin": 2
+  }
+}

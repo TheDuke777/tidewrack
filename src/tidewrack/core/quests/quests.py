@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tidewrack.core.combat.fight import TOWN
 from tidewrack.core.economy import crafting, shops
 from tidewrack.core.engine.components import (
     Carried,
@@ -60,7 +59,7 @@ def find(game: Game, quest_id: str) -> Quest | None:
 def board_here(game: Game) -> str | None:
     """The town whose notice board the player is standing at, if any."""
     location, room = game.here()
-    if location.kind == TOWN and room.id in location.gates:
+    if location.town and room.id in location.gates:
         return location.id
     return None
 

@@ -22,7 +22,7 @@ from pydantic import (
 from tidewrack.core.gear.item import SET_COLORS, SLOTS
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, STATS
 from tidewrack.core.world.location import Exit, Location, Room
-from tidewrack.core.world.overworld import Overworld
+from tidewrack.core.world.overworld import Overworld, Region
 
 Text = Annotated[str, StringConstraints(min_length=1)]
 Unit = Annotated[float, Field(ge=0.0, le=1.0)]
@@ -319,6 +319,7 @@ class RoomsetSchema(Schema):
     gathering: GatheringSchema = GatheringSchema()
     enemies: EncountersSchema = EncountersSchema()
     shops: list[content_id("shop")] = []  # one of each in every location of this kind
+    town: bool = False  # safe (no wanderers), with a notice board; the respawn point
 
     @model_validator(mode="after")
     def _check_size(self) -> RoomsetSchema:
@@ -396,18 +397,45 @@ class QuestsRecipeSchema(Schema):
 # --- world recipes -------------------------------------------------------------------
 
 
+class RegionSchema(Schema):
+    """A kind of region (step 8a): a biome a world's places cluster into, from the
+    coast (tier 1) inland. Its first place, just over the border, is a town."""
+
+    id: content_id("region")
+    name: Text  # the biome shown to players: "Fens"
+    tier: int = Field(ge=1, le=20)  # deeper regions have higher tiers (and are tougher)
+    names: list[Text] = Field(min_length=1)  # what a world may call it: "The Sallow Fens"
+    town: content_id("roomset")  # the kind of its first place (the start, on the coast)
+    roomsets: Weights = Field(min_length=1)  # roomset id -> weight, for the other places
+    warden: content_id("enemy") | None = None  # guards every road in (none on the coast)
+    crossing: Text = "the road"  # what the warden bars: "the causeway"
+
+
+class RegionPlanSchema(Schema):
+    region: content_id("region")
+    locations: int = Field(ge=2, le=20)
+
+
 class WorldRecipeSchema(Schema):
-    """What a new world is made of: how many locations, and which kinds."""
+    """What a new world is made of: its regions, coast first, and how many places
+    each has. The world starts in the first region's town."""
 
     id: content_id("world")
     name: Text
-    locations: int = Field(ge=2, le=40)
-    start: content_id("roomset")  # the kind of location every game starts in
-    roomsets: dict[content_id("roomset"), Annotated[float, Field(gt=0)]] = Field(min_length=1)
+    regions: list[RegionPlanSchema] = Field(min_length=1)
     player: StatBlock = dict(DEFAULT_PLAYER_BASE)  # the player's starting stats
     kit: list[content_id("gear")] = []  # starting gear, equipped
     gold: int = Field(default=0, ge=0)  # starting gold
     quests: QuestsRecipeSchema = QuestsRecipeSchema()
+
+    @model_validator(mode="after")
+    def _check(self) -> WorldRecipeSchema:
+        ids = [r.region for r in self.regions]
+        if len(ids) != len(set(ids)):
+            raise ValueError("a region is listed more than once")
+        if sum(r.locations for r in self.regions) > 60:
+            raise ValueError("a world has at most 60 places")
+        return self
 
 
 # --- locations -----------------------------------------------------------------------
@@ -495,6 +523,8 @@ class LocationSchema(Schema):
     rooms: list[RoomSchema] = Field(min_length=1)
     pos: tuple[Unit, Unit] | None = None
     roads: list[LocalId] = []
+    region: str = ""
+    town: bool = False
 
     @model_validator(mode="after")
     def _check_structure(self) -> LocationSchema:
@@ -514,6 +544,8 @@ class LocationSchema(Schema):
             rooms=[RoomSchema.from_room(r) for r in loc.rooms.values()],
             pos=loc.pos,
             roads=list(loc.roads),
+            region=loc.region,
+            town=loc.town,
         )
 
     def to_location(self) -> Location:
@@ -526,7 +558,18 @@ class LocationSchema(Schema):
             gates=tuple(self.gates),
             pos=self.pos,
             roads=tuple(self.roads),
+            region=self.region,
+            town=self.town,
         )
+
+
+class RegionStateSchema(Schema):
+    """A world's region as snapshotted into a save."""
+
+    id: content_id("region")
+    name: Text
+    kind: Text
+    tier: int = Field(ge=1)
 
 
 class OverworldSchema(Schema):
@@ -534,10 +577,12 @@ class OverworldSchema(Schema):
 
     start: LocalId
     locations: list[LocationSchema] = Field(min_length=1)
+    regions: list[RegionStateSchema] = []
 
     @model_validator(mode="after")
     def _check_structure(self) -> OverworldSchema:
         _unique_ids([loc.id for loc in self.locations], "location")
+        _unique_ids([r.id for r in self.regions], "region")
         if problems := self.to_overworld().problems():
             raise ValueError("; ".join(problems))
         return self
@@ -547,9 +592,15 @@ class OverworldSchema(Schema):
         return cls(
             start=world.start,
             locations=[LocationSchema.from_location(loc) for loc in world.locations.values()],
+            regions=[
+                RegionStateSchema(id=r.id, name=r.name, kind=r.kind, tier=r.tier)
+                for r in world.regions.values()
+            ],
         )
 
     def to_overworld(self) -> Overworld:
         return Overworld(
-            start=self.start, locations={loc.id: loc.to_location() for loc in self.locations}
+            start=self.start,
+            locations={loc.id: loc.to_location() for loc in self.locations},
+            regions={r.id: Region(r.id, r.name, r.kind, r.tier) for r in self.regions},
         )

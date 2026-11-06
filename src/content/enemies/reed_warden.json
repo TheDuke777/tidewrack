@@ -1,0 +1,40 @@
+{
+  "id": "enemy.reed_warden",
+  "name": "Reed Warden",
+  "category": "spirit",
+  "description": "A giant woven of reeds and black bog-oak, crowned with dead heron feathers. The fen-folk leave it offerings. It has never let a stranger pass.",
+  "stats": {
+    "atk": 11,
+    "def": 5,
+    "hp": 48
+  },
+  "loot": {
+    "chance": 1.0,
+    "gear": {
+      "gear.eel_spear": 1,
+      "gear.waxed_jerkin": 1
+    }
+  },
+  "gold": [
+    20,
+    30
+  ],
+  "materials": [
+    {
+      "material": "material.bog_amber",
+      "chance": 1.0,
+      "count": [
+        1,
+        2
+      ]
+    },
+    {
+      "material": "material.reeds",
+      "chance": 1.0,
+      "count": [
+        2,
+        4
+      ]
+    }
+  ]
+}

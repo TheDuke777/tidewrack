@@ -34,7 +34,7 @@ from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.content import load_bundled_content
 
 CONTENT = load_bundled_content()
-WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
 TOWN = WORLD.location(WORLD.start)  # loc_00, its gate is the start room
 CAVES = WORLD.location("loc_02")  # a road from the town
 STRONG = {"atk": 60, "def": 30, "hp": 100}

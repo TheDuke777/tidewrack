@@ -41,7 +41,7 @@ from tidewrack.core.quests import quests as questing
 from tidewrack.services.content import load_bundled_content
 
 CONTENT = load_bundled_content()
-WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
 TOWN = WORLD.location(WORLD.start)
 GATE = TOWN.start
 CAVES = WORLD.location("loc_02")

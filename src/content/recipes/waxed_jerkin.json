@@ -1,0 +1,8 @@
+{
+  "id": "recipe.waxed_jerkin",
+  "makes": "gear.waxed_jerkin",
+  "materials": {
+    "material.toad_skin": 3,
+    "material.hide": 1
+  }
+}

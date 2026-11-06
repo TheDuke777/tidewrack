@@ -18,7 +18,7 @@ from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.content import load_bundled_content
 
 CONTENT = load_bundled_content()
-WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+WORLD = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
 TOWN = WORLD.location(WORLD.start)
 KELP = make_material(CONTENT.materials["material.kelp"])
 SALT = make_material(CONTENT.materials["material.salt"])

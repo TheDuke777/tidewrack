@@ -188,7 +188,7 @@ def test_regeneration_scales_with_max_hp():
 
 def test_waiting_in_a_town_no_longer_rests_you_for_free():
     # Since v0.7: a full rest is a paid night at an inn (tests/core/test_economy.py).
-    world = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+    world = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
     game = Game(7, world)
     game.world.get(game.player, Health).damage = 9
     assert game.view().in_town

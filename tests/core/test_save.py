@@ -48,7 +48,7 @@ def test_save_is_deterministic():
 
 def test_save_snapshots_the_whole_world():
     # Saves must not depend on content files that a later release may change (§9).
-    world = generate_world(3, CONTENT.world("world.standard"), CONTENT.roomsets)
+    world = generate_world(3, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
     state = Game(1, world).to_state()
     assert state.world.to_overworld() == world
     assert Game.from_state(GameState.model_validate(state.model_dump())).overworld == world

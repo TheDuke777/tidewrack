@@ -82,7 +82,7 @@ def test_returns_survive_a_save_round_trip():
 
 
 def test_new_worlds_give_every_wild_location_templates():
-    world = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets)
+    world = generate_world(7, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
     _, spawners = generate_enemies(7, world, CONTENT)
     assert spawners
     for spawner in spawners:

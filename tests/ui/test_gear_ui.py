@@ -99,7 +99,7 @@ def _shell(tmp_path, confirm=None):
 def test_shell_switches_tabs(tmp_path):
     session, shell, _ = _shell(tmp_path)
     status = shell.explore.status.value
-    assert status.startswith("Turn 0 · Rooms 1/") and status.endswith("· Places 1/8")
+    assert status.startswith("Turn 0 · Rooms 1/") and status.endswith("· Places 1/14")
     assert [d.label for d in shell.navigation_bar.destinations] == [
         "Explore",
         "Inventory",
