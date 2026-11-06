@@ -8,7 +8,7 @@ from collections.abc import Callable
 import flet as ft
 
 from tidewrack.core.data.loader import Content
-from tidewrack.services.session import GameSession, next_world_name
+from tidewrack.services.session import MAX_NAME, GameSession, next_world_name
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
 from tidewrack.ui import theme
@@ -75,6 +75,7 @@ class App:
                 on_open=self.open_slot,
                 on_new=self.new_world,
                 on_delete=self.confirm_delete,
+                on_rename=self.ask_rename,
                 footer=version_label(get_build_info()),
             ).control
         )
@@ -133,6 +134,41 @@ class App:
                 ],
             )
         )
+
+    def ask_rename(self, listing: SlotListing) -> None:
+        field = ft.TextField(
+            label="Name",
+            value=listing.meta.name,
+            autofocus=True,
+            max_length=MAX_NAME,
+            on_submit=lambda _: rename(None),
+        )
+
+        def rename(_: ft.Event | None) -> None:
+            self.page.pop_dialog()
+            self.rename(listing.meta.slot_id, field.value or "")
+
+        self.page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Rename world"),
+                content=field,
+                actions=[
+                    ft.TextButton(content="Cancel", on_click=lambda _: self.page.pop_dialog()),
+                    ft.FilledButton(content="Rename", on_click=rename),
+                ],
+            )
+        )
+
+    def rename(self, slot_id: str, name: str) -> None:
+        """Rename a world, then show the list again (a blank name changes nothing)."""
+        try:
+            GameSession.open(self.store, slot_id, self.content).rename(name)
+        except ValueError:
+            pass  # blank: keep the old name
+        except SaveError as e:
+            self._notify(str(e))
+        self.show_picker()
 
     def confirm_delete(self, listing: SlotListing) -> None:
         def delete(_: ft.Event) -> None:

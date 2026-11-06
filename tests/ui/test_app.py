@@ -129,3 +129,14 @@ def test_unread_keeps_what_was_new_until_you_leave():
         assert not unread.is_new("quests", "q1")
     finally:
         module.keys = original
+
+
+def test_renaming_from_the_world_list(make_app):
+    store, make = make_app
+    page, app = make()
+    session = GameSession.generate(store, CONTENT, "world.standard", "World 1", 7)
+    app.rename(session.meta.slot_id, "Saltmarsh")
+    assert [s.meta.name for s in store.list_slots()] == ["Saltmarsh"]
+    app.rename(session.meta.slot_id, "   ")  # blank: unchanged
+    assert [s.meta.name for s in store.list_slots()] == ["Saltmarsh"]
+    assert not in_world(page)  # back on the list

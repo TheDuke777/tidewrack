@@ -427,3 +427,18 @@ def test_v11_fixture_keeps_its_regrowth(tmp_path):
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert len(list(session.game.world.query(Grower))) == 4
     assert session.game.turn == 44
+
+
+def test_renaming_a_world_saves_a_new_revision_but_not_a_new_play_time(tmp_path):
+    store = FileSaveStore(tmp_path)
+    session = new_session(store, clock=fake_clock())
+    before = session.meta
+    session.rename("  The   Drowned  Coast ")
+    reopened = GameSession.open(store, before.slot_id, CONTENT)
+    assert reopened.meta.name == "The Drowned Coast"  # spaces tidied
+    assert reopened.meta.revision == before.revision + 1
+    assert reopened.meta.updated_at == before.updated_at  # keeps its place in the list
+    session.rename("x" * 100)
+    assert len(GameSession.open(store, before.slot_id, CONTENT).meta.name) == 40
+    with pytest.raises(ValueError):
+        session.rename("   ")

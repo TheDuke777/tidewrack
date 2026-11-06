@@ -35,8 +35,9 @@ class SlotPickerScreen:
         on_new: Callable[[], None],
         on_delete: Callable[[SlotListing], None],
         footer: str,
+        on_rename: Callable[[SlotListing], None] = lambda _: None,
     ) -> None:
-        cards = [self._card(listing, on_open, on_delete) for listing in listings]
+        cards = [self._card(listing, on_open, on_delete, on_rename) for listing in listings]
         empty = ft.Text(
             "No worlds yet. Start one to begin your journey.",
             color=ft.Colors.ON_SURFACE_VARIANT,
@@ -73,6 +74,7 @@ class SlotPickerScreen:
         listing: SlotListing,
         on_open: Callable[[str], None],
         on_delete: Callable[[SlotListing], None],
+        on_rename: Callable[[SlotListing], None],
     ) -> ft.Card:
         meta, summary = listing.meta, listing.meta.summary
         lines = [
@@ -88,10 +90,21 @@ class SlotPickerScreen:
                 subtitle=ft.Text("\n".join(lines)),
                 is_three_line=True,
                 on_click=lambda _: on_open(meta.slot_id),
-                trailing=ft.IconButton(
-                    icon=ft.Icons.DELETE_OUTLINE,
-                    tooltip=f"Delete {meta.name}",
-                    on_click=lambda _: on_delete(listing),
+                trailing=ft.Row(
+                    tight=True,
+                    spacing=0,
+                    controls=[
+                        ft.IconButton(
+                            icon=ft.Icons.EDIT_OUTLINED,
+                            tooltip=f"Rename {meta.name}",
+                            on_click=lambda _: on_rename(listing),
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE_OUTLINE,
+                            tooltip=f"Delete {meta.name}",
+                            on_click=lambda _: on_delete(listing),
+                        ),
+                    ],
                 ),
             )
         )

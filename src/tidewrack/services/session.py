@@ -216,6 +216,18 @@ class GameSession:
         )
         self.store.save(self.meta.slot_id, self._envelope())
 
+    def rename(self, name: str) -> None:
+        """Give the world a new name (stripped, at most MAX_NAME characters).
+
+        A new revision for sync, but not "played": updated_at stays, so the
+        world keeps its place in the list. A blank name is refused.
+        """
+        name = " ".join(name.split())[:MAX_NAME]
+        if not name:
+            raise ValueError("A world needs a name.")
+        self.meta = self.meta.model_copy(update={"name": name, "revision": self.meta.revision + 1})
+        self.store.save(self.meta.slot_id, self._envelope())
+
     def _envelope(self) -> dict[str, Any]:
         return {
             "format": SLOT_FORMAT,
@@ -236,6 +248,9 @@ def _summary(game: Game) -> SlotSummary:
         locations_visited=view.locations_visited,
         total_locations=view.total_locations,
     )
+
+
+MAX_NAME = 40  # characters in a world's name
 
 
 def next_world_name(existing: list[str]) -> str:
