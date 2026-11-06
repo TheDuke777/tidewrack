@@ -6,6 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-05
+
+### Added
+- Rename a world from the world list (the pencil beside delete).
+- "New" chips in the Smithy and Tavern too: upgrades, recipes and meals
+  that just became possible say "New" until you switch tab.
+- The log marks what your latest action did: those lines are bold, under a
+  thin divider, until your next action.
+
+### Changed
+- Android's back gesture steps out one level at a time: from another tab
+  to Explore, then out of an open shop or notice board, then to the world
+  list. On the world list it leaves the app as before.
+- Opening the log (or a world) shows its newest lines straight away instead
+  of slowly scrolling down from the top. New lines still glide in.
+
 ## [0.9.1-beta.1] - 2026-11-05
 
 ### Added
