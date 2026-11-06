@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0-beta.3] - 2026-11-06
+
 ### Changed
 - The world map's legend lists stilt villages under Town instead of giving
   them their own entry.
