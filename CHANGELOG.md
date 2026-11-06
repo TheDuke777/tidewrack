@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0-beta.1] - 2026-11-05
+
 ### Added
 - Regions: new worlds now have two, the coast and, inland, the Fens. Each
   is a cluster of places on the world map, its name written faintly across
