@@ -143,13 +143,16 @@ def test_renaming_from_the_world_list(make_app):
 
 
 def test_back_steps_out_one_level_at_a_time(make_app):
-    _, make = make_app
+    store, make = make_app
     page, app = make()
-    app.new_world()
+    # A fixed seed whose start room has a Smithy (as in test_economy_ui), not
+    # new_world's random one: otherwise there may be no shop here to open.
+    app.show_game(GameSession.generate(store, CONTENT, "world.standard", "W", 20261103))
     shell = app.shell
     shell.select(2)  # Quests
     assert app.back() is False and shell.current == 0  # → Explore
     shell.explore.open("Smithy")
+    assert shell.explore.opened == "Smithy"
     assert app.back() is False and shell.explore.opened is None  # → shop closed
     assert app.back() is False and not in_world(page)  # → the world list
     assert app.back() is True  # on the list: Android's usual back (leave the app)
