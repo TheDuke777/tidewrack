@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0-beta.2] - 2026-11-05
+
 ### Fixed
 - Cards (gear, quests, meals, materials, foes, worlds, fights) no longer
   blend into the background with some wallpaper colours: they're filled a
