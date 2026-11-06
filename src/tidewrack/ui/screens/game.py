@@ -179,6 +179,9 @@ class GameScreen:
         self._affordable: set[int] = set()
         self._sold: set[int] = set()  # wares on the buy-back shelf
         self._doable_seen: dict[str, set] = {}  # shop tab -> what you've seen doable there
+        # Shop tab -> what became doable since you last looked: "New" chips on those
+        # cards while you stay on that tab (cleared on switching tab or leaving).
+        self._doable_fresh: dict[str, set] = {}
         # A crafting smithy's Upgrade and Craft tabs: filterable lists of their own
         # (one set of choices shared by both), sorted by fee for "Price".
         self._upgrades: dict[int, UpgradeView] = {}
@@ -193,6 +196,9 @@ class GameScreen:
             title="Upgrades",
             price=lambda item: self._upgrades[item.id].fee,
             details=self._upgrade_details,
+            is_new=lambda item: (
+                _upgrade_key(self._upgrades[item.id]) in self._doable_fresh.get(UPGRADE_TAB, set())
+            ),
         )
         self.craft_list = PackList(
             craft_choices,
@@ -203,6 +209,9 @@ class GameScreen:
             title="Recipes",
             price=lambda item: self._recipes[item.id].fee,
             details=lambda item: [_costs(self._recipes[item.id].materials)],
+            is_new=lambda item: (
+                self._recipes[item.id].id in self._doable_fresh.get(CRAFT_TAB, set())
+            ),
         )
         self.buy_list = PackList(
             shop_choices if shop_choices is not None else PackChoices(),
@@ -359,12 +368,14 @@ class GameScreen:
 
     def open(self, place: str) -> None:
         """Open the notice board (BOARD) or the shop with this name."""
+        self._doable_fresh.clear()
         self.opened = place
         self.shop_tab = BUY_TAB
         self._scroll_details_to_top()
         self.refresh()
 
     def close(self) -> None:
+        self._doable_fresh.clear()
         self.opened = None
         self.refresh()
 
@@ -647,7 +658,7 @@ class GameScreen:
                 dots = self._new_doable(
                     {
                         UPGRADE_TAB: {
-                            (u.item.id, u.upgraded.name)
+                            _upgrade_key(u)
                             for u in shop.upgrades
                             if u.can_upgrade and u.item.equipped
                         },
@@ -706,8 +717,11 @@ class GameScreen:
         """Tabs with something you can now do that you haven't seen there yet. The tab
         you're on counts as seen, so a dot clears once you look (and stays clear
         until something new becomes doable)."""
-        if self.shop_tab in doable:
-            self._doable_seen[self.shop_tab] = set(doable[self.shop_tab])
+        tab = self.shop_tab
+        if tab in doable:
+            fresh = doable[tab] - self._doable_seen.get(tab, set())
+            self._doable_fresh[tab] = (self._doable_fresh.get(tab, set()) | fresh) & doable[tab]
+            self._doable_seen[tab] = set(doable[tab])
         return {tab for tab, now in doable.items() if now - self._doable_seen.get(tab, set())}
 
     def _materials_line(self, ingredients: bool = False) -> ft.Text:
@@ -840,6 +854,7 @@ class GameScreen:
                         )
                     ],
                     details=[_costs(item.ingredients)],
+                    new=item.meal.id in self._doable_fresh.get(COOK_TAB, set()),
                 )
             )
         controls.append(_muted("Ingredients come from the wild, from beasts, and from any market."))
@@ -931,7 +946,10 @@ class GameScreen:
         self.refresh()
 
     def _shop_tab(self, selected: list[str] | None) -> None:
-        self.shop_tab = (selected or [BUY_TAB])[0]
+        tab = (selected or [BUY_TAB])[0]
+        if tab != self.shop_tab:
+            self._doable_fresh.pop(self.shop_tab, None)  # left that tab: its chips go
+        self.shop_tab = tab
         self._scroll_details_to_top()
         self.refresh()
 
@@ -1044,6 +1062,11 @@ class GameScreen:
 
 def _heading(text: str) -> ft.Text:
     return ft.Text(text, size=16, weight=ft.FontWeight.BOLD)
+
+
+def _upgrade_key(up) -> tuple:
+    """What an upgrade is, for "newly doable": the item and the level it reaches."""
+    return (up.item.id, up.upgraded.name)
 
 
 def log_lines(shown, total: int, fresh_from: int) -> list[ft.Control]:

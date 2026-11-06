@@ -761,3 +761,23 @@ def test_the_latest_actions_lines_stay_bold_until_the_next_action(tmp_path):
     assert first and first[-1] == session.game.view().log[-1]
     explore.refresh()  # e.g. switching tabs: still marked
     assert bold() == first
+
+
+def test_newly_doable_smithy_cards_say_new_until_you_switch_tab(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack, Wallet
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    game.world.get(game.player, Wallet).gold = 100
+    crafting.add(game, MaterialStack(make_material(CONTENT.materials["material.timber"]), 1), "x")
+    explore = shell.explore
+    explore.open("Smithy")
+    explore._shop_tab(["upgrade"])
+    assert _new_chips(explore.shops) == 1  # the worn club's upgrade, newly doable
+    explore.refresh()
+    assert _new_chips(explore.shops) == 1  # still there while you stay
+    explore._shop_tab(["buy"])
+    explore._shop_tab(["upgrade"])
+    assert _new_chips(explore.shops) == 0  # you left the tab: gone

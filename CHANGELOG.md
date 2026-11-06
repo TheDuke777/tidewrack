@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 - Rename a world from the world list (the pencil beside delete).
+- "New" chips in the Smithy and Tavern too: upgrades, recipes and meals
+  that just became possible say "New" until you switch tab.
 - The log marks what your latest action did: those lines are bold, under a
   thin divider, until your next action.
 
