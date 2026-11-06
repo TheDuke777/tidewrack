@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The world map's legend lists stilt villages under Town instead of giving
+  them their own entry.
+
+### Fixed
+- Dragging or pinching a zoomed-in map is smoother: place names stay put
+  until you let go, and what's off screen isn't drawn.
+
 ## [0.10.0-beta.2] - 2026-11-05
 
 ### Fixed
