@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.1-beta.1] - 2026-11-05
+
 ### Added
 - Rename a world from the world list (the pencil beside delete).
 - "New" chips in the Smithy and Tavern too: upgrades, recipes and meals
