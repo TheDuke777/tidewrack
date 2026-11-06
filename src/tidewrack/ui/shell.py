@@ -82,15 +82,19 @@ class WorldShell:
         )
 
         session.listeners.append(lambda _: self.update_dots())
+        self._shown = 0
         self.select(0)
 
     @property
     def current(self) -> int:
-        return self.navigation_bar.selected_index or 0
+        return self._shown
 
     def select(self, index: int) -> None:
-        if index != self.current:  # leaving a tab clears its "New" chips
-            self._leave(self.current)
+        # Our own record of the tab on screen: by the time on_change runs, Flet has
+        # already set navigation_bar.selected_index to the tab being opened.
+        if index != self._shown:  # leaving a tab clears its "New" chips
+            self._leave(self._shown)
+        self._shown = index
         for i, (screen, *_) in enumerate(self.tabs):
             screen.control.visible = i == index
         self.navigation_bar.selected_index = index

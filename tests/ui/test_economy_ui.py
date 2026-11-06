@@ -708,3 +708,22 @@ def test_switching_inner_tabs_clears_the_new_chips(tmp_path):
     inventory.show_tab("satchel")
     inventory.show_tab("pack")
     assert _new_chips(inventory.pack) == 0
+
+
+def _tap(shell, index: int) -> None:
+    """Tap a navigation-bar tab the way Flet does: index first, then on_change."""
+    bar = shell.navigation_bar
+    bar.selected_index = index
+    bar.on_change(ft.ControlEvent(name="change", control=bar, data=str(index)))
+
+
+def test_new_chips_clear_when_you_tap_away_on_the_navigation_bar(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    shell.explore.open("Smithy")
+    _buy_first(shell)
+    _tap(shell, 1)
+    shell.inventory.show_tab("pack")
+    assert _new_chips(shell.inventory.pack) == 1
+    _tap(shell, 0)
+    _tap(shell, 1)
+    assert _new_chips(shell.inventory.pack) == 0
