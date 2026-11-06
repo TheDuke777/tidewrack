@@ -13,6 +13,7 @@ import flet as ft
 from tidewrack.core.codex.foes import FoeView
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
+from tidewrack.ui.components.card import card
 from tidewrack.ui.components.unread import Unread, new_chip
 
 UNKNOWN = "???"
@@ -104,8 +105,8 @@ def foe_lines(foe: FoeView) -> list[str]:
 
 def foe_card(foe: FoeView, new: bool = False) -> ft.Card:
     facts = foe_lines(foe)
-    return ft.Card(
-        content=ft.Container(
+    return card(
+        ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=6,

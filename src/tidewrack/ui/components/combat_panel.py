@@ -12,6 +12,7 @@ import flet as ft
 
 from tidewrack.core.engine.game import Attack, Command, Defend, Flee, GameView
 from tidewrack.core.gear.stats import STAT_LABELS
+from tidewrack.ui.components.card import card
 
 CATEGORY_NAMES = {"beast": "Beast", "person": "Person", "spirit": "Spirit"}
 
@@ -31,8 +32,8 @@ def combat_panel(view: GameView, on_command: Callable[[Command], None]) -> ft.Ca
     assert fight is not None
     kind = CATEGORY_NAMES.get(fight.category, fight.category.title())
     strength = " · ".join(f"{STAT_LABELS[s]} {v}" for s, v in fight.stats.items() if s != "hp")
-    return ft.Card(
-        content=ft.Container(
+    return card(
+        ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=10,

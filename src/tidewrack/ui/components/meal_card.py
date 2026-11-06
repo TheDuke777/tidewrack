@@ -8,6 +8,7 @@ from collections.abc import Sequence
 import flet as ft
 
 from tidewrack.core.engine.game import FedView, MealView
+from tidewrack.ui.components.card import card
 from tidewrack.ui.components.unread import new_chip
 
 
@@ -28,8 +29,8 @@ def meal_card(
     new: bool = False,  # a "New" chip: it's behind a dot you just cleared
 ) -> ft.Card:
     carried = f"You have {meal.count}" if meal.count else None
-    return ft.Card(
-        content=ft.Container(
+    return card(
+        ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=6,

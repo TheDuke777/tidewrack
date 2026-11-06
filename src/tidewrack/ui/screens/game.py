@@ -60,6 +60,7 @@ from tidewrack.core.engine.game import (
 )
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui.components.card import card
 from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.combat_panel import combat_panel
 from tidewrack.ui.components.folds import Folds
@@ -1119,8 +1120,8 @@ def _costs(costs: tuple[CostView, ...]) -> ft.Row:
 
 
 def _material_card(name: str, description: str, line: str, actions: list[ft.Control]) -> ft.Card:
-    return ft.Card(
-        content=ft.Container(
+    return card(
+        ft.Container(
             padding=12,
             content=ft.Column(
                 spacing=6,

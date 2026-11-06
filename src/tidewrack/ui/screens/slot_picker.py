@@ -8,6 +8,7 @@ from datetime import datetime
 import flet as ft
 
 from tidewrack.services.storage import SlotListing
+from tidewrack.ui.components.card import card
 
 LOGO = "tidewrack.png"  # src/assets; the black-backed art, like the icon and splash
 LOGO_SIZE = 88
@@ -84,8 +85,8 @@ class SlotPickerScreen:
         ]
         if listing.from_backup:
             lines.append("⚠ Restored from a backup; the latest save was unreadable.")
-        return ft.Card(
-            content=ft.ListTile(
+        return card(
+            ft.ListTile(
                 title=ft.Text(meta.name, weight=ft.FontWeight.BOLD),
                 subtitle=ft.Text("\n".join(lines)),
                 is_three_line=True,

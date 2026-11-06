@@ -17,6 +17,7 @@ from tidewrack.core.engine.game import ItemView
 from tidewrack.core.gear.compare import Comparison, format_stats
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.ui import theme
+from tidewrack.ui.components.card import card
 from tidewrack.ui.components.set_chip import set_chip
 from tidewrack.ui.components.stat_delta import delta_color, stat_delta
 from tidewrack.ui.components.unread import new_chip
@@ -191,8 +192,8 @@ def gear_compare_card(
     body += list(details)
     if actions:
         body.append(ft.Row(wrap=True, spacing=8, run_spacing=8, controls=list(actions)))
-    return ft.Card(
-        content=ft.Container(padding=12, content=ft.Column(spacing=10, controls=body)),
+    return card(
+        ft.Container(padding=12, content=ft.Column(spacing=10, controls=body)),
     )
 
 

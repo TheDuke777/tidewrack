@@ -9,6 +9,7 @@ from collections.abc import Callable, Sequence
 import flet as ft
 
 from tidewrack.core.engine.game import QuestView
+from tidewrack.ui.components.card import card
 from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.gear_compare_card import fold_button, gear_compare_card, verdict_chip
 from tidewrack.ui.components.unread import new_chip
@@ -94,6 +95,6 @@ def quest_card(
         body.append(reward_line(quest))
     if actions:
         body.append(ft.Row(wrap=True, spacing=8, run_spacing=8, controls=list(actions)))
-    return ft.Card(
-        content=ft.Container(padding=12, content=ft.Column(spacing=8, controls=body)),
+    return card(
+        ft.Container(padding=12, content=ft.Column(spacing=8, controls=body)),
     )

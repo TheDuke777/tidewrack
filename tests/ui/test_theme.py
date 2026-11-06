@@ -155,3 +155,13 @@ def test_launch_brightness_may_be_an_enum_or_a_string(tmp_path, monkeypatch):
         page.platform_brightness = value
         theming.start()
         assert theme._dark
+
+
+def test_every_card_is_filled_a_tone_above_the_page():
+    import flet as ft
+
+    from tidewrack.ui.components.card import FILL, card
+
+    c = card(ft.Text("x"))
+    assert c.bgcolor == FILL == ft.Colors.SURFACE_CONTAINER
+    assert c.shape is None  # no outline

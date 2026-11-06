@@ -201,7 +201,7 @@ tidewrack/
 │       │                            #   (Explore, Inventory, Quests, Codex); add tabs here
 │       ├── theme.py                 # MD3 theming: Material You (Theming), later seed
 │       │                            #   colour + colorblind-safe palettes
-│       ├── components/              # gear_compare_card, quest_card, meal_card, pack_list
+│       ├── components/              # card (the one card style, surface_container fill: use it, never bare ft.Card), gear_compare_card, quest_card, meal_card, pack_list
 │       │                            #   (filters/sort/select, shared by Inventory + shops),
 │       │                            #   folds (collapsible cards), unread (dots), stat_delta, …
 │       ├── map_canvas.py            # point-crawl renderer + fog of war + tap-to-move
