@@ -6,6 +6,38 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-05
+
+### Changed
+- Your gold total in the Inventory uses the same coin as prices (tinted
+  gold) instead of a money bag, so it doesn't look like a second currency.
+- The top-left back arrow in a world is now a menu with "Switch world", so
+  leaving a shop or notice board no longer drops you at the world list by
+  mistake. Settings and Help will live in this menu too.
+- Prices and rewards show a coin instead of the word "gold" (Buy · 12 ◉),
+  and your total in the Inventory has a gold money bag. Messages and the
+  log still say "gold"; screen readers say it everywhere.
+- "▲ Better" and stat gains use a darker green on light themes and a
+  lighter one on dark themes, so they're easy to read on both.
+
+### Fixed
+- "New" chips now go away when you leave the tab on the navigation bar
+  (they stayed on new quests, for example).
+- v0.9.0-beta.1 showed an error on launch ("'Event' object has no
+  attribute 'brightness'"); switching between light and dark works again.
+- When Android rebuilds the app's window (for example after a new system
+  colour palette), you stay in the world you had open instead of landing back
+  on the world list.
+
+### Added
+- Material You: on Android 12 and later the app takes its colours from your
+  wallpaper, in light and dark. It picks up a new palette when you come back
+  to the app (on Samsung, once you've applied it in the system settings).
+- The Tidewrack logo on the world list.
+- "New" chips: when a dot clears because you opened a tab, the cards it was
+  about (new quests, Codex foes, pack items, satchel materials, meals and
+  recipes) say "New" until you leave that tab.
+
 ## [0.9.0-beta.3] - 2026-11-05
 
 ### Changed
