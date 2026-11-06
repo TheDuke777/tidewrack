@@ -1,0 +1,19 @@
+{
+  "id": "shop.moor_smithy",
+  "name": "Smithy",
+  "room": "Smithy",
+  "stock": [
+    3,
+    4
+  ],
+  "wares": 6,
+  "gear": {
+    "gear.hanger": 2,
+    "gear.hide_targe": 2,
+    "gear.wolfskin_hood": 1,
+    "gear.hobnail_boots": 1,
+    "gear.drovers_coat": 1
+  },
+  "buys_gear": true,
+  "crafts": true
+}

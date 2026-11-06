@@ -20,7 +20,8 @@ CONTENT = load_bundled_content()
 SEED = 7
 WORLD = generate_world(SEED, CONTENT.world("world.standard"), CONTENT.roomsets, CONTENT.regions)
 WARDENS = generate_wardens(SEED, WORLD, CONTENT)
-[(NEAR, FAR)] = WORLD.borders()
+BORDERS = {WORLD.location(far).region: (near, far) for near, far in WORLD.borders()}
+NEAR, FAR = BORDERS["region.fens"]
 STRONG = {"atk": 200, "def": 100, "hp": 500}
 WEAK = {"atk": 1, "def": 0, "hp": 1}
 
@@ -61,8 +62,8 @@ def test_beating_the_warden_opens_the_region_for_good():
     opened = [e for e in result.events if isinstance(e, RegionOpened)]
     assert opened == [RegionOpened("region.fens", WORLD.regions["region.fens"].name)]
     assert game.log[-1] == f"The way into {opened[0].name} lies open."
-    assert not list(game.world.query(Warden))
     assert all(r.guard is None for r in game.view().roads)
+    assert len(list(game.world.query(Warden))) == 1  # the Moors' warden is still there
 
     result = game.perform(Travel(FAR))
     assert any(isinstance(e, LocationEntered) and e.location == FAR for e in result.events)
@@ -77,7 +78,7 @@ def test_fleeing_a_warden_leaves_you_at_the_gate_and_it_stays():
     game.perform(Flee())
     position = game.world.get(game.player, Position)
     assert (position.location, position.room) == (NEAR, WORLD.location(NEAR).start)
-    assert len(list(game.world.query(Warden))) == 1
+    assert len(list(game.world.query(Warden))) == 2  # it stays, as does the Moors' one
     assert "CombatStarted" not in kinds(game.perform(Wait()))  # it doesn't follow you
 
 
@@ -87,8 +88,8 @@ def test_losing_to_a_warden_sends_you_back_to_town():
     result = game.perform(Attack())
     assert any(isinstance(e, PlayerDefeated) for e in result.events)
     assert game.world.get(game.player, Position).location == WORLD.start
-    [(entity, (enemy,))] = list(game.world.query(Enemy))
-    assert game.world.has(entity, Warden)
+    fighting = [e for e, (enemy,) in game.world.query(Enemy) if game.world.has(e, Warden)]
+    assert len(fighting) == 2  # neither warden beaten
 
 
 def test_wardens_survive_saving():
@@ -97,3 +98,14 @@ def test_wardens_survive_saving():
     assert loaded.overworld.regions == WORLD.regions
     assert next(r for r in loaded.view().roads if r.location == FAR).guard == "Reed Warden"
     assert loaded.view().region == WORLD.regions["region.wrack_coast"].name
+
+
+def test_every_region_past_the_coast_has_its_warden_on_its_one_road_in():
+    assert set(BORDERS) == {"region.fens", "region.moors"}
+    guards = {w.region: (enemy.name, w.road) for _, _, enemy, w in WARDENS}
+    assert guards == {
+        "region.fens": ("Reed Warden", BORDERS["region.fens"][1]),
+        "region.moors": ("Barrow Warden", BORDERS["region.moors"][1]),
+    }
+    near, _ = BORDERS["region.moors"]
+    assert WORLD.location(near).region == "region.fens"  # the Moors lie beyond the Fens

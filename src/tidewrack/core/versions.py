@@ -35,4 +35,5 @@ SCHEMA_VERSION = 12
 # 11: new worlds also get Growers; sea caves have more gathering spots
 # 12: worlds grow region by region (clusters, one road between regions);
 #     wardens guard the borders; quests stay in their board's region
-GENERATOR_VERSION = 12
+# 13: standard worlds add the Moors (21 places in three regions)
+GENERATOR_VERSION = 13

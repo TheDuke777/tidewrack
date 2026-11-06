@@ -1,0 +1,150 @@
+{
+  "id": "roomset.barrow_downs",
+  "name": "Barrows",
+  "location_names": [
+    "The Seven Howes",
+    "Wightdown",
+    "Kingsbarrow",
+    "The Hollow Hills",
+    "Dead Man's Rigg",
+    "Howe Moor",
+    "Low Graves"
+  ],
+  "size": [
+    12,
+    17
+  ],
+  "layout": {
+    "spread": 1.8,
+    "loops": 0.35,
+    "corridors": 0.45
+  },
+  "adjectives": [
+    "Grassy",
+    "Sunken",
+    "Cold",
+    "Silent",
+    "Old",
+    "Broken",
+    "Dark",
+    "Hollow",
+    "Rounded",
+    "Forgotten",
+    "Mossy",
+    "Dank"
+  ],
+  "entrance": {
+    "noun": "Barrow Track",
+    "descriptions": [
+      "A track where the grass grows strangely green, leading between low rounded hills that are not hills."
+    ],
+    "features": [
+      "A ring of white pebbles, laid by someone who meant it."
+    ],
+    "ambient": [
+      "The birdsong stops a little way ahead of you."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Mound",
+      "weight": 1.6,
+      "descriptions": [
+        "A long grassy mound, its top caved in where robbers dug long ago.",
+        "A round barrow, smooth as a pudding, with a thorn tree on top."
+      ],
+      "features": [
+        "A broken pot spilling ash into the grass."
+      ],
+      "ambient": [
+        "The ground seems to listen."
+      ]
+    },
+    {
+      "noun": "Passage",
+      "weight": 1.4,
+      "descriptions": [
+        "A stone-lined passage into the barrow, roofed with slabs. The air is cold and smells of earth.",
+        "A low passage where you walk bent double, the slabs dripping."
+      ],
+      "features": [
+        "Scratches on the wall, made from the inside."
+      ],
+      "ambient": [
+        "Something shifts deeper in."
+      ]
+    },
+    {
+      "noun": "Burial Chamber",
+      "weight": 0.8,
+      "descriptions": [
+        "A chamber of great upright slabs, with niches cut for the dead. Most are empty now.",
+        "A round chamber with a stone bench all around it, and bones laid neatly on the bench."
+      ],
+      "features": [
+        "A bronze brooch, green, pinned to nothing."
+      ],
+      "ambient": [
+        "Your breath smokes, though it isn't cold outside."
+      ]
+    },
+    {
+      "noun": "Robbers' Pit",
+      "weight": 0.7,
+      "descriptions": [
+        "A pit dug into the side of a mound, its spoil heaped beside it. Whoever dug it left in a hurry.",
+        "A deep scrape in the turf, with a broken spade at the bottom."
+      ],
+      "features": [
+        "A lantern, its glass smashed."
+      ],
+      "ambient": [
+        "Loose earth trickles into the pit."
+      ]
+    },
+    {
+      "noun": "Hollow",
+      "weight": 1.0,
+      "descriptions": [
+        "A dip between barrows where mist pools even at noon.",
+        "A hollow full of nettles, which only grow where the ground's been dug."
+      ],
+      "features": [
+        "A circle of mushrooms, perfectly round."
+      ],
+      "ambient": [
+        "The mist moves against the wind."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.22,
+    "gear": {
+      "gear.barrow_blade": 2,
+      "gear.hagstone": 2,
+      "gear.stone_maul": 1,
+      "gear.drovers_coat": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.28,
+    "materials": {
+      "material.flint": 3,
+      "material.bilberries": 1,
+      "material.grave_silver": 0.4
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.25,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.barrow_wight": 3,
+      "enemy.black_dog": 1,
+      "enemy.adder": 1
+    }
+  }
+}

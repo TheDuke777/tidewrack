@@ -1,0 +1,39 @@
+{
+  "id": "enemy.highwayman",
+  "name": "Highwayman",
+  "category": "person",
+  "description": "Masked, cloaked and courteous, with a pistol he's too poor to load and a hanger he isn't.",
+  "stats": {
+    "atk": 14,
+    "def": 7,
+    "hp": 28
+  },
+  "rolls": {
+    "atk": [
+      0,
+      2
+    ]
+  },
+  "loot": {
+    "chance": 0.5,
+    "gear": {
+      "gear.hanger": 2,
+      "gear.wolfskin_hood": 1,
+      "gear.hobnail_boots": 1
+    }
+  },
+  "gold": [
+    8,
+    18
+  ],
+  "materials": [
+    {
+      "material": "material.flint",
+      "chance": 0.3,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

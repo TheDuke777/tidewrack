@@ -1,0 +1,8 @@
+{
+  "id": "recipe.drovers_coat",
+  "makes": "gear.drovers_coat",
+  "materials": {
+    "material.wool": 4,
+    "material.wolf_pelt": 2
+  }
+}

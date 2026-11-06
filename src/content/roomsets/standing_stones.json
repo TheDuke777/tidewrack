@@ -1,0 +1,150 @@
+{
+  "id": "roomset.standing_stones",
+  "name": "Standing Stones",
+  "location_names": [
+    "The Nine Maidens",
+    "Long Meg's Ring",
+    "The Whispering Knights",
+    "Hagstones",
+    "The Devil's Arrows",
+    "Stonegarth",
+    "The Grey Wethers"
+  ],
+  "size": [
+    10,
+    15
+  ],
+  "layout": {
+    "spread": 2.0,
+    "loops": 0.5,
+    "corridors": 0.3
+  },
+  "adjectives": [
+    "Grey",
+    "Leaning",
+    "Lichened",
+    "Tall",
+    "Fallen",
+    "Ringed",
+    "Silent",
+    "Weathered",
+    "Humming",
+    "Windy",
+    "Ancient",
+    "Pale"
+  ],
+  "entrance": {
+    "noun": "Outlier",
+    "descriptions": [
+      "A single stone stands apart from the rest, taller than a house, like a sentry. The moor runs on past it towards the rings."
+    ],
+    "features": [
+      "Offerings at its foot: a ribbon, a coin, a child's shoe."
+    ],
+    "ambient": [
+      "The stone is warm, though the day isn't."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Stone Ring",
+      "weight": 1.6,
+      "descriptions": [
+        "A ring of grey stones, none the same height, none quite where you'd put them.",
+        "A great circle of stones, some fallen, all leaning inwards as if to hear."
+      ],
+      "features": [
+        "A stone with a hole through it, worn smooth by hands."
+      ],
+      "ambient": [
+        "You lose count of the stones, and start again."
+      ]
+    },
+    {
+      "noun": "Avenue",
+      "weight": 1.4,
+      "descriptions": [
+        "A double row of stones marching across the moor towards nothing you can see.",
+        "An avenue of stones, half sunk in the turf, leading uphill."
+      ],
+      "features": [
+        "One stone carved with cup marks, filled with rainwater."
+      ],
+      "ambient": [
+        "Your footsteps sound like more than one person's."
+      ]
+    },
+    {
+      "noun": "Dolmen",
+      "weight": 0.8,
+      "descriptions": [
+        "Three great stones holding up a fourth, like a table for giants.",
+        "A tomb of slabs stripped of its mound, standing bare against the sky."
+      ],
+      "features": [
+        "Soot on the capstone, from fires lit beneath it."
+      ],
+      "ambient": [
+        "Wind moans through the gaps."
+      ]
+    },
+    {
+      "noun": "Fallen Stone",
+      "weight": 0.8,
+      "descriptions": [
+        "A stone lies where it fell, longer than a boat, its underside still dark with old earth."
+      ],
+      "features": [
+        "Faint carvings: spirals, and a figure with too many arms."
+      ],
+      "ambient": [
+        "Ravens watch from the next stone."
+      ]
+    },
+    {
+      "noun": "Tor",
+      "weight": 0.8,
+      "descriptions": [
+        "A crown of weathered granite on the hilltop, stacked like loaves.",
+        "A rocky tor where the wind never stops, with the whole moor laid out below."
+      ],
+      "features": [
+        "A basin worn into the rock, full of rain."
+      ],
+      "ambient": [
+        "The wind snatches your breath away."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": {
+      "gear.hagstone": 2,
+      "gear.stone_maul": 1,
+      "gear.wolfskin_hood": 1,
+      "gear.hobnail_boots": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.flint": 2,
+      "material.bilberries": 2,
+      "material.heather_honey": 1
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.22,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.moor_wolf": 2,
+      "enemy.black_dog": 2,
+      "enemy.highwayman": 1,
+      "enemy.barrow_wight": 1
+    }
+  }
+}

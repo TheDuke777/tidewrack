@@ -1,0 +1,41 @@
+{
+  "id": "enemy.barrow_warden",
+  "name": "Barrow Warden",
+  "category": "spirit",
+  "description": "A king out of the oldest barrow, his crown green with age, his sword as long as a man. The moor-folk say he keeps the drove road for a lord who never came back.",
+  "stats": {
+    "atk": 19,
+    "def": 9,
+    "hp": 70
+  },
+  "loot": {
+    "chance": 1.0,
+    "gear": {
+      "gear.barrow_blade": 1,
+      "gear.stone_maul": 1,
+      "gear.drovers_coat": 1
+    }
+  },
+  "gold": [
+    30,
+    45
+  ],
+  "materials": [
+    {
+      "material": "material.grave_silver",
+      "chance": 1.0,
+      "count": [
+        1,
+        2
+      ]
+    },
+    {
+      "material": "material.flint",
+      "chance": 1.0,
+      "count": [
+        2,
+        4
+      ]
+    }
+  ]
+}

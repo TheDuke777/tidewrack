@@ -1,0 +1,28 @@
+{
+  "id": "enemy.barrow_wight",
+  "name": "Barrow Wight",
+  "category": "spirit",
+  "description": "A dead chieftain in rusted mail, its eyes two cold lights. It wants its silver back.",
+  "stats": {
+    "atk": 16,
+    "def": 9,
+    "hp": 32
+  },
+  "loot": {
+    "chance": 0.45,
+    "gear": {
+      "gear.barrow_blade": 1,
+      "gear.hagstone": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.grave_silver",
+      "chance": 0.35,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

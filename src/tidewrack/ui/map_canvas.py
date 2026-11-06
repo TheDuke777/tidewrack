@@ -52,10 +52,14 @@ KIND_GLYPHS = {
     "Peat Bog": "∴",
     "Reed Maze": "¦",
     "Mere": "○",
+    "Hill Farm": "⌂",
+    "Heath": "⚘",
+    "Barrows": "∩",
+    "Standing Stones": "Π",
 }
 DEFAULT_GLYPH = "•"
 # Kinds the legend files under another kind's name (same glyph, same role).
-LEGEND_NAMES = {"Stilt Village": "Town"}
+LEGEND_NAMES = {"Stilt Village": "Town", "Hill Farm": "Town"}
 
 Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # left, top, right, bottom

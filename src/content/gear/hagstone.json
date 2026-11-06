@@ -1,0 +1,21 @@
+{
+  "id": "gear.hagstone",
+  "name": "Hagstone",
+  "slot": "trinket",
+  "base": {
+    "hp": 9
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "hp": 2
+  },
+  "upgrade_materials": {
+    "material.grave_silver": 1
+  }
+}

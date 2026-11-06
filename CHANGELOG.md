@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The Moors: beyond the Fens, a third region of hill farms, heaths, barrows
+  and standing stones, with its own foes (moor wolves, feral rams, adders,
+  highwaymen, barrow wights, black dogs), gear, materials, ingredients,
+  recipes and two new meals. Tougher again than the Fens.
+- The Barrow Warden holds the drove road from the Fens into the Moors.
+- New worlds have 21 places.
+
+### Changed
+- Saving after each action is much faster (about a sixth of the time on a
+  computer, and it no longer grows with the size of the world): only the
+  places that changed are written.
+
 ## [0.10.0] - 2026-11-06
 
 ### Changed

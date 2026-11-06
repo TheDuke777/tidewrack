@@ -1,0 +1,9 @@
+{
+  "id": "recipe.stone_maul",
+  "makes": "gear.stone_maul",
+  "materials": {
+    "material.flint": 4,
+    "material.iron_ore": 2,
+    "material.timber": 1
+  }
+}

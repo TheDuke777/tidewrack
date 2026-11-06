@@ -1,0 +1,14 @@
+{
+  "id": "meal.drovers_hotpot",
+  "name": "Drover's Hotpot",
+  "description": "Mutton and oats stewed all day in a pot buried in the embers. Drovers swear it keeps the cold out of a body for a week.",
+  "ingredients": {
+    "material.mutton": 2,
+    "material.oatmeal": 1
+  },
+  "stats": {
+    "def": 3,
+    "hp": 4
+  },
+  "turns": 60
+}

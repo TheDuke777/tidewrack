@@ -1,0 +1,7 @@
+{
+  "id": "material.bilberries",
+  "name": "Bilberries",
+  "description": "Small blue-black berries that stain your fingers purple.",
+  "value": 2,
+  "ingredient": true
+}

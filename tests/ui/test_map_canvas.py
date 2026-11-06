@@ -153,10 +153,10 @@ def test_region_names_and_guarded_roads_on_the_world_map():
     content = load_bundled_content()
     world = generate_world(7, content.world("world.standard"), content.roomsets, content.regions)
     game = Game(7, world, wardens=generate_wardens(7, world, content))
-    coast, fens = (r.name for r in world.regions.values())
+    coast, fens, moors = (r.name for r in world.regions.values())
     assert [m.name for m in game.view().world_map.regions] == [coast]  # the Fens aren't known yet
 
-    [(near, far)] = world.borders()
+    near, far = next(b for b in world.borders() if world.location(b[1]).region == "region.fens")
     position = game.world.get(game.player, Position)
     position.location, position.room = near, world.location(near).start
     game.bus.emit(LocationEntered(game.player, near, None, first_visit=True))
@@ -170,9 +170,11 @@ def test_region_names_and_guarded_roads_on_the_world_map():
     canvas.show(view.world_map, "", "world", labels=True)
     texts = [s.value for s in canvas.canvas.shapes if hasattr(s, "value") and s.value]
     assert coast.upper() in texts and fens.upper() in texts
+    assert moors.upper() not in texts  # not seen yet
 
-    for entity, _ in list(game.world.query(Warden)):
-        game.world.destroy(entity)
+    for entity, (warden,) in list(game.world.query(Warden)):
+        if warden.road == far:
+            game.world.destroy(entity)
     assert not next(n for n in game.view().world_map.nodes if n.id == far).guarded
 
 

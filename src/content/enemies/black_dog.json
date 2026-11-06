@@ -1,0 +1,28 @@
+{
+  "id": "enemy.black_dog",
+  "name": "Black Dog",
+  "category": "spirit",
+  "description": "A dog the size of a calf, black as a hole, with eyes like coals. Its paws leave no prints.",
+  "stats": {
+    "atk": 17,
+    "def": 6,
+    "hp": 26
+  },
+  "loot": {
+    "chance": 0.3,
+    "gear": {
+      "gear.hide_targe": 1,
+      "gear.wolfskin_hood": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.wisp_essence",
+      "chance": 0.3,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

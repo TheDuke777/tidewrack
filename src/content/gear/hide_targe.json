@@ -1,0 +1,22 @@
+{
+  "id": "gear.hide_targe",
+  "name": "Hide Targe",
+  "slot": "off_hand",
+  "base": {
+    "def": 4
+  },
+  "rolls": {
+    "def": [
+      0,
+      1
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.wolf_pelt": 1,
+    "material.timber": 1
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "id": "recipe.hagstone",
+  "makes": "gear.hagstone",
+  "materials": {
+    "material.grave_silver": 2,
+    "material.flint": 1
+  }
+}

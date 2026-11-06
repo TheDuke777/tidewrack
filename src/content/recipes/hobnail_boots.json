@@ -1,0 +1,8 @@
+{
+  "id": "recipe.hobnail_boots",
+  "makes": "gear.hobnail_boots",
+  "materials": {
+    "material.iron_ore": 2,
+    "material.adder_skin": 2
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "enemy.feral_ram",
+  "name": "Feral Ram",
+  "category": "beast",
+  "description": "A great curly-horned ram gone wild on the tops. It doesn't run from people any more.",
+  "stats": {
+    "atk": 12,
+    "def": 7,
+    "hp": 26
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.wool",
+      "chance": 0.8,
+      "count": [
+        1,
+        3
+      ]
+    },
+    {
+      "material": "material.mutton",
+      "chance": 0.6,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

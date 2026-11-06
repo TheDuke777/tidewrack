@@ -1,0 +1,20 @@
+{
+  "id": "region.moors",
+  "name": "Moors",
+  "tier": 3,
+  "names": [
+    "The High Moors",
+    "The Barrow Moors",
+    "The Grey Heights",
+    "The Hollow Moor"
+  ],
+  "town": "roomset.hill_farm",
+  "roomsets": {
+    "roomset.heath": 1.0,
+    "roomset.barrow_downs": 1.0,
+    "roomset.standing_stones": 0.8,
+    "roomset.hill_farm": 0.5
+  },
+  "warden": "enemy.barrow_warden",
+  "crossing": "the drove road"
+}

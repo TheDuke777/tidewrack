@@ -6,6 +6,7 @@ command that produced events is written straight away.
 
 from __future__ import annotations
 
+import copy
 import re
 import uuid
 from collections.abc import Callable, Iterable, Mapping
@@ -17,7 +18,7 @@ from pydantic import ValidationError
 
 from tidewrack.core.combat.rules import STANDARD, Rules
 from tidewrack.core.data.loader import Content
-from tidewrack.core.data.save import GameState
+from tidewrack.core.data.save import EconomyState, GameState, RulesState, encode_component
 from tidewrack.core.economy.value_model import STANDARD_ECONOMY, EconomyRules
 from tidewrack.core.engine.components import (
     Bounty,
@@ -76,6 +77,7 @@ class GameSession:
         self.content_version = content_version
         self.clock = clock
         self.from_backup = from_backup
+        self._encoder = StateEncoder()
         # Called after every command (e.g. the UI's unread dots); not saved.
         self.listeners: list[Callable[[TurnResult], None]] = []
 
@@ -219,7 +221,20 @@ class GameSession:
                 "summary": _summary(self.game),
             }
         )
-        self.store.save(self.meta.slot_id, self._envelope())
+        self._write()
+
+    def _write(self) -> None:
+        game, changed, done = self._encoder.encode(self.game)
+        envelope = {
+            "format": SLOT_FORMAT,
+            "schema_version": SCHEMA_VERSION,
+            "generator_version": GENERATOR_VERSION,
+            "content_version": self.content_version,
+            "meta": self.meta.model_dump(mode="json"),
+            "game": game,
+        }
+        self.store.save(self.meta.slot_id, envelope, changed)
+        done()  # only once it's written, so a failed save is retried in full
 
     def rename(self, name: str) -> None:
         """Give the world a new name (stripped, at most MAX_NAME characters).
@@ -231,27 +246,86 @@ class GameSession:
         if not name:
             raise ValueError("A world needs a name.")
         self.meta = self.meta.model_copy(update={"name": name, "revision": self.meta.revision + 1})
-        self.store.save(self.meta.slot_id, self._envelope())
+        self._write()
 
-    def _envelope(self) -> dict[str, Any]:
-        return {
-            "format": SLOT_FORMAT,
-            "schema_version": SCHEMA_VERSION,
-            "generator_version": GENERATOR_VERSION,
-            "content_version": self.content_version,
-            "meta": self.meta.model_dump(mode="json"),
-            "game": self.game.to_state().model_dump(mode="json"),
+
+class StateEncoder:
+    """A game's saved form (what `Game.to_state()` dumps to), worked out fast.
+
+    Autosave runs after every action, but most entities don't change from one
+    action to the next, so each entity's encoding is kept with a copy of its
+    components and only redone when they no longer compare equal. The world map
+    never changes once made. `encode` also says which entities changed, so the
+    store can skip rewriting places where nothing did.
+    """
+
+    def __init__(self) -> None:
+        self._world: tuple[object, dict[str, Any]] | None = None
+        self._entities: dict[int, tuple[tuple[Any, ...], dict[str, Any]]] = {}
+
+    def encode(self, game: Game) -> tuple[dict[str, Any], set[int] | None, Callable[[], None]]:
+        """(the state as JSON values, ids changed since the last committed
+        encoding or None if there's none, a function that commits this one)."""
+        if self._world is None or self._world[0] is not game._snapshot:
+            world = (game._snapshot, game._snapshot.model_dump(mode="json"))
+        else:
+            world = self._world
+        next_id, snapshot = game.world.snapshot()
+        cache = self._entities
+        fresh = self._world is None or self._world[0] is not game._snapshot
+        updated: dict[int, tuple[tuple[Any, ...], dict[str, Any]]] = {}
+        changed: set[int] = set()
+        entities = []
+        for entity, components in snapshot.items():
+            known = cache.get(entity)
+            if known is None or known[0] != components:
+                encoded = {
+                    "id": entity,
+                    "components": dict(encode_component(c) for c in components),
+                }
+                known = (copy.deepcopy(components), encoded)
+                changed.add(entity)
+            updated[entity] = known
+            entities.append(known[1])
+        changed.update(cache.keys() - updated.keys())  # destroyed
+
+        def commit() -> None:
+            self._world = world
+            self._entities = updated
+
+        def rng(stream: Any) -> dict[str, Any]:
+            return stream.get_state()
+
+        state = {
+            "seed": game.seed,
+            "turn": game.turn,
+            "log": list(game.log),
+            "world": world[1],
+            "rng": rng(game.rng),
+            "ambient_rng": rng(game.ambient_rng),
+            "combat_rng": rng(game.combat_rng),
+            "encounter_rng": rng(game.encounter_rng),
+            "respawn_rng": rng(game.respawn_rng),
+            "shop_rng": rng(game.shop_rng),
+            "gather_rng": rng(game.gather_rng),
+            "rules": RulesState(**game.rules.__dict__).model_dump(mode="json"),
+            "economy": EconomyState(**game.economy.__dict__).model_dump(mode="json"),
+            "next_entity_id": next_id,
+            "entities": entities,
         }
+        return state, None if fresh else changed, commit
 
 
 def _summary(game: Game) -> SlotSummary:
-    view = game.view()
+    """What the world list shows (the same numbers as `game.view()`, without
+    working out the rest of the view on every autosave)."""
+    location, room = game.here()
     return SlotSummary(
-        location=view.location,
-        room=view.room,
-        turn=view.turn,
-        locations_visited=view.locations_visited,
-        total_locations=view.total_locations,
+        location=location.name,
+        room=room.name,
+        turn=game.turn,
+        locations_visited=len(game._explorer().locations_visited),
+        total_locations=len(game.overworld.locations),
     )
 
 

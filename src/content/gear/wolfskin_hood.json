@@ -1,0 +1,22 @@
+{
+  "id": "gear.wolfskin_hood",
+  "name": "Wolfskin Hood",
+  "slot": "head",
+  "base": {
+    "def": 3,
+    "hp": 3
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.wolf_pelt": 2
+  }
+}

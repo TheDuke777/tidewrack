@@ -1,0 +1,16 @@
+{
+  "id": "shop.moor_market",
+  "name": "Market",
+  "room": "Market",
+  "materials": [
+    "material.wool",
+    "material.flint",
+    "material.iron_ore",
+    "material.timber",
+    "material.hide",
+    "material.salt",
+    "material.ships_biscuit",
+    "material.oatmeal"
+  ],
+  "buys_materials": true
+}

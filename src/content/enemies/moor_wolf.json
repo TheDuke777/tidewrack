@@ -1,0 +1,27 @@
+{
+  "id": "enemy.moor_wolf",
+  "name": "Moor Wolf",
+  "category": "beast",
+  "description": "Lean and grey as the hills, it keeps to the heather until it's close enough to spring.",
+  "stats": {
+    "atk": 14,
+    "def": 5,
+    "hp": 24
+  },
+  "rolls": {
+    "hp": [
+      0,
+      4
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.wolf_pelt",
+      "chance": 0.8,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "id": "material.oatmeal",
+  "name": "Oatmeal",
+  "description": "A sack of coarse oats, the moor-folk's bread and porridge both.",
+  "value": 1,
+  "ingredient": true
+}

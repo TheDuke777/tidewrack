@@ -1,0 +1,22 @@
+{
+  "id": "gear.barrow_blade",
+  "name": "Barrow Blade",
+  "slot": "main_hand",
+  "base": {
+    "atk": 11
+  },
+  "rolls": {
+    "atk": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 3,
+  "upgrade_step": {
+    "atk": 1
+  },
+  "upgrade_materials": {
+    "material.grave_silver": 1,
+    "material.flint": 2
+  }
+}

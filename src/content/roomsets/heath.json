@@ -1,0 +1,150 @@
+{
+  "id": "roomset.heath",
+  "name": "Heath",
+  "location_names": [
+    "Ling Moor",
+    "The Purple Tops",
+    "Gorsedale",
+    "Whinny Moor",
+    "Curlew Heath",
+    "The Long Fell",
+    "Black Ling"
+  ],
+  "size": [
+    12,
+    18
+  ],
+  "layout": {
+    "spread": 2.2,
+    "loops": 0.4,
+    "corridors": 0.35
+  },
+  "adjectives": [
+    "Purple",
+    "Windswept",
+    "Open",
+    "Bleak",
+    "Burnt",
+    "Rolling",
+    "Bare",
+    "High",
+    "Gorse-Grown",
+    "Lonely",
+    "Brown",
+    "Wide"
+  ],
+  "entrance": {
+    "noun": "Moor Gate",
+    "descriptions": [
+      "The last wall, and a gate tied shut with twine. Beyond it the heather runs away in every direction to the sky."
+    ],
+    "features": [
+      "A stone post with a hand carved on it, pointing nowhere in particular."
+    ],
+    "ambient": [
+      "A grouse goes up from under your feet, cackling."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Heather",
+      "weight": 2.0,
+      "descriptions": [
+        "Knee-deep heather, springy and tangled, humming with bees.",
+        "Heather burnt black in strips, with green shoots coming through."
+      ],
+      "features": [
+        "A sheep's skull, bleached white."
+      ],
+      "ambient": [
+        "Bees drone around you."
+      ]
+    },
+    {
+      "noun": "Gorse Brake",
+      "descriptions": [
+        "A brake of gorse, yellow-flowered and wickedly spiked. Tufts of wool hang on every thorn."
+      ],
+      "features": [
+        "A path tunnelled through the gorse, low and narrow. Something uses it."
+      ],
+      "ambient": [
+        "The gorse pods crack in the sun."
+      ]
+    },
+    {
+      "noun": "Cairn",
+      "weight": 0.7,
+      "descriptions": [
+        "A heap of stones on a rise, each one added by somebody passing.",
+        "A tall cairn, leaning, with a view over half the moor."
+      ],
+      "features": [
+        "A stone with a name scratched into it, and a date."
+      ],
+      "ambient": [
+        "The wind whistles through the cairn."
+      ]
+    },
+    {
+      "noun": "Beck",
+      "weight": 1.0,
+      "descriptions": [
+        "A peaty brown beck tumbling over stones, cold enough to ache.",
+        "A deep cleft with a beck at the bottom and ferns on the walls."
+      ],
+      "features": [
+        "A plank bridge, missing its middle plank."
+      ],
+      "ambient": [
+        "The water chatters over the stones."
+      ]
+    },
+    {
+      "noun": "Shieling",
+      "weight": 0.6,
+      "descriptions": [
+        "A ruined summer hut of turf and stone, where herders lived when the flocks were up.",
+        "Four tumbled walls and a hearthstone, still blackened."
+      ],
+      "features": [
+        "A broken churn in the corner."
+      ],
+      "ambient": [
+        "The wind finds every gap."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": {
+      "gear.hanger": 1,
+      "gear.drovers_coat": 1,
+      "gear.hobnail_boots": 2,
+      "gear.wolfskin_hood": 1,
+      "gear.hide_targe": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.bilberries": 3,
+      "material.heather_honey": 2,
+      "material.wool": 1
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.22,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.moor_wolf": 3,
+      "enemy.feral_ram": 3,
+      "enemy.adder": 2,
+      "enemy.highwayman": 2
+    }
+  }
+}

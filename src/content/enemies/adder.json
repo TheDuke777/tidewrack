@@ -1,0 +1,27 @@
+{
+  "id": "enemy.adder",
+  "name": "Moor Adder",
+  "category": "beast",
+  "description": "A thick zigzag snake basking on a warm stone. You see it as it strikes.",
+  "stats": {
+    "atk": 15,
+    "def": 3,
+    "hp": 14
+  },
+  "rolls": {
+    "atk": [
+      0,
+      2
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.adder_skin",
+      "chance": 0.6,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

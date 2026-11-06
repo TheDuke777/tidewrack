@@ -1,0 +1,160 @@
+{
+  "id": "roomset.hill_farm",
+  "name": "Hill Farm",
+  "town": true,
+  "location_names": [
+    "Hartside",
+    "Cold Kirby",
+    "Fellgarth",
+    "Ravenseat",
+    "Low Thwaite",
+    "Swinside",
+    "Grisedale Fold",
+    "Windyhill"
+  ],
+  "size": [
+    8,
+    11
+  ],
+  "layout": {
+    "spread": 1.4,
+    "loops": 0.5,
+    "corridors": 0.25
+  },
+  "adjectives": [
+    "Stone-Walled",
+    "Windy",
+    "Low",
+    "Turf-Roofed",
+    "Smoky",
+    "Muddy",
+    "Sheltered",
+    "Grey",
+    "Lamplit",
+    "Quiet",
+    "Steep",
+    "Weathered"
+  ],
+  "entrance": {
+    "noun": "Fold Gate",
+    "descriptions": [
+      "A gate of grey timber in a drystone wall, where the drove roads meet. Sheep have worn the ground bare, and roads leave from here across the moor."
+    ],
+    "features": [
+      "A stone trough, iced at the edges.",
+      "A crook leaning on the wall, left for whoever needs it."
+    ],
+    "ambient": [
+      "A dog barks somewhere, then thinks better of it.",
+      "The wind hums in the wall."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Lane",
+      "weight": 2.0,
+      "descriptions": [
+        "A sunken lane between drystone walls, deep in mud and sheep droppings.",
+        "A walled lane climbing between the farmsteads, its stones furred with moss."
+      ],
+      "features": [
+        "A gap in the wall, stopped with a hurdle."
+      ],
+      "ambient": [
+        "Sheep shoulder past you, uninterested."
+      ]
+    },
+    {
+      "noun": "Smithy",
+      "weight": 0.4,
+      "descriptions": [
+        "A smithy in a squat stone barn, its forge fed with peat and charcoal. The smith shoes ponies and mends the drovers' blades."
+      ],
+      "features": [
+        "Horseshoes nailed over the door, points up for luck."
+      ],
+      "ambient": [
+        "The bellows wheeze."
+      ]
+    },
+    {
+      "noun": "Tavern",
+      "weight": 0.4,
+      "descriptions": [
+        "A long low inn with a turf roof and a fire that's never been let out. Drovers sleep on the settles when the moor's too wild to cross."
+      ],
+      "features": [
+        "A dog asleep across the doorway, who won't move for anyone."
+      ],
+      "ambient": [
+        "Someone starts a song about a lost ewe."
+      ]
+    },
+    {
+      "noun": "Market",
+      "weight": 0.4,
+      "descriptions": [
+        "A walled yard where the drovers trade: fleeces in bales, oats in sacks, flint knapped and sorted into baskets."
+      ],
+      "features": [
+        "A tally stick, notched for every sheep sold this year."
+      ],
+      "ambient": [
+        "A ewe complains about her price."
+      ]
+    },
+    {
+      "noun": "Shearing Shed",
+      "descriptions": [
+        "A big draughty shed smelling of lanolin, its floor slick with grease from a thousand fleeces."
+      ],
+      "features": [
+        "Shears hung on a peg, each pair with its owner's mark."
+      ],
+      "ambient": [
+        "Wool drifts in the air like snow."
+      ]
+    },
+    {
+      "noun": "Peat Stack",
+      "weight": 0.7,
+      "descriptions": [
+        "Stacks of cut peat drying under turf roofs, enough to burn all winter."
+      ],
+      "features": [
+        "A barrow with one wheel, mended with rope."
+      ],
+      "ambient": [
+        "The stack ticks as it settles."
+      ]
+    },
+    {
+      "noun": "Chapel",
+      "weight": 0.5,
+      "descriptions": [
+        "A stone chapel barely bigger than a byre, with a bell in a gable and a yew in the yard."
+      ],
+      "features": [
+        "Graves with no names, just a carved sheep on each."
+      ],
+      "ambient": [
+        "The bell rope creaks."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.15,
+    "gear": {
+      "gear.hanger": 2,
+      "gear.hide_targe": 2,
+      "gear.wolfskin_hood": 1,
+      "gear.hobnail_boots": 1,
+      "gear.hagstone": 1
+    }
+  },
+  "shops": [
+    "shop.moor_smithy",
+    "shop.tavern",
+    "shop.moor_market"
+  ]
+}
