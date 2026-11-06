@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Opening the log (or a world) shows its newest lines straight away instead
+  of slowly scrolling down from the top. New lines still glide in.
+
 ## [0.9.0] - 2026-11-05
 
 ### Changed

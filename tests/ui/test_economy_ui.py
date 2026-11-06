@@ -727,3 +727,18 @@ def test_new_chips_clear_when_you_tap_away_on_the_navigation_bar(tmp_path):
     _tap(shell, 0)
     _tap(shell, 1)
     assert _new_chips(shell.inventory.pack) == 0
+
+
+def test_the_log_glides_to_new_lines_but_jumps_when_opened(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+    assert explore.log.auto_scroll_animation == 0  # opening the world: already at the end
+    explore.act(Wait())
+    assert explore.log.auto_scroll_animation is None  # a new line: Flet's glide
+    explore._toggle_log()
+    explore._toggle_log()
+    assert explore.log.auto_scroll_animation == 0  # shown again: straight to the end
+    explore.refresh()
+    assert explore.log.auto_scroll_animation == 0  # nothing new: still no glide
+    explore.act(Wait())
+    assert explore.log.auto_scroll_animation is None

@@ -219,6 +219,7 @@ class GameScreen:
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
+        self._log_length: int | None = None  # lines at the last refresh (None: not drawn yet)
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
         self.map = MapCanvas(on_command=self.act, on_blocked=self.notify)
         # Which map is showing: the rooms here ("area"), the world, or none.
@@ -367,6 +368,9 @@ class GameScreen:
         self.refresh()
 
     def _toggle_log(self) -> None:
+        # Opening the log jumps straight to its newest line instead of gliding
+        # down from the top; new lines still glide in (refresh turns it back on).
+        self.log.auto_scroll_animation = 0
         self.split.toggle()
         self._save_split()
 
@@ -459,6 +463,11 @@ class GameScreen:
         self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
         self.log_hint.value = view.log[-1] if view.log else ""
         self._apply_split()
+        if self._log_length is None:
+            self.log.auto_scroll_animation = 0  # a world just opened: already at the end
+        elif len(view.log) != self._log_length:
+            self.log.auto_scroll_animation = None  # Flet's default glide for new lines
+        self._log_length = len(view.log)
 
         # Worlds saved before v0.4 have no world map; the oldest have no room map.
         area, world = self.map_choice.segments
