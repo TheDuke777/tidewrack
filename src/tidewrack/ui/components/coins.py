@@ -1,5 +1,8 @@
 """Gold amounts drawn as a number and a coin: "Buy · 12 ◉" instead of "12 gold".
 
+One icon for gold everywhere (your total too, tinted gold): a second icon would
+read as a second currency, and there is only gold (§1).
+
 `coins(text)` turns every "N gold" in a sentence into N plus a coin icon, so
 callers keep writing plain sentences (and toasts, dialogs and the log keep
 the word). The whole sentence stays on the control as `data` and the coin is
@@ -15,8 +18,9 @@ import flet as ft
 
 from tidewrack.ui import theme
 
-COIN = ft.Icons.PAID
-PURSE = "icons/money_bag.svg"  # src/assets/icons; Material Symbols, see NOTICE.md
+COIN = (
+    ft.Icons.PAID
+)  # the one gold icon, everywhere: a second one would look like a second currency
 AMOUNT = re.compile(r"(\d+) gold\b")
 
 
@@ -48,21 +52,14 @@ def coins(
 
 
 def purse(amount: int, size: float = 14) -> ft.Row:
-    """Your gold total: a gold-tinted money bag and the amount."""
+    """Your gold total: the same coin, tinted gold so the total stands out."""
     return ft.Row(
         tight=True,
         spacing=4,
         vertical_alignment=ft.CrossAxisAlignment.CENTER,
         data=f"{amount} gold",
         controls=[
-            # Always tinted: untinted, the file's light grey vanishes on light themes.
-            ft.Image(
-                src=PURSE,
-                width=size + 4,
-                height=size + 4,
-                color=theme.gold(),
-                semantics_label="gold",
-            ),
+            ft.Icon(COIN, size=size + 4, color=theme.gold(), semantics_label="gold"),
             ft.Text(str(amount), size=size, weight=ft.FontWeight.BOLD),
         ],
     )

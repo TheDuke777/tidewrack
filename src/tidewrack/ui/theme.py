@@ -31,7 +31,7 @@ def good() -> str:
 
 
 def gold() -> str:
-    """Gold for the purse icon: deep amber on light surfaces, bright on dark."""
+    """Gold for the coin on your total: deep amber on light surfaces, bright on dark."""
     return ft.Colors.AMBER_300 if _dark else ft.Colors.AMBER_800
 
 

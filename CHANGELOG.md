@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Your gold total in the Inventory uses the same coin as prices (tinted
+  gold) instead of a money bag, so it doesn't look like a second currency.
+
+### Fixed
+- "New" chips now go away when you leave the tab on the navigation bar
+  (they stayed on new quests, for example).
+
 ## [0.9.0-beta.2] - 2026-11-05
 
 ### Fixed
