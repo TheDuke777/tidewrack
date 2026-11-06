@@ -588,6 +588,7 @@ class GameView:
     gold: int = 0
     shops: tuple[ShopView, ...] = ()  # shops in this room
     fed: FedView | None = None
+    log_total: int = 0  # lines ever written while open (log keeps the last LOG_LIMIT)
 
 
 # --- the game ----------------------------------------------------------------------
@@ -714,6 +715,9 @@ class Game:
         self.bus = EventBus()
         self.turn = 0
         self.log: list[str] = []
+        # Lines written since the game was made or loaded (not saved): the log is
+        # capped, so its length stops growing; this tells the UI which are new.
+        self.log_total = 0
 
         # Per-turn systems, run in this order after every turn-taking command.
         self.systems: list[Callable[[Game], None]] = [
@@ -783,6 +787,7 @@ class Game:
         game.economy = EconomyRules(**state.economy.model_dump())
         game.turn = state.turn
         game.log = list(state.log)
+        game.log_total = len(game.log)
         game.world = World.restore(
             state.next_entity_id,
             {
@@ -1404,6 +1409,7 @@ class Game:
             gates=tuple(location.room(g).name for g in location.gates),
             roads=roads,
             log=tuple(self.log),
+            log_total=self.log_total,
             turn=self.turn,
             seed=self.seed,
             rooms_visited=len(rooms_visited),
@@ -1615,6 +1621,7 @@ class Game:
 
     def _say(self, line: str) -> None:
         self.log.append(line)
+        self.log_total += 1
         del self.log[:-LOG_LIMIT]
 
 

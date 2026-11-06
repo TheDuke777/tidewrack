@@ -742,3 +742,22 @@ def test_the_log_glides_to_new_lines_but_jumps_when_opened(tmp_path):
     assert explore.log.auto_scroll_animation == 0  # nothing new: still no glide
     explore.act(Wait())
     assert explore.log.auto_scroll_animation is None
+
+
+def test_the_latest_actions_lines_stay_bold_until_the_next_action(tmp_path):
+    session, shell, _, _ = _shell(tmp_path)
+    explore = shell.explore
+
+    def bold():
+        return [
+            c.value
+            for c in explore.log.controls
+            if isinstance(c, ft.Text) and c.weight == ft.FontWeight.BOLD
+        ]
+
+    assert bold() == []  # just opened
+    explore.act(Wait())
+    first = bold()
+    assert first and first[-1] == session.game.view().log[-1]
+    explore.refresh()  # e.g. switching tabs: still marked
+    assert bold() == first

@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The log marks what your latest action did: those lines are bold, under a
+  thin divider, until your next action.
+
 ### Changed
 - Opening the log (or a world) shows its newest lines straight away instead
   of slowly scrolling down from the top. New lines still glide in.

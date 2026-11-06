@@ -219,7 +219,8 @@ class GameScreen:
         self.exits = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.roads = ft.Column(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.STRETCH)
         self.log = ft.ListView(spacing=6, auto_scroll=True)
-        self._log_length: int | None = None  # lines at the last refresh (None: not drawn yet)
+        self._log_total: int | None = None  # view.log_total at the last refresh (None: not yet)
+        self._fresh_from = 0  # log_total index where your latest action's lines begin
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
         self.map = MapCanvas(on_command=self.act, on_blocked=self.notify)
         # Which map is showing: the rooms here ("area"), the world, or none.
@@ -460,14 +461,16 @@ class GameScreen:
         self.room.visible = self.description.visible = self.opened is None
         for section in (self.entrances, self.here, self.exits, self.roads, self.actions):
             section.visible = not busy
-        self.log.controls = [ft.Text(line, size=14) for line in view.log[-LOG_LINES_SHOWN:]]
+        if self._log_total is None:
+            self.log.auto_scroll_animation = 0  # a world just opened: already at the end
+            self._fresh_from = view.log_total  # nothing is "latest" yet
+        elif view.log_total != self._log_total:
+            self.log.auto_scroll_animation = None  # Flet's default glide for new lines
+            self._fresh_from = self._log_total
+        self._log_total = view.log_total
+        self.log.controls = log_lines(view.log[-LOG_LINES_SHOWN:], view.log_total, self._fresh_from)
         self.log_hint.value = view.log[-1] if view.log else ""
         self._apply_split()
-        if self._log_length is None:
-            self.log.auto_scroll_animation = 0  # a world just opened: already at the end
-        elif len(view.log) != self._log_length:
-            self.log.auto_scroll_animation = None  # Flet's default glide for new lines
-        self._log_length = len(view.log)
 
         # Worlds saved before v0.4 have no world map; the oldest have no room map.
         area, world = self.map_choice.segments
@@ -1041,6 +1044,23 @@ class GameScreen:
 
 def _heading(text: str) -> ft.Text:
     return ft.Text(text, size=16, weight=ft.FontWeight.BOLD)
+
+
+def log_lines(shown, total: int, fresh_from: int) -> list[ft.Control]:
+    """The log, with your latest action's lines in bold under a thin divider.
+
+    `shown` are the last lines of a log whose lines ever written number `total`;
+    those numbered `fresh_from` and up came from the latest action. Weight and a
+    divider mark them, never colour alone (§11).
+    """
+    first = total - len(shown)  # the running number of shown[0]
+    controls: list[ft.Control] = []
+    for i, line in enumerate(shown):
+        fresh = first + i >= fresh_from
+        if fresh and i > 0 and first + i == fresh_from:
+            controls.append(ft.Divider(height=1, thickness=1, color=ft.Colors.OUTLINE_VARIANT))
+        controls.append(ft.Text(line, size=14, weight=ft.FontWeight.BOLD if fresh else None))
+    return controls
 
 
 def _muted(text: str) -> ft.Text:

@@ -231,3 +231,19 @@ def test_gear_survives_a_save_round_trip():
     take = Take(here(game, "Cutlass").id)
     assert restored.perform(take) == game.perform(take)
     assert restored.to_state() == game.to_state()
+
+
+def test_log_total_keeps_counting_past_the_log_limit_and_isnt_saved():
+    from tidewrack.core.engine.game import LOG_LIMIT
+
+    game = new_game(1)
+    start = game.view().log_total
+    assert start == len(game.log)
+    for _ in range(LOG_LIMIT):
+        game.perform(Look())
+    view = game.view()
+    assert len(view.log) == LOG_LIMIT  # capped
+    assert view.log_total > start + LOG_LIMIT - 1  # still counting
+    restored = Game.from_state(GameState.model_validate_json(game.to_state().model_dump_json()))
+    assert restored.view().log_total == LOG_LIMIT  # starts again from what was kept
+    assert "log_total" not in game.to_state().model_dump()
