@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Cards (gear, quests, meals, materials, foes, worlds, fights) no longer
+  blend into the background with some wallpaper colours: they're filled a
+  shade further from the page.
+
 ## [0.10.0-beta.1] - 2026-11-05
 
 ### Added
@@ -25,11 +30,6 @@ All notable changes to this project are documented here. The format follows
   send you around their own region, and each region has its own found
   quests.
 - Older worlds open as they were: all coast, no wardens.
-
-### Fixed
-- Cards (gear, quests, meals, materials, foes, worlds, fights) no longer
-  blend into the background with some wallpaper colours: they're filled a
-  shade further from the page.
 
 ## [0.9.1] - 2026-11-05
 
