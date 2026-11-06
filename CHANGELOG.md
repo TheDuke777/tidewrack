@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format follows
   thin divider, until your next action.
 
 ### Changed
+- Android's back gesture steps out one level at a time: from another tab
+  to Explore, then out of an open shop or notice board, then to the world
+  list. On the world list it leaves the app as before.
 - Opening the log (or a world) shows its newest lines straight away instead
   of slowly scrolling down from the top. New lines still glide in.
 

@@ -105,6 +105,20 @@ class WorldShell:
         self.tabs[index][0].refresh()  # Inventory marks its own inner tab as seen
         self.update_dots()
 
+    def back(self) -> bool:
+        """Android's back gesture inside the world: one step out at a time.
+
+        Another tab → Explore; an open board or shop → closed. False when
+        there's nothing left to step out of (the app then leaves the world).
+        """
+        if self.current != EXPLORE:
+            self.select(EXPLORE)
+            return True
+        if self.explore.opened is not None:
+            self.explore.close()
+            return True
+        return False
+
     def _leave(self, index: int) -> None:
         if index == QUESTS:
             self.unread.leave("quests")

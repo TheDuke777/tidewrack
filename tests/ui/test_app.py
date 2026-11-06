@@ -140,3 +140,43 @@ def test_renaming_from_the_world_list(make_app):
     app.rename(session.meta.slot_id, "   ")  # blank: unchanged
     assert [s.meta.name for s in store.list_slots()] == ["Saltmarsh"]
     assert not in_world(page)  # back on the list
+
+
+def test_back_steps_out_one_level_at_a_time(make_app):
+    _, make = make_app
+    page, app = make()
+    app.new_world()
+    shell = app.shell
+    shell.select(2)  # Quests
+    assert app.back() is False and shell.current == 0  # → Explore
+    shell.explore.open("Smithy")
+    assert app.back() is False and shell.explore.opened is None  # → shop closed
+    assert app.back() is False and not in_world(page)  # → the world list
+    assert app.back() is True  # on the list: Android's usual back (leave the app)
+
+
+def test_the_back_gesture_is_caught_on_the_root_view(make_app):
+    import asyncio
+
+    import flet as ft
+
+    _, make = make_app
+    page, app = make()
+    page.views = [ft.View()]
+    app.start()
+    view = page.views[0]
+    assert view.can_pop is False and view.on_confirm_pop is not None
+    answers = []
+
+    class Event:
+        control = view
+
+    async def confirm_pop(should_pop):
+        answers.append(should_pop)
+
+    view.confirm_pop = confirm_pop
+    asyncio.run(view.on_confirm_pop(Event()))
+    assert answers == [True]  # on the world list
+    app.new_world()
+    asyncio.run(view.on_confirm_pop(Event()))
+    assert answers == [True, False] and not in_world(page)  # left the world, stayed in the app

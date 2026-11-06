@@ -38,12 +38,34 @@ class App:
         self.store = store
         self.settings = settings
         self.content = content
+        self.shell: WorldShell | None = None  # the open world, if any
 
     def _show(self, control: ft.Control, navigation_bar: ft.NavigationBar | None = None) -> None:
         self.page.navigation_bar = navigation_bar
         self.page.controls.clear()
         self.page.controls.append(control)
         self.page.update()
+
+    def _catch_back(self) -> None:
+        """Route Android's back gesture through `back` instead of closing the app."""
+        views = getattr(self.page, "views", None)
+        if views:
+            views[0].can_pop = False
+            views[0].on_confirm_pop = self._back
+
+    async def _back(self, e: ft.Event) -> None:
+        await e.control.confirm_pop(self.back())
+
+    def back(self) -> bool:
+        """One step back: within the world, then out to the list. True on the
+        world list, where back leaves the app as usual."""
+        if self.shell is None:
+            return True
+        if not self.shell.back():
+            self.show_picker()
+        else:
+            self.page.update()
+        return False
 
     def _notify(self, message: str) -> None:
         self.page.show_dialog(ft.SnackBar(ft.Text(message)))
@@ -57,6 +79,7 @@ class App:
 
     def start(self) -> None:
         """The world this process had open, if any (and still loadable); else the picker."""
+        self._catch_back()
         if _open_world is not None:
             try:
                 self.show_game(GameSession.open(self.store, _open_world, self.content))
@@ -69,6 +92,7 @@ class App:
         global _open_world
         _open_world = None
         theme.redraw = None
+        self.shell = None
         self._show(
             SlotPickerScreen(
                 self.store.list_slots(),
@@ -91,6 +115,7 @@ class App:
             notify=self._notify,
         )
         theme.redraw = lambda: shell.select(shell.current)
+        self.shell = shell
         self._show(shell.body, shell.navigation_bar)
         if session.from_backup:
             self._notify(
