@@ -6,6 +6,35 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-06
+
+### Changed
+- The world map's legend lists stilt villages under Town instead of giving
+  them their own entry.
+- Worlds have 14 places (7 per region) instead of 8. Notice boards only
+  send you around their own region, and each region has its own found
+  quests.
+- Older worlds open as they were: all coast, no wardens.
+
+### Fixed
+- Dragging or pinching a zoomed-in map is smoother: place names stay put
+  until you let go, and what's off screen isn't drawn.
+- Cards (gear, quests, meals, materials, foes, worlds, fights) no longer
+  blend into the background with some wallpaper colours: they're filled a
+  shade further from the page.
+
+### Added
+- Regions: new worlds now have two, the coast and, inland, the Fens. Each
+  is a cluster of places on the world map, its name written faintly across
+  them, and only one road leads from one region into the next.
+- The Fens: stilt villages, peat bogs, reed mazes and meres, with their own
+  foes (bog toads, fen pike, fen raiders, marsh lights, bog walkers), gear,
+  materials, ingredients, recipes and two new meals. Tougher than the coast.
+- Wardens: the Reed Warden stands at the gate on the road into the Fens.
+  It never attacks first; taking that road challenges it, and the way stays
+  open once it's beaten. Roads it bars show ⚔ on the world map.
+- The log says when you cross into a new region.
+
 ## [0.10.0-beta.3] - 2026-11-06
 
 ### Changed
