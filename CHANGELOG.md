@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.1-beta.1] - 2026-11-06
+
 ### Added
 - The Moors: beyond the Fens, a third region of hill farms, heaths, barrows
   and standing stones, with its own foes (moor wolves, feral rams, adders,
