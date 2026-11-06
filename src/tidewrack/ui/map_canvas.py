@@ -54,6 +54,8 @@ KIND_GLYPHS = {
     "Mere": "○",
 }
 DEFAULT_GLYPH = "•"
+# Kinds the legend files under another kind's name (same glyph, same role).
+LEGEND_NAMES = {"Stilt Village": "Town"}
 
 Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # left, top, right, bottom
@@ -106,6 +108,9 @@ class MapCanvas:
         self._base: dict[str, Point] = {}  # node positions at zoom 1
         self._points: dict[str, Point] = {}  # on screen
         self._gesture: tuple[float, Point] | None = None  # zoom and anchor at start
+        # Label spots relative to their dots, kept while a gesture moves the map:
+        # placing labels is the slow part of a redraw, so it waits for the end.
+        self._label_offsets: dict[str, Point] = {}
         self._last_draw = 0.0
 
         self.canvas = cv.Canvas(expand=True, on_resize=self._resized, resize_interval=100)
@@ -220,7 +225,7 @@ class MapCanvas:
 
     def _gesture_ended(self, _: ft.ScaleEndEvent) -> None:
         self._gesture = None
-        self._draw()
+        self._draw()  # labels placed properly again
 
     def _centre_on_me(self) -> None:
         here = self._current() if self.view else None
@@ -258,10 +263,14 @@ class MapCanvas:
         self._points = {i: self.viewport.to_screen(p) for i, p in self._base.items()}
         path = ft.Paint(color=ft.Colors.OUTLINE, stroke_width=2, style=ft.PaintingStyle.STROKE)
         shapes: list[cv.Shape] = [
-            cv.Line(*self._points[a], *self._points[b], paint=path) for a, b in self.view.edges
+            cv.Line(*self._points[a], *self._points[b], paint=path)
+            for a, b in self.view.edges
+            if self._on_screen_line(self._points[a], self._points[b])
         ]
         for node in self.view.nodes:
             x, y = self._points[node.id]
+            if not self._on_screen((x, y), r + 8):
+                continue
             mark = _square if node.gate else _circle
             if node.state == "current":
                 shapes += [
@@ -305,6 +314,17 @@ class MapCanvas:
             for mark in self.view.regions
         ]
 
+    def _on_screen(self, p: Point, margin: float) -> bool:
+        return -margin <= p[0] <= self.width + margin and -margin <= p[1] <= self.height + margin
+
+    def _on_screen_line(self, a: Point, b: Point) -> bool:
+        return not (
+            max(a[0], b[0]) < 0
+            or min(a[0], b[0]) > self.width
+            or max(a[1], b[1]) < 0
+            or min(a[1], b[1]) > self.height
+        )
+
     def _labels(self, r: float) -> list[cv.Shape]:
         assert self.view is not None
         names = {
@@ -312,7 +332,16 @@ class MapCanvas:
             for n in self.view.nodes
             if n.name
         }
-        spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
+        if self._gesture is not None and set(self._label_offsets) == set(names):
+            spots = {
+                i: (self._points[i][0] + dx, self._points[i][1] + dy)
+                for i, (dx, dy) in self._label_offsets.items()
+            }
+        else:
+            spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
+            self._label_offsets = {
+                i: (x - self._points[i][0], y - self._points[i][1]) for i, (x, y) in spots.items()
+            }
         return [
             cv.Text(
                 x,
@@ -325,6 +354,7 @@ class MapCanvas:
                 max_lines=2,
             )
             for node_id, (x, y) in spots.items()
+            if self._on_screen((x, y), LABEL_WIDTH)
         ]
 
 
@@ -379,9 +409,13 @@ def _badges(node: MapNode, x: float, y: float, r: float) -> list[cv.Shape]:
 
 
 def kinds_legend(view: MapView) -> str:
-    """ "⌂ Town  ≈ Sea Caves": the kinds of the places this map shows, in map order."""
-    kinds = dict.fromkeys(n.kind for n in view.nodes if n.kind and n.name)
-    return "   ".join(f"{KIND_GLYPHS.get(k, DEFAULT_GLYPH)} {k}" for k in kinds)
+    """ "⌂ Town  ≈ Sea Caves": the kinds of the places this map shows, in map order;
+    kinds sharing a glyph (a stilt village is a town) get one entry."""
+    entries = dict.fromkeys(
+        f"{KIND_GLYPHS.get(k, DEFAULT_GLYPH)} {LEGEND_NAMES.get(k, k)}"
+        for k in (n.kind for n in view.nodes if n.kind and n.name)
+    )
+    return "   ".join(entries)
 
 
 def _circle(x: float, y: float, r: float, paint: ft.Paint) -> cv.Shape:

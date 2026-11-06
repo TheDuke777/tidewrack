@@ -174,3 +174,36 @@ def test_region_names_and_guarded_roads_on_the_world_map():
     for entity, _ in list(game.world.query(Warden)):
         game.world.destroy(entity)
     assert not next(n for n in game.view().world_map.nodes if n.id == far).guarded
+
+
+def test_the_legend_lists_stilt_villages_as_towns():
+    from tidewrack.core.engine.game import MapNode, MapView
+    from tidewrack.ui.map_canvas import kinds_legend
+
+    def node(i, kind):
+        return MapNode(i, 0.5, 0.5, "visited", f"Place {i}", None, kind=kind)
+
+    view = MapView((node("a", "Town"), node("b", "Peat Bog"), node("c", "Stilt Village")), (), 3)
+    assert kinds_legend(view) == "⌂ Town   ∴ Peat Bog"
+
+
+def test_drags_reuse_label_spots_and_skip_what_is_off_screen():
+    from tidewrack.core.engine.game import MapNode, MapView
+    from tidewrack.ui.map_canvas import MapCanvas
+
+    nodes = tuple(
+        MapNode(f"n{i}", x, 0.5, "visited", f"Place {i}", None, kind="Town")
+        for i, x in enumerate((0.05, 0.5, 0.95))
+    )
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.width, canvas.height = 400, 260
+    canvas.show(MapView(nodes, (("n0", "n1"), ("n1", "n2")), 3), "", "w", labels=True)
+    whole = len(canvas.canvas.shapes)
+    canvas.viewport.place((200, 130), (200, 130), 4.0, (400, 260))  # only the middle shows
+    canvas._gesture = (4.0, (200, 130))
+    offsets = dict(canvas._label_offsets)
+    canvas._draw()
+    assert canvas._label_offsets == offsets  # not placed again mid-gesture
+    assert len(canvas.canvas.shapes) < whole
+    texts = [s.value for s in canvas.canvas.shapes if getattr(s, "value", None)]
+    assert texts == ["⌂ Place 1"]
