@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A "Better upgraded" chip on gear that's worse than what you have on now
+  but would beat it once both are fully upgraded, so you know it's the one
+  to put materials into. Expanded cards say what it beats.
+- The map's legend can be hidden with a button on the map; the app
+  remembers your choice.
+
+### Changed
+- Maps open zoomed in on you instead of showing the whole map, and keep
+  your zoom when you move or travel (the area map and world map each keep
+  their own). The whole-map button still shows everything.
+- Less empty space around the Turn · Rooms · Places line under the log.
+
 ## [0.10.1-beta.1] - 2026-11-06
 
 ### Added
