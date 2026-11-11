@@ -57,6 +57,14 @@ class Comparison:
     effects_gained: tuple[str, ...]
     effects_lost: tuple[str, ...]
     at_max: StatBlock | None  # player stats with the candidate fully upgraded
+    # Both fully upgraded (the candidate and what it replaces): is it the better
+    # piece to put materials into? None when it's equipped (nothing to weigh).
+    upgraded_verdict: Verdict | None = None
+
+    @property
+    def better_upgraded(self) -> bool:
+        """Not better now, but better once both are fully upgraded."""
+        return self.verdict != "better" and self.upgraded_verdict == "better"
 
 
 def compare(
@@ -86,6 +94,13 @@ def compare(
         maxed_loadout = [maxed if item is candidate else item for item in after_loadout]
         at_max = player_stats(player_base, maxed_loadout).total
 
+    upgraded_verdict = None
+    if not is_equipped:
+        rest = [item for item in after_loadout if item is not candidate]
+        both_maxed_before = player_stats(player_base, rest + [_maxed(i) for i in replaced]).total
+        both_maxed_after = player_stats(player_base, rest + [_maxed(candidate)]).total
+        upgraded_verdict = _verdict(stats.sub(both_maxed_after, both_maxed_before))
+
     bonuses_before, bonuses_after = _set_bonus_labels(equipped), _set_bonus_labels(after_loadout)
     effects_before, effects_after = Counter(_effects(equipped)), Counter(_effects(after_loadout))
     return Comparison(
@@ -100,7 +115,12 @@ def compare(
         effects_gained=tuple((effects_after - effects_before).elements()),
         effects_lost=tuple((effects_before - effects_after).elements()),
         at_max=at_max,
+        upgraded_verdict=upgraded_verdict,
     )
+
+
+def _maxed(item: Item) -> Item:
+    return at_max_upgrade(item) or item
 
 
 def format_stats(block: Mapping[str, int]) -> str:

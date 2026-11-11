@@ -42,11 +42,26 @@ def verdict_chip(verdict: str) -> ft.Container:
     )
 
 
+def upgraded_chip() -> ft.Container:
+    """Worse (or mixed) now, but better than what it replaces once both are fully
+    upgraded: worth putting materials into. Words and an arrow, never colour alone."""
+    color = theme.good()
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+        border=ft.Border.all(1, color),
+        border_radius=ft.BorderRadius.all(12),
+        content=ft.Text("⤒ Better upgraded", size=13, color=color),
+        tooltip="Fully upgraded, it beats what it replaces fully upgraded",
+    )
+
+
 def chips(item: ItemView) -> list[ft.Control]:
     """Top-right of the card: the verdict (unless equipped) and the item's set."""
     found: list[ft.Control] = []
     if not item.comparison.equipped:
         found.append(verdict_chip(item.comparison.verdict))
+    if item.comparison.better_upgraded:
+        found.append(upgraded_chip())
     if item.gear_set and item.gear_set_id:
         found.append(set_chip(item.gear_set, item.gear_set_id, item.gear_set_color))
     return found
@@ -89,6 +104,11 @@ def notes(item: ItemView) -> list[str]:
     if comparison.at_max is not None:
         maxed = " · ".join(f"{STAT_LABELS[s]} {comparison.at_max[s]}" for s in STATS)
         lines.append(f"Fully upgraded, you'd have {maxed}")
+    if comparison.better_upgraded:
+        lines.append(
+            "Better upgraded: with both fully upgraded, it beats "
+            + (" and ".join(comparison.replaces) or "what you have")
+        )
     return lines
 
 
@@ -149,6 +169,8 @@ def gear_compare_card(
         if item.gear_set and item.gear_set_id
         else []
     )
+    if comparison.better_upgraded:
+        gear_set.insert(0, upgraded_chip())
     header = ft.Column(
         spacing=4,
         controls=[

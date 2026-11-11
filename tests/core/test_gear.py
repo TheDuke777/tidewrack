@@ -163,3 +163,22 @@ def test_verdicts():
 def test_format_stats_uses_signs_and_skips_zeros():
     assert format_stats({"atk": -1, "def": 2}) == "ATK −1, DEF +2"
     assert format_stats({}) == ""
+
+
+def test_better_upgraded_weighs_both_items_fully_upgraded():
+    def blade(name, atk, upgrade, max_upgrade):
+        item = replace(gear(name, "main_hand", atk=atk), max_upgrade=max_upgrade)
+        return replace(item, upgrade_step={"atk": 1}, upgrade=upgrade)
+
+    worn = blade("Cutlass", 4, upgrade=3, max_upgrade=3)  # 7 now, 7 at most
+    raw = blade("Barrow Blade", 6, upgrade=0, max_upgrade=3)  # 6 now, 9 at most
+    comparison = compare(raw, [worn], BASE)
+    assert comparison.verdict == "worse" and comparison.upgraded_verdict == "better"
+    assert comparison.better_upgraded
+
+    # Already better now: the verdict says so; no second chip.
+    assert not compare(blade("Hanger", 8, 0, 3), [worn], BASE).better_upgraded
+    # Your worn one has room to grow too: compared fully upgraded, it still wins.
+    room = blade("Cutlass", 4, upgrade=0, max_upgrade=6)  # 4 now, 10 at most
+    assert compare(raw, [room], BASE).upgraded_verdict == "worse"
+    assert compare(worn, [worn], BASE).upgraded_verdict is None  # equipped

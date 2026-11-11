@@ -36,7 +36,7 @@ REGION_SIZE = 13
 CHAR_WIDTH = 0.58 * LABEL_SIZE  # rough average glyph width, for estimating label boxes
 LINE_HEIGHT = 1.3 * LABEL_SIZE
 MAX_ZOOM = 4.0
-FOCUS_ZOOM = 2.0  # "centre on me" zooms in at least this far
+FOCUS_ZOOM = 2.0  # maps open this far in; "centre on me" zooms in at least this far
 FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
 REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
 
@@ -101,14 +101,21 @@ class MapCanvas:
         self,
         on_command: Callable[[Command], None],
         on_blocked: Callable[[str], None] = lambda _: None,
+        legend_open: bool = True,
+        on_legend: Callable[[bool], None] = lambda _: None,
     ) -> None:
         self.on_command = on_command
         self.on_blocked = on_blocked  # told why a tapped place can't be reached yet
+        self.on_legend = on_legend  # told when the legend is shown or hidden (to remember it)
         self.view: MapView | None = None
         self.labels = False
         self.width, self.height = DEFAULT_WIDTH, MAP_HEIGHT
         self.viewport = Viewport()
         self._key: Hashable = None
+        # Each kind of map ("area", "world") keeps the zoom you last left it at, so a
+        # new place or a new room doesn't throw you back out to the whole map.
+        self._zoom_key: Hashable = None
+        self._zooms: dict[Hashable, float] = {}
         self._base: dict[str, Point] = {}  # node positions at zoom 1
         self._points: dict[str, Point] = {}  # on screen
         self._gesture: tuple[float, Point] | None = None  # zoom and anchor at start
@@ -118,7 +125,15 @@ class MapCanvas:
         self._last_draw = 0.0
 
         self.canvas = cv.Canvas(expand=True, on_resize=self._resized, resize_interval=100)
-        self.legend = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
+        self.legend = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT, visible=legend_open)
+        self.legend_button = ft.IconButton(
+            icon=ft.Icons.LEGEND_TOGGLE_OUTLINED,
+            selected_icon=ft.Icons.LEGEND_TOGGLE,
+            selected=legend_open,
+            icon_size=20,
+            tooltip="Show or hide the legend",
+            on_click=lambda _: self._toggle_legend(),
+        )
         self.fit_button = ft.IconButton(
             icon=ft.Icons.ZOOM_OUT_MAP,
             icon_size=20,
@@ -132,6 +147,7 @@ class MapCanvas:
             content=ft.Row(
                 spacing=0,
                 controls=[
+                    self.legend_button,
                     self.fit_button,
                     ft.IconButton(
                         icon=ft.Icons.MY_LOCATION,
@@ -163,21 +179,52 @@ class MapCanvas:
             ],
         )
 
-    def show(self, view: MapView, legend: str, key: Hashable, labels: bool = False) -> None:
+    def show(
+        self,
+        view: MapView,
+        legend: str,
+        key: Hashable,
+        labels: bool = False,
+        zoom_key: Hashable = None,
+    ) -> None:
         """Draw `view`; with `labels`, known node names are written beside them.
 
-        A new `key` (another map, or another location) resets the zoom; otherwise
-        the view follows the player if they walk off the edge of it.
+        A new `key` (another map, or another location) centres on the player at
+        the zoom last used for `zoom_key` (FOCUS_ZOOM at first); otherwise the
+        view follows the player if they walk off the edge of it.
         """
-        if key != self._key:
-            self.viewport, self._key = Viewport(), key
         self.view, self.labels = view, labels
         self.legend.value = legend
         self._layout()
         here = self._current()
-        if here is not None and not self.viewport.shows(here, self._size, FOLLOW_MARGIN):
+        if key != self._key:
+            self._remember_zoom()
+            self._key, self._zoom_key = key, zoom_key
+            zoom = self._zooms.get(zoom_key, FOCUS_ZOOM)
+            self.viewport = Viewport()
+            if here is not None:
+                self.viewport.centre_on(here, self._size, zoom)
+        elif here is not None and not self.viewport.shows(here, self._size, FOLLOW_MARGIN):
             self.viewport.centre_on(here, self._size)
         self._draw()
+
+    def _remember_zoom(self) -> None:
+        if self._key is not None:
+            self._zooms[self._zoom_key] = self.viewport.zoom
+
+    def _toggle_legend(self) -> None:
+        self.legend.visible = not self.legend.visible
+        self.legend_button.selected = self.legend.visible
+        self.on_legend(self.legend.visible)
+        self._update(self.legend, self.legend_button)
+
+    @staticmethod
+    def _update(*controls: ft.Control) -> None:
+        for control in controls:
+            try:
+                control.update()
+            except RuntimeError:  # not on a page (tests)
+                pass
 
     @property
     def _size(self) -> Point:
@@ -190,9 +237,16 @@ class MapCanvas:
     # --- events ------------------------------------------------------------------
 
     def _resized(self, e: cv.CanvasResizeEvent) -> None:
+        if (e.width, e.height) == (self.width, self.height):
+            return
+        # Keep the zoom (the layout often settles after a move); just stay on you.
+        zoom = self.viewport.zoom
         self.width, self.height = e.width, e.height
         self.viewport = Viewport()
         self._layout()
+        here = self._current() if self.view else None
+        if here is not None:
+            self.viewport.centre_on(here, self._size, zoom)
         self._draw()
 
     def _tapped(self, e: ft.TapEvent) -> None:
@@ -239,6 +293,7 @@ class MapCanvas:
 
     def _fit(self) -> None:
         self.viewport = Viewport()
+        self._remember_zoom()
         self._draw()
 
     # --- drawing -----------------------------------------------------------------

@@ -209,3 +209,48 @@ def test_drags_reuse_label_spots_and_skip_what_is_off_screen():
     assert len(canvas.canvas.shapes) < whole
     texts = [s.value for s in canvas.canvas.shapes if getattr(s, "value", None)]
     assert texts == ["⌂ Place 1"]
+
+
+def _map(n=9):
+    from tidewrack.core.engine.game import MapNode, MapView
+
+    nodes = tuple(
+        MapNode(f"n{i}", (i % 3) / 2, (i // 3) / 2, "current" if i == 4 else "visited", "P", None)
+        for i in range(n)
+    )
+    return MapView(nodes, (), n)
+
+
+def test_maps_open_zoomed_in_on_you_and_keep_your_zoom():
+    from tidewrack.ui.map_canvas import FOCUS_ZOOM, MapCanvas
+
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.show(_map(), "", key=("area", "a"), zoom_key="area")
+    assert canvas.viewport.zoom == FOCUS_ZOOM
+
+    canvas.viewport.place((0, 0), (0, 0), 3.0, canvas._size)  # you pinch in further
+    canvas.show(_map(), "", key=("area", "a"), zoom_key="area")  # a move: same place
+    assert canvas.viewport.zoom == 3.0
+    canvas.show(_map(), "", key=("area", "b"), zoom_key="area")  # travel: a new place
+    assert canvas.viewport.zoom == 3.0
+    canvas.show(_map(), "", key=("world", "b"), zoom_key="world")  # the world map: its own
+    assert canvas.viewport.zoom == FOCUS_ZOOM
+
+    from types import SimpleNamespace
+
+    canvas._resized(SimpleNamespace(width=380, height=240))  # the layout settling
+    assert canvas.viewport.zoom == FOCUS_ZOOM
+    canvas._fit()
+    canvas.show(_map(), "", key=("area", "c"), zoom_key="area")
+    canvas.show(_map(), "", key=("world", "c"), zoom_key="world")
+    assert canvas.viewport.zoom == 1.0  # you asked for the whole world map: it stays
+
+
+def test_the_legend_can_be_hidden_and_says_so():
+    from tidewrack.ui.map_canvas import MapCanvas
+
+    told = []
+    canvas = MapCanvas(on_command=lambda _: None, legend_open=False, on_legend=told.append)
+    assert not canvas.legend.visible and not canvas.legend_button.selected
+    canvas._toggle_legend()
+    assert canvas.legend.visible and canvas.legend_button.selected and told == [True]

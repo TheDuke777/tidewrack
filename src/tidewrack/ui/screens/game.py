@@ -232,7 +232,12 @@ class GameScreen:
         self._log_total: int | None = None  # view.log_total at the last refresh (None: not yet)
         self._fresh_from = 0  # log_total index where your latest action's lines begin
         self.status = ft.Text(size=12, color=ft.Colors.ON_SURFACE_VARIANT)
-        self.map = MapCanvas(on_command=self.act, on_blocked=self.notify)
+        self.map = MapCanvas(
+            on_command=self.act,
+            on_blocked=self.notify,
+            legend_open=saved.legend_open,
+            on_legend=self._save_legend,
+        )
         # Which map is showing: the rooms here ("area"), the world, or none.
         self.map_choice = ft.SegmentedButton(
             allow_empty_selection=True,
@@ -340,15 +345,16 @@ class GameScreen:
         self.control = ft.SafeArea(
             expand=True,
             content=ft.Container(
-                padding=16,
+                # Little below the status row: it's the last thing on screen.
+                padding=ft.Padding(left=16, top=16, right=16, bottom=4),
                 content=ft.Column(
                     expand=True,
                     spacing=12,
                     controls=[
                         header,
                         self.map.control,
-                        self.panes,
-                        self.status,
+                        # The status row sits close under the log, not a full gap away.
+                        ft.Column(expand=True, spacing=2, controls=[self.panes, self.status]),
                     ],
                 ),
             ),
@@ -407,6 +413,10 @@ class GameScreen:
 
     def _panes_resized(self, e: ft.LayoutSizeChangeEvent) -> None:
         self._panes_height = e.height
+
+    def _save_legend(self, open_: bool) -> None:
+        current = self.settings.load()  # keep the other settings
+        self.settings.save(current.model_copy(update={"legend_open": open_}))
 
     def _save_split(self) -> None:
         self._apply_split()
@@ -498,8 +508,9 @@ class GameScreen:
             self.map.show(
                 shown,
                 legend,
-                key=(choice, view.location),  # a new map or place resets the zoom
+                key=(choice, view.location),  # a new map or place: centre on you
                 labels=on_world,
+                zoom_key=choice,  # each map keeps its own zoom
             )
 
         # Progress only: stats live in the inventory, and seed and version will go to

@@ -22,6 +22,7 @@ class Settings(BaseModel):
 
     log_visible: bool = True
     log_share: float = Field(default=0.4, ge=0.1, le=0.8)  # of the game screen's text area
+    legend_open: bool = True  # the map's legend under it (the map's legend button)
     collapsed: dict[str, bool] = {}  # card list name -> starts collapsed (ui.components.folds)
     # Material You: the last wallpaper scheme read, applied at launch before the
     # (slower) fresh read so the app never flashes the built-in colours first.
