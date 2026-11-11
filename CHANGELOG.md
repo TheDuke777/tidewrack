@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.1-beta.2] - 2026-11-11
+
 ### Added
 - A "Better upgraded" chip on gear that's worse than what you have on now
   but would beat it once both are fully upgraded, so you know it's the one
