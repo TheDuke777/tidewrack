@@ -3,10 +3,13 @@
 An entry appears when you first meet an enemy (name, kind, description). Its
 stats are revealed after STATS_AT defeats and what it can drop after DROPS_AT, so
 the codex rewards fighting without hiding anything for good (CLAUDE.md §8.5).
+Every entry also says where its kind is found (`found_in`, worked out by the game
+from the world: kinds of place, by region, never place names you haven't seen).
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from tidewrack.core.engine.components import Codex
@@ -27,6 +30,7 @@ class FoeView:
     stats: StatBlock | None  # None until STATS_AT defeats
     drops: tuple[str, ...] | None  # None until DROPS_AT defeats; () = drops nothing
     next_reveal: str | None  # what defeating more of them will show, if anything
+    found_in: str | None = None  # "Peat Bog, Mere (The Sallow Fens)"; None if nowhere now
 
 
 @dataclass(frozen=True)
@@ -46,7 +50,8 @@ class FoesView:
         return groups
 
 
-def foes_view(codex: Codex) -> FoesView:
+def foes_view(codex: Codex, found_in: Mapping[str, str] | None = None) -> FoesView:
+    found_in = found_in or {}
     views = []
     for enemy_id, entry in codex.foes.items():
         kills = codex.kills.get(enemy_id, 0)
@@ -68,6 +73,7 @@ def foes_view(codex: Codex) -> FoesView:
                 stats=dict(entry.stats) if kills >= STATS_AT else None,
                 drops=tuple(entry.drops) if kills >= DROPS_AT else None,
                 next_reveal=hint,
+                found_in=found_in.get(enemy_id),
             )
         )
     return FoesView(tuple(views))

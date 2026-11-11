@@ -36,4 +36,5 @@ SCHEMA_VERSION = 12
 # 12: worlds grow region by region (clusters, one road between regions);
 #     wardens guard the borders; quests stay in their board's region
 # 13: standard worlds add the Moors (21 places in three regions)
-GENERATOR_VERSION = 13
+# 14: every region has at least one place of each of its kinds
+GENERATOR_VERSION = 14

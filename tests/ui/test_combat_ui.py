@@ -54,6 +54,7 @@ def test_codex_lines_hide_what_isnt_known_yet():
         "Defeated: 0",
         f"Strength: {UNKNOWN}",
         f"Drops: {UNKNOWN}",
+        "Found in: Dungeon",
         "Defeat one to learn its strength.",
     ]
     game.world.get(game.player, Codex).kills["enemy.smuggler"] = 3

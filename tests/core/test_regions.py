@@ -109,3 +109,24 @@ def test_every_region_past_the_coast_has_its_warden_on_its_one_road_in():
     }
     near, _ = BORDERS["region.moors"]
     assert WORLD.location(near).region == "region.fens"  # the Moors lie beyond the Fens
+
+
+def test_the_codex_says_where_foes_are_found():
+    from tidewrack.core.engine.components import Codex, FoeEntry
+
+    from tidewrack.core.procgen.enemy_gen import generate_enemies
+
+    enemies, spawners = generate_enemies(SEED, WORLD, CONTENT)
+    game = Game(SEED, WORLD, enemies=enemies, spawners=spawners, wardens=WARDENS)
+    codex = game.world.get(game.player, Codex)
+    for enemy_id in ("enemy.bog_toad", "enemy.reed_warden", "enemy.barrow_wight"):
+        codex.foes[enemy_id] = FoeEntry(enemy_id, enemy_id, "beast", "", {})
+    found = {f.enemy_id: f.found_in for f in game.foes().foes}
+    fens = WORLD.regions["region.fens"].name
+    assert found["enemy.reed_warden"] == f"Guards the causeway into {fens}"
+    assert found["enemy.bog_toad"] == "places you haven't found yet"  # the Fens aren't known
+    assert found["enemy.barrow_wight"] == "places you haven't found yet"
+
+    game.world.get(game.player, Explorer).locations_discovered.add(FAR)
+    found = {f.enemy_id: f.found_in for f in game.foes().foes}
+    assert "Peat Bog" in found["enemy.bog_toad"] and found["enemy.bog_toad"].endswith(f"({fens})")

@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Codex foe entries say where they're found: the kinds of place, by region
+  (regions you haven't found yet stay unnamed). Wardens say which road they
+  guard.
+
+### Changed
+- Every region in a new world has at least one place of each of its kinds,
+  so no kind's gear, foes or materials are ever missing from a world (one
+  world had no sea caves, and so no Sealskin Boots).
+
 ## [0.10.1-beta.2] - 2026-11-11
 
 ### Added

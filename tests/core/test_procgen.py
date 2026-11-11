@@ -40,32 +40,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -74,12 +74,12 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def test_golden_wardens():
-    assert GENERATOR_VERSION == 13
+    assert GENERATOR_VERSION == 14
     world = new_world(20261103)
     assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
 
@@ -90,14 +90,14 @@ def quests_for(seed: int):
     return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
 
 
-GOLDEN_QUESTS = "80be0bb79daca0d6f4f482b45a77474ba03dcbb75b69a940af542b72a286b37e"
-GOLDEN_STANDARD = "a3509dc6a9ef7330e0efd3808dfd2d2b3823494270f3148c8d24d70d87043c4a"
-GOLDEN_ENEMIES = "a43d86e13e0c19fe1b7fbdf22bbc9c7aa2e2612d84acfc37e7ab8b700e4a7f89"
-GOLDEN_SHOPS = "0ce5eb1742b1b9110f9b3a7167af95ca621eecd07ae4164700c954da1ae6f730"
-GOLDEN_GATHERING = "04e7a41bb84654214eab48b4a6d62df2b489139edb3fa262b000ddee82ca21b3"
-GOLDEN_RECIPES = "b49376440f05dcbd7d261d5e2f640e72cdac282064e1c7d5bf5c43dc9f650a7e"
+GOLDEN_QUESTS = "5d49c3fae29349ebcdd1c48ea32c0777ad31bafb52b930fe41db878937c4e22d"
+GOLDEN_STANDARD = "a3dc5f4e11aadd072e13b69f3760bccb354529eacdf6387b7b79d2fc49525e76"
+GOLDEN_ENEMIES = "246d35db8dd4ee41b90ac78e7bfcffe2d1ce1526de7dec0db0fb229f22946719"
+GOLDEN_SHOPS = "2bf28328322a7d615efae0ddb23b9f88bce9809e52216afb7633a71c19ae901d"
+GOLDEN_GATHERING = "a4390cbe5dce37dc8cb14a6f7b89644fd8a55c9dc93d0d00aa6cb4090484d4f2"
+GOLDEN_RECIPES = "6af666929e6e7dbc914dc4dce5b1ab42c49514c52173bca95c10c747243fcd6f"
 GOLDEN_WARDENS = "7eb1b7af22de9fe3d3047e6787e7353d323aaf7a1cf1911712f03491c593f811"
-GOLDEN_FINDS = "537cb317982bfe298b49620b08b502cb43abeecab44320f0677f07229f9a1c2f"
+GOLDEN_FINDS = "addfd0dd35cfdca4c6daf2543982f45e35bea1a5ee1400e6087069b0347a201b"
 
 
 # --- worlds ------------------------------------------------------------------------
@@ -589,3 +589,11 @@ def test_materials_and_recipes_dont_change_anything_else():
     assert world_hash(world) == GOLDEN_STANDARD
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
+
+
+def test_every_region_has_one_of_each_of_its_kinds():
+    for seed in range(40):
+        world = new_world(seed)
+        for region in REGIONS.values():
+            here = {loc.kind for loc in world.locations.values() if loc.region == region.id}
+            assert here == {ROOMSETS[r].name for r in region.roomsets}, (seed, region.id)

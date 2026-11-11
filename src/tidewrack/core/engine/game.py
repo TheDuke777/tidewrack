@@ -1105,7 +1105,56 @@ class Game:
         return max(0, self.max_hp() - self.world.get(self.player, Health).damage)
 
     def foes(self) -> FoesView:
-        return foes_view(self.world.get(self.player, Codex))
+        return foes_view(self.world.get(self.player, Codex), self._found_in())
+
+    def _found_in(self) -> dict[str, str]:
+        """Where each enemy kind lives, for the codex: the kinds of place it's in
+        (placed, wandering or able to return), grouped by region; a warden says
+        which road it guards. Regions you haven't found yet stay unnamed."""
+        places: dict[str, dict[str, list[str]]] = {}  # enemy -> region -> place kinds
+
+        def note(enemy_id: str, location_id: str) -> None:
+            location = self.overworld.location(location_id)
+            kinds = places.setdefault(enemy_id, {}).setdefault(location.region, [])
+            if location.kind not in kinds:
+                kinds.append(location.kind)
+
+        guards: dict[str, str] = {}
+        for entity, (enemy, position) in self.world.query(Enemy, Position):
+            warden = self.world.try_get(entity, Warden)
+            if warden is not None:
+                region = self.overworld.regions.get(warden.region)
+                guards[enemy.enemy_id] = f"Guards {warden.crossing} into " + (
+                    region.name if region else "the next region"
+                )
+            else:
+                note(enemy.enemy_id, position.location)
+        for _, (spawner,) in self.world.query(Spawner):
+            for enemy_id in [e.enemy_id for e in spawner.queue] + [
+                t.enemy_id for t in spawner.templates
+            ]:
+                note(enemy_id, spawner.location)
+
+        explorer = self._explorer()
+        known = {
+            self.overworld.location(i).region
+            for i in explorer.locations_discovered | explorer.locations_visited
+        }
+        found = dict(guards)
+        for enemy_id, by_region in places.items():
+            parts, unknown = [], False
+            for region_id, kinds in by_region.items():
+                region = self.overworld.regions.get(region_id)
+                if region_id in known or region is None:
+                    parts.append(
+                        f"{', '.join(kinds)} ({region.name})" if region else ", ".join(kinds)
+                    )
+                else:
+                    unknown = True
+            if unknown:
+                parts.append("places you haven't found yet")
+            found.setdefault(enemy_id, "; ".join(parts))
+        return found
 
     def _combat_view(self) -> CombatView | None:
         fighting = self.world.try_get(self.player, Fighting)

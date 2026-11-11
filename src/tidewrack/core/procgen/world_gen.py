@@ -3,8 +3,9 @@
 The overworld uses the same grid layout as rooms do (grid.py), with locations as
 nodes and roads as edges, grown region by region (coast first) so each region is
 a cluster joined to the one before by a single road. Each region's first place
-is its town (the coast's is where the game starts); the rest are drawn by weight
-from its roomsets. Every location's rooms are
+is its town (the coast's is where the game starts); the rest include one of each
+of its other roomsets (so every kind's finds and foes exist somewhere), the
+remainder drawn by weight, all in a shuffled order. Every location's rooms are
 generated up front from its own substream and the whole world is snapshotted into
 the save, so updates to the generator or content never change an existing world
 (CLAUDE.md §9).
@@ -59,12 +60,9 @@ def generate_world(
         world_regions[region.id] = Region(
             region.id, names_rng.choice(region.names), region.name, region.tier
         )
-        choices = list(region.roomsets)
-        weights = [region.roomsets[c] for c in choices]
-        for i, cell in enumerate(cells):
-            roomset = roomsets[
-                region.town if i == 0 else kinds_rng.weighted_choice(choices, weights)
-            ]
+        kinds = [region.town, *_kinds(kinds_rng, region.roomsets, region.town, len(cells) - 1)]
+        for cell, kind in zip(cells, kinds, strict=True):
+            roomset = roomsets[kind]
             location_id = ids[cell]
             location_rng = rng.derive(f"location.{location_id}")
             location = generate_location(
@@ -104,3 +102,18 @@ def _unique_name(rng: Rng, roomset: RoomsetSchema, used: set[str]) -> str:
             n += 1
     used.add(name)
     return name
+
+
+def _kinds(rng: Rng, weights: Mapping[str, float], town: str, count: int) -> list[str]:
+    """`count` roomsets for a region's places after its town: one of each kind but
+    the town (as many as fit), then weighted draws, shuffled together."""
+    required = [k for k in weights if k != town]
+    rng.shuffle(required)
+    kinds = required[:count]
+    choices = list(weights)
+    kinds += [
+        rng.weighted_choice(choices, [weights[c] for c in choices])
+        for _ in range(count - len(kinds))
+    ]
+    rng.shuffle(kinds)
+    return kinds

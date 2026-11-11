@@ -98,6 +98,10 @@ def foe_lines(foe: FoeView) -> list[str]:
     else:
         drops = ", ".join(foe.drops) or "nothing"
     lines = [f"Defeated: {foe.defeated}", f"Strength: {strength}", f"Drops: {drops}"]
+    if foe.found_in:
+        lines.append(
+            foe.found_in if foe.found_in.startswith("Guards") else f"Found in: {foe.found_in}"
+        )
     if foe.next_reveal:
         lines.append(foe.next_reveal)
     return lines
