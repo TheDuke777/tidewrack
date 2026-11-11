@@ -254,3 +254,11 @@ def test_the_legend_can_be_hidden_and_says_so():
     assert not canvas.legend.visible and not canvas.legend_button.selected
     canvas._toggle_legend()
     assert canvas.legend.visible and canvas.legend_button.selected and told == [True]
+
+
+def test_map_buttons_have_tinted_backs():
+    from tidewrack.ui.map_canvas import BUTTON_FILL, MapCanvas
+
+    canvas = MapCanvas(on_command=lambda _: None)
+    assert canvas.legend_button.bgcolor == BUTTON_FILL
+    assert canvas.fit_button.bgcolor == BUTTON_FILL

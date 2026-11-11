@@ -113,7 +113,6 @@ def test_every_region_past_the_coast_has_its_warden_on_its_one_road_in():
 
 def test_the_codex_says_where_foes_are_found():
     from tidewrack.core.engine.components import Codex, FoeEntry
-
     from tidewrack.core.procgen.enemy_gen import generate_enemies
 
     enemies, spawners = generate_enemies(SEED, WORLD, CONTENT)

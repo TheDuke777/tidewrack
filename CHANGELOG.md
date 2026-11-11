@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The map's three buttons have tinted, slightly see-through backs, so they
+  don't look like more map symbols.
+
 ## [0.10.1-beta.3] - 2026-11-11
 
 ### Added
