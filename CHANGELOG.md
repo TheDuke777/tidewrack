@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.1-beta.3] - 2026-11-11
+
 ### Added
 - Codex foe entries say where they're found: the kinds of place, by region
   (regions you haven't found yet stay unnamed). Wardens say which road they
