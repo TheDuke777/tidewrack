@@ -6,9 +6,41 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-12
+
 ### Fixed
 - The map's buttons stand out in light mode too: they now have an outline,
   and their backs are a little less see-through.
+
+### Changed
+- The map's three buttons have tinted, slightly see-through backs, so they
+  don't look like more map symbols.
+- Every region in a new world has at least one place of each of its kinds,
+  so no kind's gear, foes or materials are ever missing from a world (one
+  world had no sea caves, and so no Sealskin Boots).
+- Maps open zoomed in on you instead of showing the whole map, and keep
+  your zoom when you move or travel (the area map and world map each keep
+  their own). The whole-map button still shows everything.
+- Less empty space around the Turn · Rooms · Places line under the log.
+- Saving after each action is much faster (about a sixth of the time on a
+  computer, and it no longer grows with the size of the world): only the
+  places that changed are written.
+
+### Added
+- Codex foe entries say where they're found: the kinds of place, by region
+  (regions you haven't found yet stay unnamed). Wardens say which road they
+  guard.
+- A "Better upgraded" chip on gear that's worse than what you have on now
+  but would beat it once both are fully upgraded, so you know it's the one
+  to put materials into. Expanded cards say what it beats.
+- The map's legend can be hidden with a button on the map; the app
+  remembers your choice.
+- The Moors: beyond the Fens, a third region of hill farms, heaths, barrows
+  and standing stones, with its own foes (moor wolves, feral rams, adders,
+  highwaymen, barrow wights, black dogs), gear, materials, ingredients,
+  recipes and two new meals. Tougher again than the Fens.
+- The Barrow Warden holds the drove road from the Fens into the Moors.
+- New worlds have 21 places.
 
 ## [0.10.1-beta.4] - 2026-11-11
 
