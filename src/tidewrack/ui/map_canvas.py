@@ -58,8 +58,11 @@ KIND_GLYPHS = {
     "Standing Stones": "Π",
 }
 DEFAULT_GLYPH = "•"
-BUTTON_FILL = ft.Colors.with_opacity(0.85, ft.Colors.SECONDARY_CONTAINER)
+# Light mode's secondary container is close to the map's own background, so the
+# buttons also get an outline: that edge is what reads as "button" in light mode.
+BUTTON_FILL = ft.Colors.with_opacity(0.9, ft.Colors.SECONDARY_CONTAINER)
 BUTTON_ICON = ft.Colors.ON_SECONDARY_CONTAINER
+BUTTON_EDGE = ft.Colors.OUTLINE
 # Kinds the legend files under another kind's name (same glyph, same role).
 LEGEND_NAMES = {"Stilt Village": "Town", "Hill Farm": "Town"}
 
@@ -166,6 +169,7 @@ class MapCanvas:
             button.bgcolor = BUTTON_FILL
             button.icon_color = BUTTON_ICON
             button.selected_icon_color = BUTTON_ICON
+            button.style = ft.ButtonStyle(side=ft.BorderSide(1, BUTTON_EDGE))
         gestures = ft.GestureDetector(
             content=self.canvas,
             on_tap_up=self._tapped,  # not tap_down: that would fire at the start of a pan

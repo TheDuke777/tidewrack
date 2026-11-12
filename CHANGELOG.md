@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The map's buttons stand out in light mode too: they now have an outline,
+  and their backs are a little less see-through.
+
 ## [0.10.1-beta.4] - 2026-11-11
 
 ### Changed

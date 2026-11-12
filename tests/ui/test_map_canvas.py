@@ -262,3 +262,4 @@ def test_map_buttons_have_tinted_backs():
     canvas = MapCanvas(on_command=lambda _: None)
     assert canvas.legend_button.bgcolor == BUTTON_FILL
     assert canvas.fit_button.bgcolor == BUTTON_FILL
+    assert canvas.legend_button.style.side.width == 1  # an edge, for light mode
