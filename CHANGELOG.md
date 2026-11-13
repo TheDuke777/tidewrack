@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0-beta.1] - 2026-11-13
+
 ### Added
 - **The Highlands**, a fourth region beyond the Moors. New worlds now have 28
   places in four regions.
@@ -33,7 +35,6 @@ All notable changes to this project are documented here. The format follows
   - Zoomed out, region names are larger and clearer, and stay on the map.
   - A tap that lands between two places zooms in on that spot instead of
     guessing which one you meant.
-
 Existing worlds keep their three regions; only new worlds get the Highlands.
 
 ## [0.10.2] - 2026-11-13
