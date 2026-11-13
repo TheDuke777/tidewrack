@@ -18,6 +18,7 @@ from collections.abc import Hashable
 
 import flet as ft
 
+from tidewrack.core.codex import items as codex_items
 from tidewrack.core.engine.game import Game
 
 PARTS = ("quests", "codex", "pack", "satchel")
@@ -28,8 +29,8 @@ def keys(game: Game, part: str) -> set[Hashable]:
         log = game.quests()
         return {q.id for q in (*log.ready, *log.active)}
     if part == "codex":
-        # New entries only: more learned about a foe you've met isn't a "new" thing.
-        return {foe.enemy_id for foe in game.foes().foes}
+        # New entries only: more learned about one you know isn't a "new" thing.
+        return codex_items.keys(game)
     inventory = game.inventory()
     if part == "pack":
         return {item.id for item in inventory.pack}

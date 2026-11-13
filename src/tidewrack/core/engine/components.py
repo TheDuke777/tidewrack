@@ -211,11 +211,23 @@ class FoeEntry:
 
 
 @dataclass
+class MaterialEntry:
+    """What the codex records about a material or ingredient you've heard of: got
+    some, saw it for sale, or know a recipe or meal that needs it."""
+
+    material: Material
+    looted_from: list[str] = field(default_factory=list)  # enemy ids that dropped it for you
+
+
+@dataclass
 class Codex:
-    """What the player has discovered (Foes for now; more sections later)."""
+    """What the player has discovered: foes met, materials heard of, meals seen.
+    (Known recipes live in Recipes.)"""
 
     foes: dict[str, FoeEntry] = field(default_factory=dict)  # in order of meeting
     kills: dict[str, int] = field(default_factory=dict)
+    materials: dict[str, MaterialEntry] = field(default_factory=dict)  # in order heard of
+    meals: dict[str, MealRecipe] = field(default_factory=dict)  # in order seen on a menu
 
 
 @dataclass

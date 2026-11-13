@@ -21,7 +21,8 @@ when the same seed would produce different results (RNG or generation changes).
 #    `cooks` and `meals`; meal EconomyRules)
 # 11: gathering regrows (Grower components; gather RNG stream; regrow_every)
 # 12: regions (Overworld regions; region and town on every location; Warden)
-SCHEMA_VERSION = 12
+# 13: a fuller codex (materials and meals in Codex)
+SCHEMA_VERSION = 13
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)

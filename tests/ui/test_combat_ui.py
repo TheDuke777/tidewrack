@@ -117,19 +117,31 @@ def test_gear_actions_mid_fight_explain_themselves(tmp_path):
 def test_codex_sections_collapse_at_every_level_and_remember(tmp_path):
     session, shell, _ = _shell_in_a_fight(tmp_path)
     shell.select(3)
-    [foes] = shell.codex.sections.controls
-    assert isinstance(foes, ft.ExpansionTile) and foes.expanded
-    assert foes.title.value == "Foes (1)"
+    foes, *others = shell.codex.sections.controls
+    titles = [_title(s) for s in shell.codex.sections.controls]
+    assert titles[0] == "Foes (1)"
+    assert [t.split(" (")[0] for t in titles[1:]] == [
+        "Materials",
+        "Ingredients",
+        "Recipes",
+        "Meals",
+    ]
+    assert isinstance(foes, ft.ExpansionTile) and foes.expanded  # it holds a new foe
+    assert not any(s.expanded for s in others)  # nothing new: a list of contents
     [people] = foes.controls
-    assert isinstance(people, ft.ExpansionTile) and people.title.value == "People (1)"
+    assert isinstance(people, ft.ExpansionTile) and _title(people) == "People (1)"
 
     class Changed:
         data = False
 
     people.on_change(Changed())
     shell.codex.refresh()
-    [foes] = shell.codex.sections.controls
+    foes = shell.codex.sections.controls[0]
     assert foes.expanded and not foes.controls[0].expanded
+
+
+def _title(tile: ft.ExpansionTile) -> str:
+    return tile.title.controls[0].value  # beside it, maybe a "New" chip
 
 
 def test_set_items_wear_their_set_chip():

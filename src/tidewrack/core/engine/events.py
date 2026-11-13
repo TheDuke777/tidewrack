@@ -304,6 +304,7 @@ class MaterialsGained(Event):
     name: str
     count: int
     source: str  # "gathered", "loot", "bought"
+    enemy_id: str | None = None  # loot: the kind of foe that dropped it
 
 
 @dataclass(frozen=True)

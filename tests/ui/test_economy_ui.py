@@ -785,3 +785,32 @@ def test_newly_doable_smithy_cards_say_new_until_you_switch_tab(tmp_path):
     explore._shop_tab(["buy"])
     explore._shop_tab(["upgrade"])
     assert _new_chips(explore.shops) == 0  # you left the tab: gone
+
+
+def test_a_new_material_dots_the_codex_and_opens_its_section(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session, shell, _, _ = _shell(tmp_path)
+    game = session.game
+    pelt = make_material(CONTENT.materials["material.wolf_pelt"])  # not heard of yet
+    crafting.add(game, MaterialStack(pelt, 1), "gathered")
+    game.bus.flush()
+    shell.update_dots()
+    assert _dot(shell, 3)
+    shell.select(3)
+    assert not _dot(shell, 3)
+    by_title = {_section(s): s for s in shell.codex.sections.controls}
+    materials = by_title["Materials"]
+    assert materials.expanded and _new_chips(materials.title) == 1  # it holds the new one
+    assert not by_title["Recipes"].expanded  # nothing new there: closed
+    texts = _texts(materials)
+    assert "Wolf Pelt" in texts and "You have 1" in texts
+    assert any(t.startswith("Markets pay ") and t.endswith(" gold each") for t in texts)
+    group = next(g for g in materials.controls if _new_chips(g.title))  # its region's
+    assert group.expanded and _new_chips(group) == 1  # and the card itself
+
+
+def _section(tile) -> str:
+    return tile.title.controls[0].value.split(" (")[0]

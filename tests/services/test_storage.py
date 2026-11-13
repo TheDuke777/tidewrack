@@ -468,3 +468,34 @@ def test_v12_fixture_resumes_mid_fight_with_a_warden(tmp_path):
     assert game.view().combat is not None
     session.perform(Attack())
     assert len(game.overworld.regions) == 2
+
+
+def test_v12_saves_get_a_codex_of_what_they_have_and_have_seen(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import Position, Shop
+
+    envelope = json.loads((FIXTURES / "v12_regions.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    view = game.codex()
+    names = {e.material.id for e in (*view.materials, *view.ingredients)}
+    assert set(crafting.held(game)) <= names  # the satchel
+    needed = {m.material.material_id for r in crafting.known(game).values() for m in r.materials}
+    assert needed <= names  # what known recipes need
+    # Menus only of the taverns it has been in (none, in this fixture).
+    explorer = game._explorer()
+    seen = {
+        r.meal.name
+        for _, (shop, pos) in game.world.query(Shop, Position)
+        if pos.room in explorer.rooms_visited.get(pos.location, set())
+        for r in shop.meals
+    }
+    assert {m.meal.name for m in view.meals} == seen
+
+
+def test_v13_fixture_keeps_what_its_codex_learned(tmp_path):
+    envelope = json.loads((FIXTURES / "v13_codex.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    entries = {e.material.name: e for e in session.game.codex().materials}
+    assert entries["Iron Ore"].dropped_by == "Wrecker"  # it dropped some for you
+    assert entries["Hide"].dropped_by.startswith("Wild Boar")

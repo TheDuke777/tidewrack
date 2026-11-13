@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- A fuller Codex, to keep track of what's found where. Four new sections
+  join Foes: **Materials**, **Ingredients**, **Recipes** and **Meals**.
+  - A material or ingredient gets an entry once you've heard of it: you got
+    some, saw it at a market, or know a recipe or meal that needs it. Each
+    entry says where it's gathered (kinds of place, by region), which foes
+    drop it, which markets sell it, what uses it (your recipes, meals, and
+    upgrades for gear you carry), how many you have and what markets pay.
+    Entries are grouped by the region they first turn up in.
+  - Foes are named as droppers once one has dropped it for you or you've
+    learned their drops; places in regions you haven't found stay unnamed.
+  - Recipes show what they make, what they need against what you have, and
+    the fee, plus how many more recipes are still out there to find.
+  - Meals show their buff, ingredients, the cooking fee and the ready-made
+    price, once you've seen them on a tavern's menu.
+  - A new entry puts a dot on the Codex; learning more about one doesn't.
+  - Sections start closed so the Codex reads as a list of contents; one with
+    something new in it opens, with a "New" chip on its heading.
+- Older worlds start their new Codex sections with what they already have
+  and have seen (save format 13).
+
 ## [0.10.1] - 2026-11-12
 
 ### Fixed

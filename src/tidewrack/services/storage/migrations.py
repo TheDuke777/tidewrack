@@ -885,6 +885,42 @@ def _v11_to_v12(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v12_to_v13(envelope: Envelope) -> Envelope:
+    # v13 records materials and meals in the codex. Old worlds start with what the
+    # player has heard of already: the satchel, what known recipes need, and the
+    # wares and menus of shops in rooms they've been to (all from the save itself).
+    game = envelope["game"]
+    entities = [e["components"] for e in game["entities"]]
+    player = next(c for c in entities if "Player" in c)
+    materials: dict[str, dict] = {}
+    meals: dict[str, dict] = {}
+
+    def note(material: dict) -> None:
+        materials.setdefault(material["material_id"], {"material": material, "looted_from": []})
+
+    for stack in player["Materials"]["held"].values():
+        note(stack["material"])
+    for recipe in player["Recipes"]["known"].values():
+        for need in recipe["materials"]:
+            note(need["material"])
+    visited = player["Explorer"]["rooms_visited"]
+    for components in entities:
+        shop, position = components.get("Shop"), components.get("Position")
+        if shop is None or position is None:
+            continue
+        if position["room"] not in visited.get(position["location"], []):
+            continue
+        for material in shop["materials"]:
+            note(material)
+        for recipe in shop["meals"]:
+            meals.setdefault(recipe["meal"]["meal_id"], recipe)
+            for need in recipe["ingredients"]:
+                note(need["material"])
+    player["Codex"]["materials"] = materials
+    player["Codex"]["meals"] = meals
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -898,6 +934,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     9: _v9_to_v10,
     10: _v10_to_v11,
     11: _v11_to_v12,
+    12: _v12_to_v13,
 }
 
 

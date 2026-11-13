@@ -204,7 +204,7 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
     )
     shops.gain(game, enemy.gold, "loot")
     for stack in enemy.materials:
-        crafting.add(game, stack, "loot")
+        crafting.add(game, stack, "loot", enemy.enemy_id)
     if warden is not None:
         game.bus.emit(RegionOpened(warden.region, game.overworld.regions[warden.region].name))
 

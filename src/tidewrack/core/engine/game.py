@@ -20,6 +20,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, replace
 from typing import Literal
 
+from tidewrack.core.codex import items as codex_items
 from tidewrack.core.codex.foes import FoesView, foes_view
 from tidewrack.core.combat import fight, returns
 from tidewrack.core.combat.rules import STANDARD, Rules
@@ -61,6 +62,7 @@ from tidewrack.core.engine.components import (
     Materials,
     MaterialStack,
     Meal,
+    MealRecipe,
     Meals,
     Name,
     Player,
@@ -763,6 +765,10 @@ class Game:
         self.bus.subscribe(RoomEntered, lambda e: questing.on_room_entered(self, e))
         self.bus.subscribe(RoomEntered, lambda e: fight.encounter(self, e))
         self.bus.subscribe(EnemyKilled, lambda e: questing.on_enemy_killed(self, e))
+        self.bus.subscribe(GameStarted, lambda e: codex_items.note_recipes(self))
+        self.bus.subscribe(RoomEntered, lambda e: codex_items.on_room_entered(self, e))
+        self.bus.subscribe(MaterialsGained, lambda e: codex_items.on_materials_gained(self, e))
+        self.bus.subscribe(RecipeLearned, lambda e: codex_items.on_recipe_learned(self, e))
         self.bus.subscribe(Event, self._narrate)
 
     # --- saving ----------------------------------------------------------------------
@@ -1107,18 +1113,15 @@ class Game:
     def foes(self) -> FoesView:
         return foes_view(self.world.get(self.player, Codex), self._found_in())
 
+    def codex(self) -> codex_items.CodexView:
+        """The codex's other sections: materials, ingredients, recipes, meals."""
+        return codex_items.view(self)
+
     def _found_in(self) -> dict[str, str]:
         """Where each enemy kind lives, for the codex: the kinds of place it's in
         (placed, wandering or able to return), grouped by region; a warden says
         which road it guards. Regions you haven't found yet stay unnamed."""
-        places: dict[str, dict[str, list[str]]] = {}  # enemy -> region -> place kinds
-
-        def note(enemy_id: str, location_id: str) -> None:
-            location = self.overworld.location(location_id)
-            kinds = places.setdefault(enemy_id, {}).setdefault(location.region, [])
-            if location.kind not in kinds:
-                kinds.append(location.kind)
-
+        places: dict[str, list[str]] = {}  # enemy -> location ids, in order found
         guards: dict[str, str] = {}
         for entity, (enemy, position) in self.world.query(Enemy, Position):
             warden = self.world.try_get(entity, Warden)
@@ -1128,32 +1131,15 @@ class Game:
                     region.name if region else "the next region"
                 )
             else:
-                note(enemy.enemy_id, position.location)
+                places.setdefault(enemy.enemy_id, []).append(position.location)
         for _, (spawner,) in self.world.query(Spawner):
             for enemy_id in [e.enemy_id for e in spawner.queue] + [
                 t.enemy_id for t in spawner.templates
             ]:
-                note(enemy_id, spawner.location)
-
-        explorer = self._explorer()
-        known = {
-            self.overworld.location(i).region
-            for i in explorer.locations_discovered | explorer.locations_visited
-        }
+                places.setdefault(enemy_id, []).append(spawner.location)
         found = dict(guards)
-        for enemy_id, by_region in places.items():
-            parts, unknown = [], False
-            for region_id, kinds in by_region.items():
-                region = self.overworld.regions.get(region_id)
-                if region_id in known or region is None:
-                    parts.append(
-                        f"{', '.join(kinds)} ({region.name})" if region else ", ".join(kinds)
-                    )
-                else:
-                    unknown = True
-            if unknown:
-                parts.append("places you haven't found yet")
-            found.setdefault(enemy_id, "; ".join(parts))
+        for enemy_id, location_ids in places.items():
+            found.setdefault(enemy_id, codex_items.where(self, location_ids) or "")
         return found
 
     def _combat_view(self) -> CombatView | None:
@@ -1249,25 +1235,23 @@ class Game:
         return FedView(well_fed.meal.name, buff_text(well_fed.meal), well_fed.turns_left)
 
     def _menu(self, shop: Shop) -> tuple[MenuView, ...]:
+        return tuple(self._menu_entry(recipe) for recipe in shop.meals)
+
+    def _menu_entry(self, recipe: MealRecipe) -> MenuView:
         gold = shops.gold(self)
         carried = cooking.held(self)
-        menu = []
-        for recipe in shop.meals:
-            fee = cook_fee(recipe.meal, self.economy)
-            costs = self._costs(recipe.ingredients)
-            price = meal_price(recipe.meal, self.economy) if recipe.sold else None
-            count = carried[recipe.meal.meal_id].count if recipe.meal.meal_id in carried else 0
-            menu.append(
-                MenuView(
-                    meal=self._meal_view(recipe.meal, count),
-                    ingredients=costs,
-                    fee=fee,
-                    can_cook=fee <= gold and all(c.enough for c in costs),
-                    price=price,
-                    affordable=price is not None and price <= gold,
-                )
-            )
-        return tuple(menu)
+        fee = cook_fee(recipe.meal, self.economy)
+        costs = self._costs(recipe.ingredients)
+        price = meal_price(recipe.meal, self.economy) if recipe.sold else None
+        count = carried[recipe.meal.meal_id].count if recipe.meal.meal_id in carried else 0
+        return MenuView(
+            meal=self._meal_view(recipe.meal, count),
+            ingredients=costs,
+            fee=fee,
+            can_cook=fee <= gold and all(c.enough for c in costs),
+            price=price,
+            affordable=price is not None and price <= gold,
+        )
 
     def inventory(self) -> InventoryView:
         equipped = self._equipped_entities()
@@ -1332,22 +1316,21 @@ class Game:
             for n in needs
         )
 
+    def _recipe_view(self, recipe: Recipe) -> RecipeView:
+        fee = craft_fee(recipe.makes, self.economy)
+        costs = self._costs(recipe.materials)
+        return RecipeView(
+            id=recipe.recipe_id,
+            name=recipe.name,
+            item=self._item_view(-1, recipe.makes),
+            materials=costs,
+            fee=fee,
+            can_craft=fee <= shops.gold(self) and all(c.enough for c in costs),
+        )
+
     def _crafting(self, shop: Shop) -> tuple[tuple[RecipeView, ...], tuple[UpgradeView, ...]]:
         gold = shops.gold(self)
-        recipes = []
-        for recipe in crafting.known(self).values():
-            fee = craft_fee(recipe.makes, self.economy)
-            costs = self._costs(recipe.materials)
-            recipes.append(
-                RecipeView(
-                    id=recipe.recipe_id,
-                    name=recipe.name,
-                    item=self._item_view(-1, recipe.makes),
-                    materials=costs,
-                    fee=fee,
-                    can_craft=fee <= gold and all(c.enough for c in costs),
-                )
-            )
+        recipes = [self._recipe_view(r) for r in crafting.known(self).values()]
         upgrades = []
         carried = [
             (e, item) for e, (item, c) in self.world.query(Item, Carried) if c.by == self.player

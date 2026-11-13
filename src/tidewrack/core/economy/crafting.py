@@ -62,7 +62,7 @@ def count(game: Game, material_id: str) -> int:
     return stack.count if stack else 0
 
 
-def add(game: Game, stack: MaterialStack, source: str) -> None:
+def add(game: Game, stack: MaterialStack, source: str, enemy_id: str | None = None) -> None:
     if stack.count <= 0:
         return
     satchel = held(game)
@@ -74,7 +74,9 @@ def add(game: Game, stack: MaterialStack, source: str) -> None:
     else:
         mine.count += stack.count
     game.bus.emit(
-        MaterialsGained(stack.material.material_id, stack.material.name, stack.count, source)
+        MaterialsGained(
+            stack.material.material_id, stack.material.name, stack.count, source, enemy_id
+        )
     )
 
 
