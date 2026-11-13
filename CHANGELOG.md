@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.10.2-beta.1] - 2026-11-13
+
 ### Added
 - A fuller Codex, to keep track of what's found where. Four new sections
   join Foes: **Materials**, **Ingredients**, **Recipes** and **Meals**.
