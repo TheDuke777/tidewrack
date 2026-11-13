@@ -1,0 +1,7 @@
+{
+  "id": "material.barley",
+  "name": "Barley",
+  "description": "A sack of hulled barley. Every highland pot has some in it.",
+  "value": 1,
+  "ingredient": true
+}

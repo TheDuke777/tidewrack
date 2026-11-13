@@ -1,0 +1,27 @@
+{
+  "id": "enemy.golden_eagle",
+  "name": "Golden Eagle",
+  "category": "beast",
+  "description": "It drops out of the sun with its talons first. You see the shadow just before.",
+  "stats": {
+    "atk": 23,
+    "def": 6,
+    "hp": 26
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.eagle_feather",
+      "chance": 0.8,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

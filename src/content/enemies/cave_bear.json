@@ -1,0 +1,35 @@
+{
+  "id": "enemy.cave_bear",
+  "name": "Cave Bear",
+  "category": "beast",
+  "description": "A brown bear grown huge in the dark, its fur grizzled grey. It fills the passage from wall to wall.",
+  "stats": {
+    "atk": 22,
+    "def": 12,
+    "hp": 46
+  },
+  "rolls": {
+    "hp": [
+      0,
+      5
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.bear_pelt",
+      "chance": 0.8,
+      "count": [
+        1,
+        1
+      ]
+    },
+    {
+      "material": "material.bear_meat",
+      "chance": 0.7,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

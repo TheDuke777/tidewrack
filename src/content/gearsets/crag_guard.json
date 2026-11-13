@@ -1,0 +1,20 @@
+{
+  "id": "gearset.crag_guard",
+  "name": "Crag Guard",
+  "color": "indigo",
+  "bonuses": [
+    {
+      "pieces": 2,
+      "stats": {
+        "def": 2,
+        "atk": 1
+      }
+    },
+    {
+      "pieces": 3,
+      "stats": {
+        "hp": 8
+      }
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "id": "roomset.drowned_hall",
+  "name": "Drowned Hall",
+  "location_names": [
+    "The Drowned King's Hall",
+    "Loch Righ",
+    "The Sunken Dun",
+    "Halls of Morven",
+    "Loch Arkaig Hall",
+    "The Weeping Halls",
+    "Dun na Mara"
+  ],
+  "size": [
+    10,
+    15
+  ],
+  "layout": {
+    "spread": 2.0,
+    "loops": 0.3,
+    "corridors": 0.35
+  },
+  "adjectives": [
+    "Drowned",
+    "Sunken",
+    "Weeded",
+    "Silent",
+    "Gilded",
+    "Rotten",
+    "Green",
+    "Cold",
+    "Echoing",
+    "Ruined",
+    "Lofty",
+    "Dripping"
+  ],
+  "entrance": {
+    "noun": "Loch Shore",
+    "descriptions": [
+      "A shingle beach at the edge of a long black loch. Out in the water the roofs of a great hall break the surface, and a causeway of stepping stones leads out to them."
+    ],
+    "features": [
+      "A rowing boat drawn up and chained, its oars long gone."
+    ],
+    "ambient": [
+      "A bell tolls somewhere under the water."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Flooded Hall",
+      "weight": 2.0,
+      "descriptions": [
+        "A great hall up to the knee in water, its long tables rotting under the surface.",
+        "A hall where the loch comes in through the windows, green light rippling on the ceiling."
+      ],
+      "features": [
+        "Gold cups still set out along a sunken table."
+      ],
+      "ambient": [
+        "Your footsteps send slow rings across the water."
+      ]
+    },
+    {
+      "noun": "Throne Room",
+      "weight": 0.5,
+      "descriptions": [
+        "A high-roofed chamber with a throne at the far end, weed hanging from its arms like a cloak.",
+        "The king's chamber, the dais dry, the throne empty, a crown-shaped mark on the seat."
+      ],
+      "features": [
+        "Banners so rotten you can't tell the colours."
+      ],
+      "ambient": [
+        "Water drips into the silence, louder than it should be."
+      ]
+    },
+    {
+      "noun": "Gallery",
+      "weight": 1.0,
+      "descriptions": [
+        "A walkway above the flooded hall, its rail long gone, its boards soft underfoot."
+      ],
+      "features": [
+        "A harp with every string snapped."
+      ],
+      "ambient": [
+        "Something swims below, unhurried."
+      ]
+    },
+    {
+      "noun": "Crypt",
+      "weight": 0.7,
+      "descriptions": [
+        "Stone tombs half under water, their lids pushed aside from within.",
+        "A low vault of drowned graves, each with a carved warrior asleep on top."
+      ],
+      "features": [
+        "One tomb, sealed, with fresh scratches on the inside of the lid."
+      ],
+      "ambient": [
+        "The water around your ankles is very cold."
+      ]
+    },
+    {
+      "noun": "Causeway",
+      "weight": 0.8,
+      "descriptions": [
+        "A causeway of great flat stones crossing open water between the hall's wings.",
+        "Stepping stones, slick with weed, with deep water either side."
+      ],
+      "features": [
+        "Mussel beds along the stones, some of them pearl-bearing."
+      ],
+      "ambient": [
+        "A long ripple crosses the loch and passes on."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.22,
+    "gear": {
+      "gear.thanes_sword": 1,
+      "gear.mail_byrnie": 1,
+      "gear.cairngorm_brooch": 1,
+      "gear.feathered_bonnet": 1,
+      "gear.studded_targe": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.trout": 2,
+      "material.cloudberries": 1,
+      "material.silver_ore": 1,
+      "material.river_pearl": 0.4
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.24,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.drowned_thane": 3,
+      "enemy.kelpie": 2,
+      "enemy.knocker": 1
+    }
+  }
+}

@@ -11,13 +11,20 @@ Pinch to zoom and drag to pan. Zooming spreads the map out rather than
 magnifying it, so dots and labels stay readable on big maps; the view is handled
 here (Viewport) rather than by Flet's InteractiveViewer so taps, "centre on me"
 and following the player all use the same coordinates.
+
+Big maps (8a beta 3) get level of detail: labels are placed by priority (you,
+places you can tap, quest targets and guarded places always; then towns, then
+the rest) and a lesser label that would land on others is left out, so zooming
+in reveals more names. Zoomed out, region names are drawn large and clear and
+labels steer around them. A tap that falls between places that would do
+different things zooms in there instead of guessing.
 """
 
 from __future__ import annotations
 
 import math
 import time
-from collections.abc import Callable, Hashable
+from collections.abc import Callable, Collection, Hashable, Iterable
 from dataclasses import dataclass
 
 import flet as ft
@@ -39,6 +46,11 @@ MAX_ZOOM = 4.0
 FOCUS_ZOOM = 2.0  # maps open this far in; "centre on me" zooms in at least this far
 FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
 REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
+REGION_ZOOMED_OUT = 1.5  # at or below this zoom, region names are large and clear
+REGION_SIZE_OUT = 16
+DROP_OVERLAP = 0.15  # a lesser label is left out if this share of it would be covered
+TAP_ZOOM = 2.0  # an ambiguous tap zooms in this many times, around the tap
+AMBIGUOUS = 1.5  # a tap is ambiguous if the next place is this close (× the nearest's distance)
 
 # A glyph per location kind for world-map labels and the legend; unknown kinds
 # (new roomsets before this list is updated) fall back to a plain dot.
@@ -56,6 +68,10 @@ KIND_GLYPHS = {
     "Heath": "⚘",
     "Barrows": "∩",
     "Standing Stones": "Π",
+    "Crag Fort": "⌂",
+    "Pine Pass": "Λ",
+    "Deep Mine": "⚒",
+    "Drowned Hall": "♛",
 }
 DEFAULT_GLYPH = "•"
 # Light mode's secondary container is close to the map's own background, so the
@@ -64,7 +80,12 @@ BUTTON_FILL = ft.Colors.with_opacity(0.9, ft.Colors.SECONDARY_CONTAINER)
 BUTTON_ICON = ft.Colors.ON_SECONDARY_CONTAINER
 BUTTON_EDGE = ft.Colors.OUTLINE
 # Kinds the legend files under another kind's name (same glyph, same role).
-LEGEND_NAMES = {"Stilt Village": "Town", "Hill Farm": "Town"}
+LEGEND_NAMES = {
+    "Stilt Village": "Town",
+    "Hill Farm": "Town",
+    "Crag Fort": "Town",
+    "Deep Mine": "Mine",
+}
 
 Point = tuple[float, float]
 Box = tuple[float, float, float, float]  # left, top, right, bottom
@@ -127,6 +148,8 @@ class MapCanvas:
         # Label spots relative to their dots, kept while a gesture moves the map:
         # placing labels is the slow part of a redraw, so it waits for the end.
         self._label_offsets: dict[str, Point] = {}
+        self._label_names: frozenset[str] = frozenset()  # the named places those are for
+        self._label_texts: dict[str, str] = {}
         self._last_draw = 0.0
 
         self.canvas = cv.Canvas(expand=True, on_resize=self._resized, resize_interval=100)
@@ -265,15 +288,24 @@ class MapCanvas:
         if self.view is None or e.local_position is None:
             return
         tx, ty = e.local_position.x, e.local_position.y
-        best, best_distance = None, max(MIN_TOUCH_RADIUS, self._radius() * 2.5)
-        for node in self.view.nodes:
-            if node.command is None and node.blocked is None:
-                continue
-            x, y = self._points[node.id]
-            distance = math.hypot(x - tx, y - ty)
-            if distance <= best_distance:
-                best, best_distance = node, distance
-        if best is None:
+        r = self._radius()
+        reach = max(MIN_TOUCH_RADIUS, r * 2.5)
+        near = sorted(
+            (math.hypot(x - tx, y - ty), i, node)
+            for i, node in enumerate(self.view.nodes)
+            if node.command is not None or node.blocked is not None
+            for x, y in (self._points[node.id],)
+            if math.hypot(x - tx, y - ty) <= reach
+        )
+        if not near:
+            return
+        best = near[0][2]
+        close = [n for d, _, n in near if d <= AMBIGUOUS * max(near[0][0], r)]
+        if len({(n.command, n.blocked) for n in close}) > 1 and self.viewport.zoom < MAX_ZOOM:
+            # Can't tell which you meant: spread the map out around your finger.
+            anchor = self.viewport.to_content((tx, ty))
+            self.viewport.place(anchor, (tx, ty), self.viewport.zoom * TAP_ZOOM, self._size)
+            self._draw()
             return
         if best.command is not None:
             self.on_command(best.command)
@@ -363,27 +395,57 @@ class MapCanvas:
             shapes = self._region_names() + shapes + self._labels(r)
         self.canvas.shapes = shapes
 
-    def _region_names(self) -> list[cv.Shape]:
-        """Region names behind everything else, faint, where their places are."""
+    @property
+    def _zoomed_out(self) -> bool:
+        return self.viewport.zoom <= REGION_ZOOMED_OUT
+
+    def _region_spots(self) -> list[tuple[str, Point]]:
+        """Each region name's centre; zoomed out, nudged so the whole name is on the map."""
         assert self.view is not None
         w, h = self.width, self.height
+        spots = []
+        for mark in self.view.regions:
+            name = mark.name.upper()
+            x, y = self.viewport.to_screen(
+                (PAD + mark.x * (w - 2 * PAD), PAD + mark.y * (h - 2 * PAD))
+            )
+            if self._zoomed_out:
+                half = min(w / 2, _region_width(name) / 2 + 4)
+                x = min(max(x, half), w - half)
+            spots.append((name, (x, y)))
+        return spots
+
+    def _region_names(self) -> list[cv.Shape]:
+        """Region names behind everything else, where their places are: large and
+        clear when zoomed out (they're what you read then), faint when zoomed in."""
+        out = self._zoomed_out
+        style = ft.TextStyle(
+            size=REGION_SIZE_OUT if out else REGION_SIZE,
+            color=ft.Colors.ON_SURFACE_VARIANT if out else ft.Colors.OUTLINE,
+            weight=ft.FontWeight.BOLD,
+            letter_spacing=2,
+        )
         return [
             cv.Text(
-                *self.viewport.to_screen(
-                    (PAD + mark.x * (w - 2 * PAD), PAD + mark.y * (h - 2 * PAD))
-                ),
-                mark.name.upper(),
-                style=ft.TextStyle(
-                    size=REGION_SIZE,
-                    color=ft.Colors.OUTLINE,
-                    weight=ft.FontWeight.BOLD,
-                    letter_spacing=2,
-                ),
+                x,
+                y,
+                name,
+                style=style,
                 alignment=ft.Alignment.CENTER,
                 text_align=ft.TextAlign.CENTER,
             )
-            for mark in self.view.regions
+            for name, (x, y) in self._region_spots()
         ]
+
+    def _region_boxes(self) -> list[Box]:
+        """Where zoomed-out region names are, for labels to steer around."""
+        if not self._zoomed_out:
+            return []
+        boxes = []
+        for name, (x, y) in self._region_spots():
+            w, h = _region_width(name), 1.3 * REGION_SIZE_OUT
+            boxes.append((x - w / 2, y - h / 2, x + w / 2, y + h / 2))
+        return boxes
 
     def _on_screen(self, p: Point, margin: float) -> bool:
         return -margin <= p[0] <= self.width + margin and -margin <= p[1] <= self.height + margin
@@ -398,18 +460,39 @@ class MapCanvas:
 
     def _labels(self, r: float) -> list[cv.Shape]:
         assert self.view is not None
+        # Only places near the screen get labels: off-screen ones would take up room
+        # that visible labels need, and aren't drawn anyway.
+        named = sorted(
+            (
+                n
+                for n in self.view.nodes
+                if n.name and self._on_screen(self._points[n.id], LABEL_WIDTH)
+            ),
+            key=label_rank,
+        )
         names = {
             n.id: label(n.name, n.kind, quest=n.quest, charted=n.charted, guarded=n.guarded)
-            for n in self.view.nodes
-            if n.name
+            for n in named
         }
-        if self._gesture is not None and set(self._label_offsets) == set(names):
+        everyone = frozenset(n.id for n in self.view.nodes if n.name)
+        if self._gesture is not None and self._label_names == everyone:
+            names = self._label_texts
             spots = {
                 i: (self._points[i][0] + dx, self._points[i][1] + dy)
                 for i, (dx, dy) in self._label_offsets.items()
             }
         else:
-            spots = place_labels(self._points, names, self.view.edges, r, self.width, self.height)
+            spots = place_labels(
+                self._points,
+                names,
+                self.view.edges,
+                r,
+                self.width,
+                self.height,
+                keep={n.id for n in named if label_rank(n) <= 1},
+                obstacles=self._region_boxes(),
+            )
+            self._label_names, self._label_texts = everyone, names
             self._label_offsets = {
                 i: (x - self._points[i][0], y - self._points[i][1]) for i, (x, y) in spots.items()
             }
@@ -450,6 +533,19 @@ def label(
         + (f" {QUEST_MARK}" if quest else "")
         + (f" {GUARD_MARK}" if guarded else "")
     )
+
+
+def label_rank(node: MapNode) -> int:
+    """Which labels matter most on a crowded map (lower first): where you are; places
+    you can tap, quest targets and guarded places; towns; places you've been; the rest.
+    Ranks 0 and 1 are always labelled."""
+    if node.state == "current":
+        return 0
+    if node.command is not None or node.blocked is not None or node.quest or node.guarded:
+        return 1
+    if node.kind is not None and LEGEND_NAMES.get(node.kind, node.kind) == "Town":
+        return 2
+    return 3 if node.state == "visited" else 4
 
 
 def badges(node: MapNode) -> str:
@@ -517,16 +613,23 @@ def place_labels(
     radius: float,
     width: float,
     height: float,
+    keep: Collection[str] | None = None,
+    obstacles: Iterable[Box] = (),
 ) -> dict[str, Point]:
     """Where to draw each name: the top-centre point of its label.
 
-    Each label tries below, above, right and left of its dot (in that order of
-    preference) and takes the spot that least overlaps the dots, the paths, the
-    labels already placed and the edges of the map. Text sizes are estimates, so
-    this avoids most collisions rather than guaranteeing none.
+    Labels are placed in the order given. Each tries below, above, right and left
+    of its dot (in that order of preference) and takes the spot that least
+    overlaps the dots, the paths, the labels already placed, any `obstacles` and
+    the edges of the map. Text sizes are estimates, so this avoids most
+    collisions rather than guaranteeing none.
+
+    With `keep`, labels not in it are left out (no spot) when even their best
+    spot would be more than DROP_OVERLAP covered: level of detail for big maps.
     """
     pad = radius + 6
     taken: list[Box] = [(x - pad, y - pad, x + pad, y + pad) for x, y in points.values()]
+    taken += obstacles
     segments = [(points[a], points[b]) for a, b in edges if a in points and b in points]
     spots = {}
     for node_id, name in names.items():
@@ -543,9 +646,18 @@ def place_labels(
             candidates,
             key=lambda b: (_collision(b, taken, segments, width, height), candidates.index(b)),
         )
+        if keep is not None and node_id not in keep:
+            covered = sum(_overlap(box, other) for other in taken)
+            if covered > DROP_OVERLAP * w * h:
+                continue
         taken.append(box)
         spots[node_id] = ((box[0] + box[2]) / 2, box[1])
     return spots
+
+
+def _region_width(name: str) -> float:
+    """Rough width of a zoomed-out region name: bold capitals plus letter spacing."""
+    return len(name) * (0.68 * REGION_SIZE_OUT + 2)
 
 
 def _label_size(name: str) -> Point:

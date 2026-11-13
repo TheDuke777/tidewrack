@@ -502,7 +502,7 @@ def test_the_tavern_kitchen_has_a_menu_and_a_cook_tab(tmp_path):
     explore.open("Tavern")
     texts = _texts(explore.shops)
     assert any(t.startswith("You haven't eaten.") for t in texts)
-    assert _tabs(shell) == ["Menu (4)", "Cook (11)"]
+    assert _tabs(shell) == ["Menu (5)", "Cook (14)"]
     [buy] = [
         b for b in _buttons(explore.shops, "Buy · ") if re.search(r"\b6 gold", label_of(b.content))
     ]

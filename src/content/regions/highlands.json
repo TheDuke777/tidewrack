@@ -1,0 +1,20 @@
+{
+  "id": "region.highlands",
+  "name": "Highlands",
+  "tier": 4,
+  "names": [
+    "The Kingless Hills",
+    "The High Crags",
+    "The Pinewall",
+    "The Cold Heights"
+  ],
+  "town": "roomset.crag_fort",
+  "roomsets": {
+    "roomset.pine_pass": 1.0,
+    "roomset.deep_mine": 1.0,
+    "roomset.drowned_hall": 0.8,
+    "roomset.crag_fort": 0.5
+  },
+  "warden": "enemy.crag_warden",
+  "crossing": "the high pass"
+}

@@ -1,0 +1,28 @@
+{
+  "id": "enemy.kelpie",
+  "name": "Kelpie",
+  "category": "spirit",
+  "description": "A black horse standing in the shallows, dripping weed, waiting for someone to climb on. Nobody gets off.",
+  "stats": {
+    "atk": 24,
+    "def": 8,
+    "hp": 34
+  },
+  "loot": {
+    "chance": 0.3,
+    "gear": {
+      "gear.feathered_bonnet": 1,
+      "gear.cairngorm_brooch": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.river_pearl",
+      "chance": 0.35,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

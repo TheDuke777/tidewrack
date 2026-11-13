@@ -1,0 +1,48 @@
+{
+  "id": "enemy.reiver",
+  "name": "Reiver",
+  "category": "person",
+  "description": "A raider in a steel bonnet and a padded jack, who steals cattle for a living and travellers for sport.",
+  "stats": {
+    "atk": 22,
+    "def": 11,
+    "hp": 36
+  },
+  "rolls": {
+    "atk": [
+      0,
+      2
+    ]
+  },
+  "loot": {
+    "chance": 0.5,
+    "gear": {
+      "gear.broadsword": 2,
+      "gear.steel_bonnet": 1,
+      "gear.studded_targe": 1,
+      "gear.hill_brogues": 1
+    }
+  },
+  "gold": [
+    12,
+    24
+  ],
+  "materials": [
+    {
+      "material": "material.coal",
+      "chance": 0.3,
+      "count": [
+        1,
+        2
+      ]
+    },
+    {
+      "material": "material.sinew",
+      "chance": 0.2,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

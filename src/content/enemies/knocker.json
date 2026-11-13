@@ -1,0 +1,36 @@
+{
+  "id": "enemy.knocker",
+  "name": "Knocker",
+  "category": "spirit",
+  "description": "A little grey shape that taps on the rock where the good seams are, and on your skull when you take them.",
+  "stats": {
+    "atk": 23,
+    "def": 10,
+    "hp": 30
+  },
+  "loot": {
+    "chance": 0.35,
+    "gear": {
+      "gear.steel_bonnet": 1,
+      "gear.cairngorm_brooch": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.silver_ore",
+      "chance": 0.4,
+      "count": [
+        1,
+        1
+      ]
+    },
+    {
+      "material": "material.coal",
+      "chance": 0.4,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

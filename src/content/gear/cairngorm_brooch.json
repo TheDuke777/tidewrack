@@ -1,0 +1,21 @@
+{
+  "id": "gear.cairngorm_brooch",
+  "name": "Cairngorm Brooch",
+  "slot": "trinket",
+  "base": {
+    "hp": 12
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "hp": 2
+  },
+  "upgrade_materials": {
+    "material.silver_ore": 1
+  }
+}

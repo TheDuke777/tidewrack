@@ -1,0 +1,161 @@
+{
+  "id": "roomset.crag_fort",
+  "name": "Crag Fort",
+  "town": true,
+  "location_names": [
+    "Dunraven",
+    "Craigmore",
+    "Castle Lachan",
+    "Dun Eilean",
+    "Balmerran",
+    "Kinloch Dhu",
+    "Strathfarr",
+    "Dunsgail"
+  ],
+  "size": [
+    8,
+    11
+  ],
+  "layout": {
+    "spread": 1.4,
+    "loops": 0.5,
+    "corridors": 0.25
+  },
+  "adjectives": [
+    "Rock-Cut",
+    "Smoky",
+    "Steep",
+    "Wind-Scoured",
+    "Torchlit",
+    "Grey",
+    "Narrow",
+    "Walled",
+    "High",
+    "Crowded",
+    "Cold",
+    "Old"
+  ],
+  "entrance": {
+    "noun": "Fort Gate",
+    "descriptions": [
+      "An iron-bound gate in a wall that grows out of the crag itself. Clansfolk come and go under the eyes of the watch, and roads wind away from here down into the glens."
+    ],
+    "features": [
+      "A rack of spears by the gate, one for every family in the fort.",
+      "A bell on a chain, rung when reivers are sighted."
+    ],
+    "ambient": [
+      "The watch calls down to ask your business, then waves you through.",
+      "Wind booms through the gate arch."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Close",
+      "weight": 2.0,
+      "descriptions": [
+        "A steep narrow close between stone houses, stepped like a stair.",
+        "A cobbled close running uphill under washing lines strung from wall to wall."
+      ],
+      "features": [
+        "A water spout in the wall, its trough worn hollow."
+      ],
+      "ambient": [
+        "A child runs past with a chicken under each arm."
+      ]
+    },
+    {
+      "noun": "Smithy",
+      "weight": 0.4,
+      "descriptions": [
+        "A smithy built into the rock, its forge burning coal from the deep mines. The smith forges broadswords and mends mail for the watch."
+      ],
+      "features": [
+        "A half-finished blade cooling on the anvil, blue along its edge."
+      ],
+      "ambient": [
+        "The hammer rings like a bell."
+      ]
+    },
+    {
+      "noun": "Tavern",
+      "weight": 0.4,
+      "descriptions": [
+        "A low, smoky hall with a peat fire at either end, where drovers and clansfolk drink together and pretend to get on."
+      ],
+      "features": [
+        "A set of pipes hung on the wall, the bag cracked with age."
+      ],
+      "ambient": [
+        "Somebody's telling the one about the kelpie again."
+      ]
+    },
+    {
+      "noun": "Market",
+      "weight": 0.4,
+      "descriptions": [
+        "A walled yard under the keep where the glens bring their trade: coal by the creel, barley by the sack, resin in clay pots."
+      ],
+      "features": [
+        "A stone weight with the clan's mark, for settling arguments."
+      ],
+      "ambient": [
+        "Two traders haggle in a language you don't speak."
+      ]
+    },
+    {
+      "noun": "Great Hall",
+      "weight": 0.6,
+      "descriptions": [
+        "The fort's hall, its rafters black with centuries of smoke, the chief's chair empty at the far end."
+      ],
+      "features": [
+        "Antlers by the hundred nailed along the walls."
+      ],
+      "ambient": [
+        "A dog gnaws a bone under the high table."
+      ]
+    },
+    {
+      "noun": "Watchtower",
+      "weight": 0.6,
+      "descriptions": [
+        "A round tower on the crag's lip with a view down three glens at once."
+      ],
+      "features": [
+        "A brazier ready to light, the signal for the next fort along."
+      ],
+      "ambient": [
+        "The wind tries to take your hat."
+      ]
+    },
+    {
+      "noun": "Cattle Fold",
+      "weight": 0.7,
+      "descriptions": [
+        "A fold under the fort wall, crowded with shaggy red cattle and the people who'd die for them."
+      ],
+      "features": [
+        "A brand heating in a small fire."
+      ],
+      "ambient": [
+        "A cow regards you through its fringe."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.15,
+    "gear": {
+      "gear.broadsword": 2,
+      "gear.studded_targe": 2,
+      "gear.steel_bonnet": 1,
+      "gear.hill_brogues": 1,
+      "gear.feathered_bonnet": 1
+    }
+  },
+  "shops": [
+    "shop.crag_smithy",
+    "shop.tavern",
+    "shop.crag_market"
+  ]
+}

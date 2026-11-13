@@ -1,0 +1,17 @@
+{
+  "id": "shop.crag_market",
+  "name": "Market",
+  "room": "Market",
+  "materials": [
+    "material.coal",
+    "material.pine_resin",
+    "material.iron_ore",
+    "material.timber",
+    "material.hide",
+    "material.salt",
+    "material.ships_biscuit",
+    "material.oatmeal",
+    "material.barley"
+  ],
+  "buys_materials": true
+}

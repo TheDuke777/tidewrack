@@ -1,0 +1,23 @@
+{
+  "id": "gear.feathered_bonnet",
+  "name": "Feathered Bonnet",
+  "slot": "head",
+  "base": {
+    "def": 3,
+    "hp": 7
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "hp": 2
+  },
+  "upgrade_materials": {
+    "material.eagle_feather": 1,
+    "material.pine_resin": 1
+  }
+}

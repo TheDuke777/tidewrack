@@ -1,0 +1,41 @@
+{
+  "id": "enemy.crag_warden",
+  "name": "Crag Warden",
+  "category": "spirit",
+  "description": "The drowned king's last captain, taller than the cairns, in mail gone green with loch-water. He holds the high pass as he was told to, and the king never came back to relieve him.",
+  "stats": {
+    "atk": 25,
+    "def": 12,
+    "hp": 90
+  },
+  "loot": {
+    "chance": 1.0,
+    "gear": {
+      "gear.thanes_sword": 1,
+      "gear.claymore": 1,
+      "gear.mail_byrnie": 1
+    }
+  },
+  "gold": [
+    40,
+    60
+  ],
+  "materials": [
+    {
+      "material": "material.drowned_gold",
+      "chance": 1.0,
+      "count": [
+        1,
+        2
+      ]
+    },
+    {
+      "material": "material.coal",
+      "chance": 1.0,
+      "count": [
+        2,
+        4
+      ]
+    }
+  ]
+}

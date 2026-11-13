@@ -1,0 +1,9 @@
+{
+  "id": "recipe.claymore",
+  "makes": "gear.claymore",
+  "materials": {
+    "material.iron_ore": 4,
+    "material.coal": 3,
+    "material.pine_resin": 1
+  }
+}

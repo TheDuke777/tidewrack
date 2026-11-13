@@ -40,32 +40,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -74,12 +74,12 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def test_golden_wardens():
-    assert GENERATOR_VERSION == 14
+    assert GENERATOR_VERSION == 15
     world = new_world(20261103)
     assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
 
@@ -90,14 +90,14 @@ def quests_for(seed: int):
     return generate_quests(seed, world, CONTENT, RECIPE, placed, spawners)
 
 
-GOLDEN_QUESTS = "5d49c3fae29349ebcdd1c48ea32c0777ad31bafb52b930fe41db878937c4e22d"
-GOLDEN_STANDARD = "a3dc5f4e11aadd072e13b69f3760bccb354529eacdf6387b7b79d2fc49525e76"
-GOLDEN_ENEMIES = "246d35db8dd4ee41b90ac78e7bfcffe2d1ce1526de7dec0db0fb229f22946719"
-GOLDEN_SHOPS = "2bf28328322a7d615efae0ddb23b9f88bce9809e52216afb7633a71c19ae901d"
-GOLDEN_GATHERING = "a4390cbe5dce37dc8cb14a6f7b89644fd8a55c9dc93d0d00aa6cb4090484d4f2"
-GOLDEN_RECIPES = "6af666929e6e7dbc914dc4dce5b1ab42c49514c52173bca95c10c747243fcd6f"
-GOLDEN_WARDENS = "7eb1b7af22de9fe3d3047e6787e7353d323aaf7a1cf1911712f03491c593f811"
-GOLDEN_FINDS = "addfd0dd35cfdca4c6daf2543982f45e35bea1a5ee1400e6087069b0347a201b"
+GOLDEN_QUESTS = "be219ee4588fdb4c145476cafb565b5d686eac3642657590e1b9f16a9372eb1e"
+GOLDEN_STANDARD = "9df3835609cf36c0392caa011e50b2d7a9874a72e039dac508e9a5ab1e1e5f9c"
+GOLDEN_ENEMIES = "292304bb375508901ee283730d84cc92ec429f3df557d8b2897bf9fbad923acb"
+GOLDEN_SHOPS = "8f903149413992574e6a73ca42a1f5c1510599ce722e9e8442312de0794b54a5"
+GOLDEN_GATHERING = "65f19da122f78aeb06401d6554053c8f03fa50d72d07a6119ca1b0f7f381ed7b"
+GOLDEN_RECIPES = "93074f6ece92ec14328d0ceaac4bcad36b791d021ee5e607644f6f3b5ce98f18"
+GOLDEN_WARDENS = "5f4b92d59dfc813106e57467b5deb77a3d2845c4348253e19269663cf1a8af1c"
+GOLDEN_FINDS = "189a3144a3ca1e131d524ff91dca635c24354c952c153c084087d0c4280f9c90"
 
 
 # --- worlds ------------------------------------------------------------------------
@@ -182,6 +182,10 @@ def test_kinds_are_drawn_by_weight():
         "Heath",
         "Barrows",
         "Standing Stones",
+        "Crag Fort",
+        "Pine Pass",
+        "Deep Mine",
+        "Drowned Hall",
     } == set(kinds)
 
 

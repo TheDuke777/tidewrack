@@ -1,0 +1,29 @@
+{
+  "id": "enemy.drowned_thane",
+  "name": "Drowned Thane",
+  "category": "spirit",
+  "description": "One of the drowned king's lords, still at his post, mail rusted to his bones and water running out of his helm.",
+  "stats": {
+    "atk": 24,
+    "def": 12,
+    "hp": 40
+  },
+  "loot": {
+    "chance": 0.45,
+    "gear": {
+      "gear.thanes_sword": 1,
+      "gear.mail_byrnie": 1,
+      "gear.studded_targe": 1
+    }
+  },
+  "materials": [
+    {
+      "material": "material.drowned_gold",
+      "chance": 0.35,
+      "count": [
+        1,
+        1
+      ]
+    }
+  ]
+}

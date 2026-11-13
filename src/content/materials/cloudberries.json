@@ -1,0 +1,7 @@
+{
+  "id": "material.cloudberries",
+  "name": "Cloudberries",
+  "description": "Orange berries from the high bogs, tart as a crab-apple and twice as rare.",
+  "value": 2,
+  "ingredient": true
+}

@@ -158,6 +158,22 @@ def _edited(path: str, mutate) -> list[str]:
     return _problems(dict(BUNDLED, **{path: json.dumps(data)}))
 
 
+def test_every_gear_set_can_be_completed_with_a_two_handed_weapon():
+    """A two-hander fills both hands, so off-hand pieces (and one-handed main-hand
+    pieces) are out of reach for its wielder: a set's biggest bonus must be
+    reachable from the other slots alone (user rule; holds if sets grow to 5)."""
+    content = load_content(BUNDLED)
+    for set_id, gear_set in content.gearsets.items():
+        pieces = [g for g in content.gear.values() if g.set == set_id]
+        slots = {
+            g.slot
+            for g in pieces
+            if g.slot != "off_hand" and (g.slot != "main_hand" or g.two_handed)
+        }
+        most = max(b.pieces for b in gear_set.bonuses)
+        assert len(slots) >= most, f"{set_id}: a two-hander can wear {len(slots)} of {most}"
+
+
 def test_bundled_gear_loads():
     content = load_content(BUNDLED)
     assert content.world("world.standard").kit == ["gear.driftwood_club", "gear.patched_coat"]

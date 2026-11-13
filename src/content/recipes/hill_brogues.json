@@ -1,0 +1,8 @@
+{
+  "id": "recipe.hill_brogues",
+  "makes": "gear.hill_brogues",
+  "materials": {
+    "material.hide": 2,
+    "material.sinew": 2
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "meal.cloudberry_cranachan",
+  "name": "Cloudberry Cranachan",
+  "description": "Toasted oats, heather honey and cloudberries layered in a cup. Gone in three mouthfuls; the glow lasts all day.",
+  "ingredients": {
+    "material.cloudberries": 2,
+    "material.oatmeal": 1,
+    "material.heather_honey": 1
+  },
+  "stats": {
+    "atk": 2,
+    "hp": 4
+  },
+  "regen": 1,
+  "turns": 90
+}

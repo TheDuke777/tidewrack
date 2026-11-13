@@ -38,4 +38,5 @@ SCHEMA_VERSION = 13
 #     wardens guard the borders; quests stay in their board's region
 # 13: standard worlds add the Moors (21 places in three regions)
 # 14: every region has at least one place of each of its kinds
-GENERATOR_VERSION = 14
+# 15: standard worlds add the Highlands (28 places in four regions)
+GENERATOR_VERSION = 15

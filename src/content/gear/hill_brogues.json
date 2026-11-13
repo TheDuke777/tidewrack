@@ -1,0 +1,24 @@
+{
+  "id": "gear.hill_brogues",
+  "name": "Hill Brogues",
+  "slot": "feet",
+  "base": {
+    "def": 4,
+    "hp": 2
+  },
+  "rolls": {
+    "def": [
+      0,
+      1
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.sinew": 1,
+    "material.hide": 1
+  },
+  "set": "gearset.crag_guard"
+}

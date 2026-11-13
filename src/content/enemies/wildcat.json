@@ -1,0 +1,27 @@
+{
+  "id": "enemy.wildcat",
+  "name": "Wildcat",
+  "category": "beast",
+  "description": "Twice the size of a farm cat and ten times the temper, with a tail ringed like a badge of office.",
+  "stats": {
+    "atk": 21,
+    "def": 8,
+    "hp": 28
+  },
+  "rolls": {
+    "atk": [
+      0,
+      2
+    ]
+  },
+  "materials": [
+    {
+      "material": "material.sinew",
+      "chance": 0.7,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

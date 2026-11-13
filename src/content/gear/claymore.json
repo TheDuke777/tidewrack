@@ -1,0 +1,24 @@
+{
+  "id": "gear.claymore",
+  "name": "Claymore",
+  "slot": "main_hand",
+  "two_handed": true,
+  "base": {
+    "atk": 18,
+    "def": 1
+  },
+  "rolls": {
+    "atk": [
+      0,
+      4
+    ]
+  },
+  "max_upgrade": 3,
+  "upgrade_step": {
+    "atk": 1
+  },
+  "upgrade_materials": {
+    "material.coal": 2,
+    "material.iron_ore": 2
+  }
+}

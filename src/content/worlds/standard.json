@@ -4,7 +4,8 @@
   "regions": [
     { "region": "region.wrack_coast", "locations": 7 },
     { "region": "region.fens", "locations": 7 },
-    { "region": "region.moors", "locations": 7 }
+    { "region": "region.moors", "locations": 7 },
+    { "region": "region.highlands", "locations": 7 }
   ],
   "player": { "atk": 2, "def": 1, "hp": 20 },
   "kit": ["gear.driftwood_club", "gear.patched_coat"],

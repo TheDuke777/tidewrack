@@ -1,0 +1,19 @@
+{
+  "id": "shop.crag_smithy",
+  "name": "Smithy",
+  "room": "Smithy",
+  "stock": [
+    3,
+    4
+  ],
+  "wares": 6,
+  "gear": {
+    "gear.broadsword": 2,
+    "gear.studded_targe": 2,
+    "gear.steel_bonnet": 1,
+    "gear.hill_brogues": 1,
+    "gear.bearskin_cloak": 1
+  },
+  "buys_gear": true,
+  "crafts": true
+}

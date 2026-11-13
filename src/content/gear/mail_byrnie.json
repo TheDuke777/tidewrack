@@ -1,0 +1,24 @@
+{
+  "id": "gear.mail_byrnie",
+  "name": "Mail Byrnie",
+  "slot": "body",
+  "base": {
+    "def": 7,
+    "hp": 3
+  },
+  "rolls": {
+    "def": [
+      0,
+      1
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.iron_ore": 2,
+    "material.coal": 1
+  },
+  "set": "gearset.crag_guard"
+}

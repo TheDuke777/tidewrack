@@ -1,0 +1,148 @@
+{
+  "id": "roomset.deep_mine",
+  "name": "Deep Mine",
+  "location_names": [
+    "The Silver Deeps",
+    "Wanlock Deep",
+    "The Black Seam",
+    "Leadhills Workings",
+    "Strontian Deep",
+    "The Knockers' Hole",
+    "Glen Ore"
+  ],
+  "size": [
+    12,
+    17
+  ],
+  "layout": {
+    "spread": 1.8,
+    "loops": 0.25,
+    "corridors": 0.55
+  },
+  "adjectives": [
+    "Deep",
+    "Dripping",
+    "Black",
+    "Shored",
+    "Flooded",
+    "Hot",
+    "Cramped",
+    "Glittering",
+    "Echoing",
+    "Collapsed",
+    "Sooty",
+    "Forgotten"
+  ],
+  "entrance": {
+    "noun": "Pithead",
+    "descriptions": [
+      "A headframe of black timber over a shaft, with a ladder going down and a cold breath coming up."
+    ],
+    "features": [
+      "A board of brass tallies, one per miner. Too many still hang on the 'down' side."
+    ],
+    "ambient": [
+      "Something below taps three times, then stops."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Drift",
+      "weight": 2.0,
+      "descriptions": [
+        "A level tunnel cut straight into the hill, rails rusting along its floor.",
+        "A low drift where you walk bent double, timbers creaking overhead."
+      ],
+      "features": [
+        "An abandoned tub, half full of ore."
+      ],
+      "ambient": [
+        "Water drips steadily somewhere ahead."
+      ]
+    },
+    {
+      "noun": "Stope",
+      "descriptions": [
+        "A tall cavern hollowed out by miners following a seam upward into the dark.",
+        "A stope with ladders lashed up its walls, climbing out of the lamplight."
+      ],
+      "features": [
+        "A seam of silver ore glinting in the wall, half worked."
+      ],
+      "ambient": [
+        "Grit pats down from somewhere above."
+      ]
+    },
+    {
+      "noun": "Sump",
+      "weight": 0.7,
+      "descriptions": [
+        "A flooded shaft bottom, the water black and perfectly still.",
+        "A sump with a broken pump, water creeping up the walls."
+      ],
+      "features": [
+        "A miner's boot floating, upside down."
+      ],
+      "ambient": [
+        "A bubble rises and breaks."
+      ]
+    },
+    {
+      "noun": "Coal Seam",
+      "weight": 1.0,
+      "descriptions": [
+        "A gallery cut along a seam of coal, black on black, shining where your light touches it."
+      ],
+      "features": [
+        "Picks left leaning in a row, as if the shift will be back."
+      ],
+      "ambient": [
+        "The air tastes of soot."
+      ]
+    },
+    {
+      "noun": "Knockers' Chapel",
+      "weight": 0.5,
+      "descriptions": [
+        "A side-cave where miners left offerings for the knockers: crusts, candle-ends, a twist of tobacco."
+      ],
+      "features": [
+        "Tiny footprints in the dust, going round and round the offerings."
+      ],
+      "ambient": [
+        "Tap. Tap. Tap."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": {
+      "gear.broadsword": 1,
+      "gear.steel_bonnet": 2,
+      "gear.mail_byrnie": 1,
+      "gear.cairngorm_brooch": 1,
+      "gear.hill_brogues": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.coal": 3,
+      "material.silver_ore": 2,
+      "material.iron_ore": 1
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.22,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.knocker": 3,
+      "enemy.cave_bear": 2,
+      "enemy.reiver": 1
+    }
+  }
+}

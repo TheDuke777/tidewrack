@@ -1,0 +1,8 @@
+{
+  "id": "recipe.mail_byrnie",
+  "makes": "gear.mail_byrnie",
+  "materials": {
+    "material.iron_ore": 5,
+    "material.coal": 2
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "gear.steel_bonnet",
+  "name": "Steel Bonnet",
+  "slot": "head",
+  "base": {
+    "def": 4,
+    "hp": 4
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.iron_ore": 1,
+    "material.coal": 1
+  },
+  "set": "gearset.crag_guard"
+}

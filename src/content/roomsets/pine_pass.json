@@ -1,0 +1,153 @@
+{
+  "id": "roomset.pine_pass",
+  "name": "Pine Pass",
+  "location_names": [
+    "The Lairig Ghru",
+    "Glen Feshie Pass",
+    "The Devil's Staircase",
+    "Corrie Dubh",
+    "The Pinewalk",
+    "Bealach na Ba",
+    "Glen Shiel Pass"
+  ],
+  "size": [
+    12,
+    18
+  ],
+  "layout": {
+    "spread": 2.2,
+    "loops": 0.35,
+    "corridors": 0.45
+  },
+  "adjectives": [
+    "Dark",
+    "Steep",
+    "Snowy",
+    "Needled",
+    "Resinous",
+    "Silent",
+    "Misty",
+    "Narrow",
+    "Rocky",
+    "Cold",
+    "Windfallen",
+    "Shadowed"
+  ],
+  "entrance": {
+    "noun": "Pass Foot",
+    "descriptions": [
+      "Where the glen road gives up and a track climbs on alone into the pines. Old snow lies in the shadows even now."
+    ],
+    "features": [
+      "A cairn with a stag's skull on top, antlers and all."
+    ],
+    "ambient": [
+      "Wind hisses through a thousand miles of needles."
+    ]
+  },
+  "rooms": [
+    {
+      "noun": "Pinewood",
+      "weight": 2.0,
+      "descriptions": [
+        "Old Scots pines, red-barked and wide apart, with blaeberry knee-deep between them.",
+        "Pines so tall and close the light comes down green."
+      ],
+      "features": [
+        "A pine with a long wound in its bark, weeping resin."
+      ],
+      "ambient": [
+        "A cone drops somewhere and bounces down through the branches."
+      ]
+    },
+    {
+      "noun": "Scree",
+      "descriptions": [
+        "A slope of loose grey scree that slides a little with every step.",
+        "A fan of broken rock spilling down from a crag, bare of anything green."
+      ],
+      "features": [
+        "A boulder balanced on a smaller boulder, waiting."
+      ],
+      "ambient": [
+        "Stones trickle away under your feet."
+      ]
+    },
+    {
+      "noun": "Burn",
+      "weight": 1.0,
+      "descriptions": [
+        "A peat-brown burn crashing down a rocky bed, white wherever it falls.",
+        "A deep pool under a little waterfall, trout shadows hanging in it."
+      ],
+      "features": [
+        "Stepping stones, one of them a lot wobblier than the others."
+      ],
+      "ambient": [
+        "The water is loud enough to hide footsteps. Yours, or anyone's."
+      ]
+    },
+    {
+      "noun": "Corrie",
+      "weight": 0.7,
+      "descriptions": [
+        "A great bowl scooped out of the mountain, with a black lochan at the bottom and cliffs all round.",
+        "A high hollow full of snow and echoes."
+      ],
+      "features": [
+        "An eagle's eyrie on a ledge, piled with old bones."
+      ],
+      "ambient": [
+        "Your own voice comes back to you, a moment late."
+      ]
+    },
+    {
+      "noun": "Bothy",
+      "weight": 0.5,
+      "descriptions": [
+        "A one-room stone bothy with a bench, a hearth and a visitors' book nobody's signed in years.",
+        "A bothy with half its roof gone, the hearth still swept."
+      ],
+      "features": [
+        "Dry kindling stacked by the hearth, left for the next traveller."
+      ],
+      "ambient": [
+        "Mice scatter in the rafters."
+      ]
+    }
+  ],
+  "finds": {
+    "chance": 0.2,
+    "gear": {
+      "gear.broadsword": 1,
+      "gear.feathered_bonnet": 2,
+      "gear.bearskin_cloak": 1,
+      "gear.hill_brogues": 2,
+      "gear.studded_targe": 1
+    }
+  },
+  "gathering": {
+    "chance": 0.3,
+    "materials": {
+      "material.pine_resin": 3,
+      "material.pine_nuts": 2,
+      "material.cloudberries": 2,
+      "material.trout": 1
+    },
+    "count": [
+      1,
+      2
+    ]
+  },
+  "enemies": {
+    "placed_chance": 0.22,
+    "wandering_chance": 0.12,
+    "pool": {
+      "enemy.wildcat": 3,
+      "enemy.golden_eagle": 3,
+      "enemy.reiver": 2,
+      "enemy.cave_bear": 1,
+      "enemy.kelpie": 1
+    }
+  }
+}

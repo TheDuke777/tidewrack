@@ -1,0 +1,15 @@
+{
+  "id": "meal.trout_and_bannock",
+  "name": "Trout and Bannock",
+  "description": "Trout fried in its own fat, with a barley bannock off the griddle. Plain, hot, and it sets you right.",
+  "ingredients": {
+    "material.trout": 2,
+    "material.barley": 1
+  },
+  "stats": {
+    "hp": 6
+  },
+  "regen": 1,
+  "turns": 60,
+  "sold": true
+}

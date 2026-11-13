@@ -153,7 +153,7 @@ def test_region_names_and_guarded_roads_on_the_world_map():
     content = load_bundled_content()
     world = generate_world(7, content.world("world.standard"), content.roomsets, content.regions)
     game = Game(7, world, wardens=generate_wardens(7, world, content))
-    coast, fens, moors = (r.name for r in world.regions.values())
+    coast, fens, moors, highlands = (r.name for r in world.regions.values())
     assert [m.name for m in game.view().world_map.regions] == [coast]  # the Fens aren't known yet
 
     near, far = next(b for b in world.borders() if world.location(b[1]).region == "region.fens")
@@ -170,7 +170,7 @@ def test_region_names_and_guarded_roads_on_the_world_map():
     canvas.show(view.world_map, "", "world", labels=True)
     texts = [s.value for s in canvas.canvas.shapes if hasattr(s, "value") and s.value]
     assert coast.upper() in texts and fens.upper() in texts
-    assert moors.upper() not in texts  # not seen yet
+    assert moors.upper() not in texts and highlands.upper() not in texts  # not seen yet
 
     for entity, (warden,) in list(game.world.query(Warden)):
         if warden.road == far:
@@ -263,3 +263,125 @@ def test_map_buttons_have_tinted_backs():
     assert canvas.legend_button.bgcolor == BUTTON_FILL
     assert canvas.fit_button.bgcolor == BUTTON_FILL
     assert canvas.legend_button.style.side.width == 1  # an edge, for light mode
+
+
+# --- big maps (8a beta 3) ----------------------------------------------------------
+
+
+def test_lesser_labels_are_left_out_rather_than_piled_up():
+    points = {"a": (100, 100), "b": (104, 102)}
+    names = {"a": "Saltmere", "b": "Gullhaven"}
+    assert set(place_labels(points, names, (), RADIUS, 300, 300)) == {"a", "b"}
+    # Obstacles (zoomed-out region names) leave a lesser label nowhere to go...
+    wall = [(0, 0, 300, 300)]
+    assert set(place_labels(points, names, (), RADIUS, 300, 300, keep={"a"}, obstacles=wall)) == {
+        "a"
+    }
+    # ...but kept labels are never dropped, however crowded.
+    both = place_labels(points, names, (), RADIUS, 300, 300, keep={"a", "b"}, obstacles=wall)
+    assert set(both) == {"a", "b"}
+
+
+def _whole_world():
+    from tidewrack.core.engine.components import Explorer
+    from tidewrack.core.engine.game import Game
+    from tidewrack.core.procgen.world_gen import generate_world
+    from tidewrack.services.content import load_bundled_content
+
+    content = load_bundled_content()
+    world = generate_world(
+        20261103, content.world("world.standard"), content.roomsets, content.regions
+    )
+    game = Game(20261103, world)
+    explorer = game.world.get(game.player, Explorer)
+    explorer.locations_discovered |= set(world.locations)
+    explorer.locations_visited |= set(world.locations)
+    return game.view().world_map
+
+
+def _drawn(canvas):
+    texts = [s for s in canvas.canvas.shapes if getattr(s, "value", None)]
+    return [s for s in texts if not s.value.isupper()], [s for s in texts if s.value.isupper()]
+
+
+def test_a_crowded_world_map_labels_what_matters_and_more_when_zoomed_in():
+    from tidewrack.ui.map_canvas import LABEL_WIDTH, MapCanvas, Viewport, label, label_rank
+
+    view = _whole_world()
+    assert len(view.nodes) == 28
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.width, canvas.height = 360, 260
+    canvas.show(view, "", "world", labels=True)
+
+    def labels_at(zoom):
+        canvas.viewport = Viewport()
+        canvas.viewport.centre_on(canvas._current(), canvas._size, zoom)
+        canvas._draw()
+        return {s.value for s in _drawn(canvas)[0]}
+
+    whole = labels_at(1.0)
+    assert len(whole) < len(view.nodes)  # not every name fits the whole map
+    must = [n for n in view.nodes if label_rank(n) <= 1]
+    assert must and all(label(n.name, n.kind, n.quest, n.charted, n.guarded) in whole for n in must)
+    zoomed = labels_at(2.0)
+    # Zoomed in, every place on screen is named, except perhaps right against an
+    # edge, where a label may have nowhere to go but over a dot (pan and it shows).
+    inside = [
+        n
+        for n in view.nodes
+        if LABEL_WIDTH / 2 <= canvas._points[n.id][0] <= canvas.width - LABEL_WIDTH / 2
+        and 0 <= canvas._points[n.id][1] <= canvas.height
+    ]
+    assert len(inside) >= 4
+    assert all(label(n.name, n.kind, n.quest, n.charted, n.guarded) in zoomed for n in inside)
+
+
+def test_region_names_are_large_zoomed_out_and_stay_on_the_map():
+    from tidewrack.ui.map_canvas import (
+        REGION_SIZE,
+        REGION_SIZE_OUT,
+        MapCanvas,
+        Viewport,
+        _region_width,
+    )
+
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.width, canvas.height = 360, 260
+    canvas.show(_whole_world(), "", "world", labels=True)
+    canvas.viewport = Viewport()
+    canvas._draw()
+    _, regions = _drawn(canvas)
+    assert len(regions) == 4 and {r.style.size for r in regions} == {REGION_SIZE_OUT}
+    for r in regions:
+        half = _region_width(r.value) / 2
+        assert half <= r.x <= canvas.width - half
+    canvas.viewport.centre_on(canvas._current(), canvas._size, 2.0)
+    canvas._draw()
+    assert {r.style.size for r in _drawn(canvas)[1]} == {REGION_SIZE}
+
+
+def test_a_tap_between_places_zooms_in_instead_of_guessing():
+    from types import SimpleNamespace
+
+    from tidewrack.core.engine.game import MapNode, MapView, Travel
+    from tidewrack.ui.map_canvas import TAP_ZOOM, MapCanvas
+
+    def tap(canvas, x, y):
+        canvas._tapped(SimpleNamespace(local_position=SimpleNamespace(x=x, y=y)))
+
+    nodes = (
+        MapNode("a", 0.50, 0.5, "seen", "A", Travel("a")),
+        MapNode("b", 0.56, 0.5, "seen", "B", Travel("b")),
+        MapNode("c", 0.10, 0.1, "seen", "C", Travel("c")),
+    )
+    commands = []
+    canvas = MapCanvas(on_command=commands.append)
+    canvas.width, canvas.height = 400, 260
+    canvas.show(MapView(nodes, (), 3), "", "w", labels=True)
+    assert canvas.viewport.zoom == 1.0
+    (ax, ay), (bx, _) = canvas._points["a"], canvas._points["b"]
+    tap(canvas, (ax + bx) / 2, ay)
+    assert commands == [] and canvas.viewport.zoom == TAP_ZOOM  # spread out under your finger
+    assert abs(canvas._points["a"][0] - canvas._points["b"][0]) > abs(ax - bx)
+    tap(canvas, *canvas._points["a"])  # now far enough apart to tell
+    assert commands == [Travel("a")]

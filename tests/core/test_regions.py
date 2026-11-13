@@ -63,7 +63,8 @@ def test_beating_the_warden_opens_the_region_for_good():
     assert opened == [RegionOpened("region.fens", WORLD.regions["region.fens"].name)]
     assert game.log[-1] == f"The way into {opened[0].name} lies open."
     assert all(r.guard is None for r in game.view().roads)
-    assert len(list(game.world.query(Warden))) == 1  # the Moors' warden is still there
+    # The Moors' and Highlands' wardens are still there.
+    assert len(list(game.world.query(Warden))) == 2
 
     result = game.perform(Travel(FAR))
     assert any(isinstance(e, LocationEntered) and e.location == FAR for e in result.events)
@@ -78,7 +79,8 @@ def test_fleeing_a_warden_leaves_you_at_the_gate_and_it_stays():
     game.perform(Flee())
     position = game.world.get(game.player, Position)
     assert (position.location, position.room) == (NEAR, WORLD.location(NEAR).start)
-    assert len(list(game.world.query(Warden))) == 2  # it stays, as does the Moors' one
+    # It stays, as do the Moors' and Highlands' ones.
+    assert len(list(game.world.query(Warden))) == 3
     assert "CombatStarted" not in kinds(game.perform(Wait()))  # it doesn't follow you
 
 
@@ -89,7 +91,7 @@ def test_losing_to_a_warden_sends_you_back_to_town():
     assert any(isinstance(e, PlayerDefeated) for e in result.events)
     assert game.world.get(game.player, Position).location == WORLD.start
     fighting = [e for e, (enemy,) in game.world.query(Enemy) if game.world.has(e, Warden)]
-    assert len(fighting) == 2  # neither warden beaten
+    assert len(fighting) == 3  # no warden beaten
 
 
 def test_wardens_survive_saving():
@@ -101,14 +103,17 @@ def test_wardens_survive_saving():
 
 
 def test_every_region_past_the_coast_has_its_warden_on_its_one_road_in():
-    assert set(BORDERS) == {"region.fens", "region.moors"}
+    assert set(BORDERS) == {"region.fens", "region.moors", "region.highlands"}
     guards = {w.region: (enemy.name, w.road) for _, _, enemy, w in WARDENS}
     assert guards == {
         "region.fens": ("Reed Warden", BORDERS["region.fens"][1]),
         "region.moors": ("Barrow Warden", BORDERS["region.moors"][1]),
+        "region.highlands": ("Crag Warden", BORDERS["region.highlands"][1]),
     }
     near, _ = BORDERS["region.moors"]
     assert WORLD.location(near).region == "region.fens"  # the Moors lie beyond the Fens
+    near, _ = BORDERS["region.highlands"]
+    assert WORLD.location(near).region == "region.moors"  # and the Highlands beyond them
 
 
 def test_the_codex_says_where_foes_are_found():

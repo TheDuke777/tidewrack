@@ -1,0 +1,8 @@
+{
+  "id": "recipe.cairngorm_brooch",
+  "makes": "gear.cairngorm_brooch",
+  "materials": {
+    "material.silver_ore": 2,
+    "material.river_pearl": 1
+  }
+}
