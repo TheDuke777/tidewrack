@@ -6,10 +6,39 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-16
+
 ### Added
 - Dotted borders on the world map where regions meet. A border appears once
   you know places on both sides of it, so it never gives away land you haven't
   found.
+- **The Highlands**, a fourth region beyond the Moors. New worlds now have 28
+  places in four regions.
+  - Four new kinds of place: **Crag Forts** (the region's towns, each with a
+    Smithy, Tavern and Market), **Pine Passes**, **Deep Mines** and the
+    **Drowned Hall**, a drowned king's hall half under a loch.
+  - New foes: wildcats, golden eagles, cave bears, reivers, knockers, kelpies
+    and drowned thanes. The **Crag Warden**, the drowned king's last captain,
+    holds the high pass from the Moors. Expect to need a good meal for him.
+  - New gear: broadsword, Thane's sword, claymore (two-handed), studded targe,
+    steel bonnet, feathered bonnet, bearskin cloak, mail byrnie, hill brogues
+    and a cairngorm brooch.
+  - A second gear set, the **Crag Guard** (steel bonnet, mail byrnie and hill
+    brogues), which you can complete while wielding a two-handed weapon.
+  - New materials: coal, silver ore, pine resin, bear pelts, eagle feathers,
+    sinew, river pearls and drowned gold. New ingredients: bear meat, trout,
+    cloudberries, pine nuts, and barley at every Crag Fort market.
+  - Four recipes to find (claymore, mail byrnie, hill brogues, cairngorm
+    brooch) and three new meals: Bear Stew, Trout and Bannock (sold ready-made)
+    and Cloudberry Cranachan.
+- The world map copes better with a big world:
+  - When it's crowded, the less important place names are left out rather
+    than piled on top of each other. Where you are, places you can go next,
+    quest targets and guarded roads are always named; zoom in to see the rest.
+  - Zoomed out, region names are larger and clearer, and stay on the map.
+  - A tap that lands between two places zooms in on that spot instead of
+    guessing which one you meant.
+Existing worlds keep their three regions; only new worlds get the Highlands.
 
 ### Fixed
 - Everything got slower the more you carried: after every move or action the
