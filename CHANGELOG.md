@@ -6,6 +6,18 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The map of the place you're in now opens showing the whole place; the world
+  map still opens zoomed in on you.
+- Each map remembers the zoom you leave it at, now also after closing the app.
+- Nothing is drawn under the map's buttons any more, so every room on the
+  whole-place view can be tapped. The map is a little taller to make room.
+
+### Fixed
+- Standing in a room with a Smithy was slow with a full pack: the game prepared
+  every upgrade and recipe for the Smithy on each action, even with its panel
+  closed. It now does that only while the Smithy is open.
+
 ## [0.11.1] - 2026-11-16
 
 ### Fixed

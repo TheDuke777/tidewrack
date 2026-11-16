@@ -221,14 +221,17 @@ def _map(n=9):
     return MapView(nodes, (), n)
 
 
-def test_maps_open_zoomed_in_on_you_and_keep_your_zoom():
+def test_area_maps_open_whole_world_maps_zoomed_in_and_each_keeps_your_zoom():
     from tidewrack.ui.map_canvas import FOCUS_ZOOM, MapCanvas
 
     canvas = MapCanvas(on_command=lambda _: None)
     canvas.show(_map(), "", key=("area", "a"), zoom_key="area")
-    assert canvas.viewport.zoom == FOCUS_ZOOM
+    assert canvas.viewport.zoom == 1.0  # a place: the whole of it (v0.11.2)
+    canvas.show(_map(), "", key=("world", "a"), zoom_key="world")
+    assert canvas.viewport.zoom == FOCUS_ZOOM  # the world: zoomed in on you
 
-    canvas.viewport.place((0, 0), (0, 0), 3.0, canvas._size)  # you pinch in further
+    canvas.show(_map(), "", key=("area", "a"), zoom_key="area")
+    canvas.viewport.place((0, 0), (0, 0), 3.0, canvas._size)  # you pinch in
     canvas.show(_map(), "", key=("area", "a"), zoom_key="area")  # a move: same place
     assert canvas.viewport.zoom == 3.0
     canvas.show(_map(), "", key=("area", "b"), zoom_key="area")  # travel: a new place
@@ -244,6 +247,43 @@ def test_maps_open_zoomed_in_on_you_and_keep_your_zoom():
     canvas.show(_map(), "", key=("area", "c"), zoom_key="area")
     canvas.show(_map(), "", key=("world", "c"), zoom_key="world")
     assert canvas.viewport.zoom == 1.0  # you asked for the whole world map: it stays
+
+
+def test_your_zoom_for_each_map_outlasts_the_app(tmp_path):
+    from types import SimpleNamespace
+
+    from tidewrack.services.settings import SettingsStore
+    from tidewrack.ui.map_canvas import MAX_ZOOM, MapCanvas
+
+    saved = []
+    canvas = MapCanvas(on_command=lambda _: None, on_zoom=lambda k, z: saved.append((k, z)))
+    canvas.show(_map(), "", key=("world", "a"), zoom_key="world")
+    canvas._gesture_started(SimpleNamespace(local_focal_point=SimpleNamespace(x=100, y=100)))
+    canvas._gesture_moved(
+        SimpleNamespace(local_focal_point=SimpleNamespace(x=100, y=100), scale=1.5)
+    )
+    canvas._gesture_ended(SimpleNamespace())
+    assert saved == [("world", 3.0)]  # told once the pinch ends
+    canvas._gesture_started(SimpleNamespace(local_focal_point=SimpleNamespace(x=100, y=100)))
+    canvas._gesture_ended(SimpleNamespace())
+    assert saved == [("world", 3.0)]  # no change, nothing saved
+
+    # A later session starts from what was saved (out-of-range values clamped).
+    reopened = MapCanvas(on_command=lambda _: None, zooms={"world": 3.0, "area": 99})
+    reopened.show(_map(), "", key=("world", "a"), zoom_key="world")
+    assert reopened.viewport.zoom == 3.0
+    reopened.show(_map(), "", key=("area", "a"), zoom_key="area")
+    assert reopened.viewport.zoom == MAX_ZOOM
+
+    # The Explore screen keeps them in settings beside the other map preferences.
+    store = SettingsStore(tmp_path / "s.json")
+    from tidewrack.ui.screens.game import GameScreen
+
+    screen = GameScreen.__new__(GameScreen)
+    screen.settings = store
+    screen._save_zoom("area", 1.5)
+    screen._save_zoom("world", 2.5)
+    assert store.load().map_zooms == {"area": 1.5, "world": 2.5}
 
 
 def test_the_legend_can_be_hidden_and_says_so():
@@ -305,12 +345,20 @@ def _drawn(canvas):
 
 
 def test_a_crowded_world_map_labels_what_matters_and_more_when_zoomed_in():
-    from tidewrack.ui.map_canvas import LABEL_WIDTH, MapCanvas, Viewport, label, label_rank
+    from tidewrack.ui.map_canvas import (
+        LABEL_WIDTH,
+        MAP_HEIGHT,
+        TOP_INSET,
+        MapCanvas,
+        Viewport,
+        label,
+        label_rank,
+    )
 
     view = _whole_world()
     assert len(view.nodes) == 28
     canvas = MapCanvas(on_command=lambda _: None)
-    canvas.width, canvas.height = 360, 260
+    canvas.width, canvas.height = 360, MAP_HEIGHT
     canvas.show(view, "", "world", labels=True)
 
     def labels_at(zoom):
@@ -325,12 +373,12 @@ def test_a_crowded_world_map_labels_what_matters_and_more_when_zoomed_in():
     assert must and all(label(n.name, n.kind, n.quest, n.charted, n.guarded) in whole for n in must)
     zoomed = labels_at(2.0)
     # Zoomed in, every place on screen is named, except perhaps right against an
-    # edge, where a label may have nowhere to go but over a dot (pan and it shows).
+    # edge or under the map's buttons, where a label may have nowhere to go.
     inside = [
         n
         for n in view.nodes
         if LABEL_WIDTH / 2 <= canvas._points[n.id][0] <= canvas.width - LABEL_WIDTH / 2
-        and 0 <= canvas._points[n.id][1] <= canvas.height
+        and TOP_INSET <= canvas._points[n.id][1] <= canvas.height  # not under the buttons
     ]
     assert len(inside) >= 4
     assert all(label(n.name, n.kind, n.quest, n.charted, n.guarded) in zoomed for n in inside)
@@ -338,6 +386,7 @@ def test_a_crowded_world_map_labels_what_matters_and_more_when_zoomed_in():
 
 def test_region_names_are_large_zoomed_out_and_stay_on_the_map():
     from tidewrack.ui.map_canvas import (
+        MAP_HEIGHT,
         REGION_SIZE,
         REGION_SIZE_OUT,
         MapCanvas,
@@ -346,7 +395,7 @@ def test_region_names_are_large_zoomed_out_and_stay_on_the_map():
     )
 
     canvas = MapCanvas(on_command=lambda _: None)
-    canvas.width, canvas.height = 360, 260
+    canvas.width, canvas.height = 360, MAP_HEIGHT
     canvas.show(_whole_world(), "", "world", labels=True)
     canvas.viewport = Viewport()
     canvas._draw()
@@ -442,12 +491,12 @@ def test_walking_to_another_room_switches_from_the_world_map_to_this_place(tmp_p
 def test_region_borders_are_one_dashed_path_behind_the_places():
     import flet.canvas as cv
 
-    from tidewrack.ui.map_canvas import BORDER_DASH, MapCanvas, Viewport
+    from tidewrack.ui.map_canvas import BORDER_DASH, MAP_HEIGHT, MapCanvas, Viewport
 
     view = _whole_world()
     assert view.borders
     canvas = MapCanvas(on_command=lambda _: None)
-    canvas.width, canvas.height = 360, 260
+    canvas.width, canvas.height = 360, MAP_HEIGHT
     canvas.show(view, "", "world", labels=True)
     canvas.viewport = Viewport()
     canvas._draw()

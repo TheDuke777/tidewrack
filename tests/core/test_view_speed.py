@@ -61,3 +61,37 @@ def test_cheap_quest_states_match_the_quest_log(tmp_path):
     for state, views in (("active", log.active), ("ready", log.ready), ("done", log.done)):
         assert {i for i, s in states.items() if s == state} == {q.id for q in views}
     assert len(log.active) == 2 and len(log.ready) == 1 and len(log.done) == 1
+
+
+def test_upgrade_and_recipe_lists_only_for_the_shop_asked_for(tmp_path, monkeypatch):
+    from tidewrack.services.session import GameSession
+    from tidewrack.services.settings import SettingsStore
+    from tidewrack.services.storage import FileSaveStore
+    from tidewrack.ui.shell import WorldShell
+
+    # Seed 20261103: the start town's Smithy is at the gate, where you begin.
+    session = GameSession.generate(FileSaveStore(tmp_path), CONTENT, "world.standard", "W", SEED)
+    game = session.game
+    smithy = next(s for s in game.view().shops if s.crafts)
+    assert smithy.recipes and smithy.upgrades  # the default: every shop's lists
+    assert next(s for s in game.view(lists_for=smithy.name).shops if s.crafts).recipes
+    lean = next(s for s in game.view(lists_for=False).shops if s.crafts)
+    assert lean.crafts and not lean.recipes and not lean.upgrades  # the button still knows
+
+    asked = []
+    original = game.view
+    monkeypatch.setattr(
+        game, "view", lambda lists_for=True: asked.append(lists_for) or original(lists_for)
+    )
+    shell = WorldShell(
+        session,
+        SettingsStore(tmp_path / "s.json"),
+        on_back=lambda: None,
+        confirm=lambda *_: None,
+        notify=lambda _: None,
+    )
+    asked.clear()
+    shell.explore.refresh()
+    assert asked == [False]  # panel closed: no lists
+    shell.explore.open(smithy.name)
+    assert asked[-1] == smithy.name  # just the open panel's

@@ -238,6 +238,8 @@ class GameScreen:
             on_blocked=self.notify,
             legend_open=saved.legend_open,
             on_legend=self._save_legend,
+            zooms=saved.map_zooms,
+            on_zoom=self._save_zoom,
         )
         # Which map is showing: the rooms here ("area"), the world, or none.
         self.map_choice = ft.SegmentedButton(
@@ -435,6 +437,11 @@ class GameScreen:
     def _panes_resized(self, e: ft.LayoutSizeChangeEvent) -> None:
         self._panes_height = e.height
 
+    def _save_zoom(self, kind: str, zoom: float) -> None:
+        current = self.settings.load()  # keep the other settings
+        zooms = {**current.map_zooms, kind: zoom}
+        self.settings.save(current.model_copy(update={"map_zooms": zooms}))
+
     def _save_legend(self, open_: bool) -> None:
         current = self.settings.load()  # keep the other settings
         self.settings.save(current.model_copy(update={"legend_open": open_}))
@@ -462,7 +469,8 @@ class GameScreen:
             self._refresh()
 
     def _refresh(self) -> None:
-        view = self.session.game.view()
+        # Only an open shop panel needs its upgrade and recipe lists (v0.11.2).
+        view = self.session.game.view(lists_for=self.opened or False)
         self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
         self.room.value = view.room
         self.description.value = view.description
@@ -841,7 +849,7 @@ class GameScreen:
 
     def _kitchen(self, shop: ShopView) -> list[ft.Control]:
         """What you've eaten, then the ready meals (Menu) or what you can cook (Cook)."""
-        view_fed = self.session.game.view().fed
+        view_fed = self.session.game.view(lists_for=False).fed
         sold = [m for m in shop.menu if m.price is not None]
         if self.shop_tab not in (MENU_TAB, COOK_TAB):
             self.shop_tab = MENU_TAB

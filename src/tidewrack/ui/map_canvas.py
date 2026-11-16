@@ -34,9 +34,14 @@ import flet.canvas as cv
 from tidewrack.core.engine.game import Command, MapNode, MapView
 from tidewrack.ui import perf
 
-MAP_HEIGHT = 260
+MAP_HEIGHT = 300  # 260 until v0.11.2, which added TOP_INSET
 BACKGROUND = ft.Colors.SURFACE_CONTAINER_HIGHEST
 PAD = 20
+# Nothing is drawn under the map's buttons (top right): at the whole-map view a
+# room there couldn't be tapped (v0.11.2). The strip is the buttons' height plus
+# a dot's radius and tap ring; labels also steer round BUTTONS_BOX.
+TOP_INSET = 64
+BUTTONS_WIDTH = 160  # px from the right edge: up to three buttons
 DEFAULT_WIDTH = 360  # until the first resize event reports the real size
 MIN_TOUCH_RADIUS = 24  # px; generous, since dots can be small on big maps
 LABEL_WIDTH = 96  # px; place names wrap onto a second line beyond this
@@ -45,7 +50,10 @@ REGION_SIZE = 13
 CHAR_WIDTH = 0.58 * LABEL_SIZE  # rough average glyph width, for estimating label boxes
 LINE_HEIGHT = 1.3 * LABEL_SIZE
 MAX_ZOOM = 4.0
-FOCUS_ZOOM = 2.0  # maps open this far in; "centre on me" zooms in at least this far
+FOCUS_ZOOM = 2.0  # the world map opens this far in; "centre on me" zooms in at least this far
+# Where each kind of map opens until you choose (v0.11.2): a place is small enough
+# to see whole, so its map opens zoomed right out; others use FOCUS_ZOOM.
+DEFAULT_ZOOMS = {"area": 1.0}
 FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
 REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
 REGION_ZOOMED_OUT = 1.5  # at or below this zoom, region names are large and clear
@@ -133,6 +141,8 @@ class MapCanvas:
         on_blocked: Callable[[str], None] = lambda _: None,
         legend_open: bool = True,
         on_legend: Callable[[bool], None] = lambda _: None,
+        zooms: dict[str, float] | None = None,
+        on_zoom: Callable[[str, float], None] = lambda _key, _zoom: None,
     ) -> None:
         self.on_command = on_command
         self.on_blocked = on_blocked  # told why a tapped place can't be reached yet
@@ -145,7 +155,11 @@ class MapCanvas:
         # Each kind of map ("area", "world") keeps the zoom you last left it at, so a
         # new place or a new room doesn't throw you back out to the whole map.
         self._zoom_key: Hashable = None
-        self._zooms: dict[Hashable, float] = {}
+        # Zooms you chose, by map kind; saved (on_zoom) so they outlast the app.
+        self._zooms: dict[Hashable, float] = {
+            k: min(MAX_ZOOM, max(1.0, z)) for k, z in (zooms or {}).items()
+        }
+        self.on_zoom = on_zoom
         self._base: dict[str, Point] = {}  # node positions at zoom 1
         self._points: dict[str, Point] = {}  # on screen
         self._gesture: tuple[float, Point] | None = None  # zoom and anchor at start
@@ -243,7 +257,7 @@ class MapCanvas:
         if key != self._key:
             self._remember_zoom()
             self._key, self._zoom_key = key, zoom_key
-            zoom = self._zooms.get(zoom_key, FOCUS_ZOOM)
+            zoom = self._zooms.get(zoom_key, DEFAULT_ZOOMS.get(zoom_key, FOCUS_ZOOM))
             self.viewport = Viewport()
             if here is not None:
                 self.viewport.centre_on(here, self._size, zoom)
@@ -252,8 +266,14 @@ class MapCanvas:
         self._draw()
 
     def _remember_zoom(self) -> None:
-        if self._key is not None:
-            self._zooms[self._zoom_key] = self.viewport.zoom
+        """Keep this map kind's zoom (and save it, if it changed)."""
+        if self._key is None:
+            return
+        zoom = round(self.viewport.zoom, 2)
+        if self._zooms.get(self._zoom_key) != zoom:
+            self._zooms[self._zoom_key] = zoom
+            if isinstance(self._zoom_key, str):
+                self.on_zoom(self._zoom_key, zoom)
 
     def _toggle_legend(self) -> None:
         self.legend.visible = not self.legend.visible
@@ -331,6 +351,7 @@ class MapCanvas:
             anchor = self.viewport.to_content((tx, ty))
             self.viewport.place(anchor, (tx, ty), self.viewport.zoom * TAP_ZOOM, self._size)
             self._draw()
+            self._remember_zoom()
             self._map_only(changed=True)
             return
         tappable = [n for _, _, n in near if n.command is not None or n.blocked is not None]
@@ -365,6 +386,7 @@ class MapCanvas:
     def _gesture_ended(self, _: ft.ScaleEndEvent) -> None:
         self._gesture = None
         self._draw()  # labels placed properly again
+        self._remember_zoom()
         self._map_only(changed=True)
 
     def _centre_on_me(self) -> None:
@@ -372,6 +394,7 @@ class MapCanvas:
         if here is not None:
             self.viewport.centre_on(here, self._size, max(self.viewport.zoom, FOCUS_ZOOM))
             self._draw()
+            self._remember_zoom()
         self._map_only(changed=here is not None)
 
     def _fit(self) -> None:
@@ -389,13 +412,18 @@ class MapCanvas:
         base = max(4.0, min(10.0, min(self.width, self.height) / side * 0.28))
         return min(12.0, base * self.viewport.zoom**0.3)
 
+    def _place(self, x: float, y: float) -> Point:
+        """A 0..1 map position on the canvas at zoom 1: inside the padding, and
+        below the strip the buttons sit in."""
+        return (
+            PAD + x * (self.width - 2 * PAD),
+            TOP_INSET + y * (self.height - TOP_INSET - PAD),
+        )
+
     def _layout(self) -> None:
         if self.view is None:
             return
-        w, h = self.width, self.height
-        self._base = {
-            n.id: (PAD + n.x * (w - 2 * PAD), PAD + n.y * (h - 2 * PAD)) for n in self.view.nodes
-        }
+        self._base = {n.id: self._place(n.x, n.y) for n in self.view.nodes}
 
     def _draw(self) -> None:
         with perf.timed("map.draw"):
@@ -448,13 +476,11 @@ class MapCanvas:
     def _region_spots(self) -> list[tuple[str, Point]]:
         """Each region name's centre; zoomed out, nudged so the whole name is on the map."""
         assert self.view is not None
-        w, h = self.width, self.height
+        w = self.width
         spots = []
         for mark in self.view.regions:
             name = mark.name.upper()
-            x, y = self.viewport.to_screen(
-                (PAD + mark.x * (w - 2 * PAD), PAD + mark.y * (h - 2 * PAD))
-            )
+            x, y = self.viewport.to_screen(self._place(mark.x, mark.y))
             if self._zoomed_out:
                 half = min(w / 2, _region_width(name) / 2 + 4)
                 x = min(max(x, half), w - half)
@@ -488,11 +514,10 @@ class MapCanvas:
         assert self.view is not None
         if not self.view.borders:
             return []
-        w, h = self.width, self.height
         elements: list[cv.Path.PathElement] = []
         for x1, y1, x2, y2 in self.view.borders:
-            a = self.viewport.to_screen((PAD + x1 * (w - 2 * PAD), PAD + y1 * (h - 2 * PAD)))
-            b = self.viewport.to_screen((PAD + x2 * (w - 2 * PAD), PAD + y2 * (h - 2 * PAD)))
+            a = self.viewport.to_screen(self._place(x1, y1))
+            b = self.viewport.to_screen(self._place(x2, y2))
             if self._on_screen_line(a, b):
                 elements += [cv.Path.MoveTo(*a), cv.Path.LineTo(*b)]
         if not elements:
@@ -504,6 +529,10 @@ class MapCanvas:
             stroke_dash_pattern=BORDER_DASH,
         )
         return [cv.Path(elements, paint=paint)]
+
+    def _buttons_box(self) -> Box:
+        """Where the map's buttons sit (on screen, whatever the zoom)."""
+        return (self.width - BUTTONS_WIDTH, 0.0, self.width, TOP_INSET - 12)
 
     def _region_boxes(self) -> list[Box]:
         """Where zoomed-out region names are, for labels to steer around."""
@@ -559,7 +588,7 @@ class MapCanvas:
                     self.width,
                     self.height,
                     keep={n.id for n in named if label_rank(n) <= 1},
-                    obstacles=self._region_boxes(),
+                    obstacles=[*self._region_boxes(), self._buttons_box()],
                 )
             self._label_names, self._label_texts = everyone, names
             self._label_offsets = {

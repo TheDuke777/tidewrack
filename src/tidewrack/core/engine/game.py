@@ -1414,7 +1414,7 @@ class Game:
             )
         return tuple(recipes), tuple(upgrades)
 
-    def _shops(self) -> tuple[ShopView, ...]:
+    def _shops(self, lists_for: bool | str = True) -> tuple[ShopView, ...]:
         gold = shops.gold(self)
         views = []
         for entity, shop in shops.shops_here(self):
@@ -1429,7 +1429,8 @@ class Game:
                 price = material_buy_price(material, self.economy)
                 view = self._material_view(material, crafting.count(self, material.material_id))
                 materials.append(MaterialWareView(view, price, price <= gold))
-            recipes, upgrades = self._crafting(shop) if shop.crafts else ((), ())
+            lists = lists_for is True or lists_for == shop.name
+            recipes, upgrades = self._crafting(shop) if shop.crafts and lists else ((), ())
             views.append(
                 ShopView(
                     name=shop.name,
@@ -1538,11 +1539,15 @@ class Game:
 
     # --- view model ------------------------------------------------------------------
 
-    def view(self) -> GameView:
+    def view(self, lists_for: bool | str = True) -> GameView:
+        """What the player sees. `lists_for` says which shops here get their upgrade
+        and recipe lists (the slow part, one gear comparison per item you carry):
+        True every one, False none, or a shop's name just that one (the open panel;
+        the Explore screen asks for nothing else, v0.11.2)."""
         with self._building_views():
-            return self._view()
+            return self._view(lists_for)
 
-    def _view(self) -> GameView:
+    def _view(self, lists_for: bool | str = True) -> GameView:
         location, room = self.here()
         explorer = self._explorer()
         rooms_visited = explorer.rooms_visited.get(location.id, set())
@@ -1635,7 +1640,7 @@ class Game:
             in_town=location.town,
             board=self._board(),
             gold=shops.gold(self),
-            shops=self._shops(),
+            shops=self._shops(lists_for),
             fed=self._fed(),
             region=self.region(),
         )
