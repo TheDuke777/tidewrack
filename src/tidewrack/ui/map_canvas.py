@@ -413,11 +413,14 @@ class MapCanvas:
         return min(12.0, base * self.viewport.zoom**0.3)
 
     def _place(self, x: float, y: float) -> Point:
-        """A 0..1 map position on the canvas at zoom 1: inside the padding, and
-        below the strip the buttons sit in."""
+        """A 0..1 map position on the canvas at zoom 1: the view's `bounds` fill
+        the space inside the padding and below the strip the buttons sit in."""
+        x0, y0, x1, y1 = self.view.bounds if self.view else (0.0, 0.0, 1.0, 1.0)
+        fx = (x - x0) / (x1 - x0) if x1 > x0 else 0.5  # one column or row: centred
+        fy = (y - y0) / (y1 - y0) if y1 > y0 else 0.5
         return (
-            PAD + x * (self.width - 2 * PAD),
-            TOP_INSET + y * (self.height - TOP_INSET - PAD),
+            PAD + fx * (self.width - 2 * PAD),
+            TOP_INSET + fy * (self.height - TOP_INSET - PAD),
         )
 
     def _layout(self) -> None:

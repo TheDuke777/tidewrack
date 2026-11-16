@@ -7,8 +7,9 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
-- The map of the place you're in now opens showing the whole place; the world
-  map still opens zoomed in on you.
+- The map of the place you're in now opens showing the whole place, spread
+  across the whole map instead of bunched into part of it; the world map still
+  opens zoomed in on you.
 - Each map remembers the zoom you leave it at, now also after closing the app.
 - Nothing is drawn under the map's buttons any more, so every room on the
   whole-place view can be tapped. The map is a little taller to make room.

@@ -545,3 +545,36 @@ def test_map_only_events_send_just_the_map_not_the_whole_page(monkeypatch):
     x, y = canvas._points["b"]
     canvas._tapped(SimpleNamespace(local_position=point(x, y)))
     assert commands == [Travel("b")] and disabled == []  # a move updates the whole page
+
+
+def test_a_place_map_fills_the_canvas_with_its_rooms():
+    from tidewrack.core.engine.components import Explorer
+    from tidewrack.core.engine.game import Game
+    from tidewrack.core.procgen.world_gen import generate_world
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.ui.map_canvas import MAP_HEIGHT, PAD, TOP_INSET, MapCanvas, Viewport
+
+    content = load_bundled_content()
+    world = generate_world(
+        20261103, content.world("world.standard"), content.roomsets, content.regions
+    )
+    game = Game(20261103, world)
+    here = world.location(world.start)
+    explorer = game.world.get(game.player, Explorer)
+    explorer.rooms_discovered[here.id] = set(here.rooms)  # every room known
+    view = game.view().map
+    xs = [r.pos[0] for r in here.rooms.values()]
+    ys = [r.pos[1] for r in here.rooms.values()]
+    assert view.bounds == (min(xs), min(ys), max(xs), max(ys))
+
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.width, canvas.height = 360, MAP_HEIGHT
+    canvas.show(view, "", "area", zoom_key="area")
+    canvas.viewport = Viewport()
+    canvas._draw()
+    px = [canvas._points[n.id][0] for n in view.nodes]
+    py = [canvas._points[n.id][1] for n in view.nodes]
+    assert (round(min(px)), round(max(px))) == (PAD, 360 - PAD)  # edge to edge
+    assert (round(min(py)), round(max(py))) == (TOP_INSET, MAP_HEIGHT - PAD)
+    assert world.has_map and view.bounds != (0.0, 0.0, 1.0, 1.0)
+    assert game.view().world_map.bounds == (0.0, 0.0, 1.0, 1.0)  # the world: its grid

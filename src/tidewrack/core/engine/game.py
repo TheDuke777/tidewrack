@@ -405,6 +405,9 @@ class MapView:
     regions: tuple[RegionMark, ...] = ()  # world maps with more than one region
     # Dotted lines where known regions meet (world maps): (x1, y1, x2, y2), 0..1.
     borders: tuple[tuple[float, float, float, float], ...] = ()
+    # The part of 0..1 to fit to the map: a place's maps use the box around all its
+    # rooms (known or not, so the layout never shifts as you explore; v0.11.2).
+    bounds: tuple[float, float, float, float] = (0.0, 0.0, 1.0, 1.0)  # x0, y0, x1, y1
 
 
 @dataclass(frozen=True)
@@ -1587,6 +1590,9 @@ class Game:
                 quests={r for loc, r in quest_rooms if loc == location.id},
                 shops=self._shop_rooms(location.id) & rooms_visited,
             )
+            xs = [r.pos[0] for r in location.rooms.values()]
+            ys = [r.pos[1] for r in location.rooms.values()]
+            room_map = replace(room_map, bounds=(min(xs), min(ys), max(xs), max(ys)))
         if self.overworld.has_map:
             world_map = _fog_map(
                 nodes=[(loc.id, loc.pos, loc.name) for loc in self.overworld.locations.values()],
