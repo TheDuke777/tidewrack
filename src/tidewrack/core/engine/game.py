@@ -1527,6 +1527,54 @@ class Game:
         self._say("(Dev) The whole map is revealed and every road is open.")
         return True
 
+    def skip_to_region(
+        self, region_id: str, worn: Iterable[Item], spare: Iterable[Item] = (), gold: int = 0
+    ) -> bool:
+        """Dev builds only: start over at the town just inside `region_id`, as if
+        the regions before it were played through. Their places are known, the
+        wardens up to it are gone, the kit is swapped for `worn` (with `spare` in
+        the pack) and `gold` is added. Refused in a fight (False). Not a command."""
+        if self.world.has(self.player, Fighting):
+            return False
+        target = self.overworld.regions[region_id]
+        towns = [
+            loc for loc in self.overworld.locations.values() if loc.region == region_id and loc.town
+        ]
+        # The town just over the border: the one with a road from a shallower region.
+        town = next(
+            (
+                loc
+                for loc in towns
+                for n in self.overworld.neighbours(loc.id)
+                if (r := self.overworld.region_of(n)) is not None and r.tier < target.tier
+            ),
+            towns[0],
+        )
+        explorer = self._explorer()
+        for loc in self.overworld.locations.values():
+            region = self.overworld.region_of(loc.id)
+            if region is not None and region.tier < target.tier:
+                explorer.locations_discovered.add(loc.id)
+                explorer.locations_visited.add(loc.id)
+        for entity, (warden,) in list(self.world.query(Warden)):
+            if self.overworld.regions[warden.region].tier <= target.tier:
+                self.world.destroy(entity)
+        for entity, _ in self._equipped_entities():
+            self.world.destroy(entity)
+        for item in worn:
+            self.world.create(item, Carried(self.player), Equipped(item.slot))
+        for item in spare:
+            self.world.create(item, Carried(self.player))
+        self.world.get(self.player, Wallet).gold += gold
+        self.world.get(self.player, Health).damage = 0
+        self.world.get(self.player, Position).location = town.id
+        self.world.get(self.player, Position).room = town.start
+        self._say(f"(Dev) You start in {target.name}, in gear from the regions before it.")
+        self.bus.emit(LocationEntered(self.player, town.id, None, first_visit=True))
+        self.bus.emit(RoomEntered(self.player, town.id, town.start, None, first_visit=True))
+        self.bus.flush()
+        return True
+
     def region(self) -> str | None:
         """The name of the region the player is in (None in a world without regions)."""
         region = self.overworld.region_of(self.world.get(self.player, Position).location)

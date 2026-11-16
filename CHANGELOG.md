@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Dev builds only: "New world in a region" on the world list starts a new world
+  in the Fens, Moors or Highlands, with the wardens before it beaten, the places
+  before it known, and the best gear of the regions before it fully upgraded
+  (the other weapon setup, two-handed or one-handed with an off hand, in your
+  pack), plus some gold.
+
 ## [0.11.2] - 2026-11-16
 
 ### Changed

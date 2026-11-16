@@ -99,3 +99,100 @@ def test_hidden_tabs_are_isolated_so_page_updates_skip_them(tmp_path):
     assert [screen.control.visible for screen, *_ in shell.tabs] == [False, False, True, False]
     shell.back()
     assert isolated() == [False, True, True, True]
+
+
+# --- skip to region (8b) -----------------------------------------------------------
+
+
+def test_new_world_in_region_is_only_offered_in_dev_builds(tmp_path, monkeypatch):
+    from tidewrack.services.settings import SettingsStore
+    from tidewrack.services.storage import FileSaveStore
+    from tidewrack.ui.app import App
+
+    class Page:
+        controls: list = []
+        navigation_bar = None
+
+        def update(self):
+            pass
+
+    def buttons(app):
+        app.show_picker()
+        column = app.page.controls[0].content.content
+        kinds = (ft.FilledButton, ft.OutlinedButton)
+        return [c.content for c in column.controls if isinstance(c, kinds)]
+
+    app = App(Page(), FileSaveStore(tmp_path / "saves"), SettingsStore(tmp_path / "s"), CONTENT)
+    assert buttons(app) == ["New world"]
+    monkeypatch.setattr(dev, "ENABLED", True)
+    assert buttons(app) == ["New world", "New world in a region (dev)"]
+
+
+def test_skip_to_region_starts_at_its_town_in_maxed_gear_from_before(tmp_path):
+    from tidewrack.core.engine.components import Equipped, Position, Respawn, Wallet
+    from tidewrack.core.gear.item import Item
+    from tidewrack.core.procgen.head_start import region_gear
+    from tidewrack.services.session import GameSession
+
+    session = _session(tmp_path)
+    game = session.game
+    world = game.overworld
+    revision = session.meta.revision
+    assert session.skip_to_region(CONTENT, "region.moors")
+
+    position = game.world.get(game.player, Position)
+    town = world.location(position.location)
+    assert town.town and world.region_of(town.id).id == "region.moors"
+    assert position.room == town.start
+    assert game.world.get(game.player, Respawn).location == town.id
+    # It's the town just over the border from the Fens.
+    assert any(world.region_of(n).id == "region.fens" for n in world.neighbours(town.id))
+
+    guarded = {game.overworld.regions[w.region].tier for _, (w,) in game.world.query(Warden)}
+    assert guarded == {4}  # only the Highlands' warden is left
+
+    explorer = game.world.get(game.player, Explorer)
+    earlier = {i for i, loc in world.locations.items() if world.region_of(i).tier < 3}
+    assert earlier <= explorer.locations_visited
+
+    worn = [i for _, (i, _) in game.world.query(Item, Equipped)]
+    allowed = set(region_gear(CONTENT, "region.wrack_coast")) | set(
+        region_gear(CONTENT, "region.fens")
+    )
+    assert worn and all(i.upgrade == i.max_upgrade for i in worn)
+    assert {i.gear_id for i in worn} <= allowed
+    assert "gear.driftwood_club" not in {i.gear_id for i in worn}  # the kit is gone
+    assert len(game.pack_ids()) >= 1  # the other weapon setup, to try both
+    assert game.world.get(game.player, Wallet).gold >= 300
+    assert session.meta.revision == revision + 1
+
+    reopened = GameSession.open(session.store, session.meta.slot_id, CONTENT)
+    assert reopened.game.world.get(reopened.game.player, Position).location == town.id
+
+
+def test_skip_to_region_waits_until_a_fight_is_over(tmp_path):
+    session = _session(tmp_path)
+    game = session.game
+    enemy = next(e for e, _ in game.world.query(Enemy))
+    game.world.add(game.player, Fighting(enemy, retreat_room="a"))
+    assert session.skip_to_region(CONTENT, "region.fens") is False
+
+
+def test_best_loadout_prefers_higher_stats_and_keeps_the_other_weapon_setup():
+    from tidewrack.core.economy.value_model import stats_value
+    from tidewrack.core.gear.stat_pipeline import player_stats
+    from tidewrack.core.procgen.head_start import best_loadout, candidates
+
+    base = CONTENT.world("world.standard").player
+    items = candidates(CONTENT, ["region.wrack_coast", "region.fens", "region.moors"])
+    worn, spare = best_loadout(base, items)
+    assert len({i.slot for i in worn}) == len(worn)
+    best = stats_value(player_stats(base, worn).total)
+    # No single swap from the candidates does better.
+    for candidate in items:
+        if candidate.two_handed or any(w.two_handed for w in worn):
+            continue
+        swapped = [candidate if w.slot == candidate.slot else w for w in worn]
+        assert stats_value(player_stats(base, swapped).total) <= best
+    hands = {i.two_handed for i in worn if i.slot == "main_hand"}
+    assert spare and {i.two_handed for i in spare if i.slot == "main_hand"} == {not hands.pop()}

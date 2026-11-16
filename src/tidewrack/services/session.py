@@ -32,6 +32,7 @@ from tidewrack.core.engine.components import (
     RecipePage,
     Shop,
     Spawner,
+    Stats,
     Warden,
 )
 from tidewrack.core.engine.game import Command, Game, TurnResult
@@ -39,6 +40,7 @@ from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
 from tidewrack.core.procgen.enemy_gen import generate_enemies, generate_wardens
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
+from tidewrack.core.procgen.head_start import GOLD_PER_REGION, best_loadout, candidates
 from tidewrack.core.procgen.material_gen import (
     generate_gathering,
     generate_growers,
@@ -217,6 +219,21 @@ class GameSession:
         """Dev builds: reveal the whole map and open every road (see
         Game.reveal_map), saved at once. False (nothing changed) mid-fight."""
         if not self.game.reveal_map():
+            return False
+        self.save()
+        return True
+
+    def skip_to_region(self, content: Content, region_id: str) -> bool:
+        """Dev builds: start this world at `region_id`'s first town, wearing the
+        best gear of the regions before it, fully upgraded (core.procgen.head_start),
+        saved at once. False (nothing changed) mid-fight."""
+        game = self.game
+        tier = game.overworld.regions[region_id].tier
+        before = [r.id for r in game.overworld.regions.values() if r.tier < tier]
+        base = game.world.get(game.player, Stats).base
+        loadout = best_loadout(base, candidates(content, before))
+        gold = GOLD_PER_REGION * len(before)
+        if not game.skip_to_region(region_id, loadout.worn, loadout.spare, gold):
             return False
         self.save()
         return True

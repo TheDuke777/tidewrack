@@ -11,7 +11,7 @@ from tidewrack.core.data.loader import Content
 from tidewrack.services.session import MAX_NAME, GameSession, next_world_name
 from tidewrack.services.settings import SettingsStore
 from tidewrack.services.storage import SaveError, SaveStore, SlotListing
-from tidewrack.ui import theme
+from tidewrack.ui import dev, theme
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
 from tidewrack.ui.shell import WorldShell
 from tidewrack.version import get_build_info, version_label
@@ -100,6 +100,7 @@ class App:
                 on_new=self.new_world,
                 on_delete=self.confirm_delete,
                 on_rename=self.ask_rename,
+                on_new_in_region=self.ask_region if dev.ENABLED else None,
                 footer=version_label(get_build_info()),
             ).control
         )
@@ -124,11 +125,42 @@ class App:
 
     # --- actions -----------------------------------------------------------------
 
-    def new_world(self) -> None:
+    def new_world(self, region_id: str | None = None) -> None:
         name = next_world_name([s.meta.name for s in self.store.list_slots()])
         seed = new_seed()
         session = GameSession.generate(self.store, self.content, WORLD_RECIPE, name, seed)
+        if region_id is not None:
+            session.skip_to_region(self.content, region_id)
         self.show_game(session)
+
+    def ask_region(self) -> None:
+        """Dev builds: start a new world in a later region (core.procgen.head_start)."""
+        regions = [r.region for r in self.content.world(WORLD_RECIPE).regions][1:]
+
+        def start(region_id: str) -> None:
+            self.page.pop_dialog()
+            self.new_world(region_id)
+
+        self.page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Start in which region?"),
+                content=ft.Text(
+                    "Earlier wardens beaten, wearing the best gear of the regions "
+                    "before it, fully upgraded."
+                ),
+                actions=[
+                    *(
+                        ft.TextButton(
+                            content=self.content.regions[r].name,
+                            on_click=lambda _, r=r: start(r),
+                        )
+                        for r in regions
+                    ),
+                    ft.TextButton(content="Cancel", on_click=lambda _: self.page.pop_dialog()),
+                ],
+            )
+        )
 
     def open_slot(self, slot_id: str) -> None:
         try:
