@@ -213,6 +213,14 @@ class GameSession:
             listener(result)
         return result
 
+    def reveal_map(self) -> bool:
+        """Dev builds: reveal the whole map and open every road (see
+        Game.reveal_map), saved at once. False (nothing changed) mid-fight."""
+        if not self.game.reveal_map():
+            return False
+        self.save()
+        return True
+
     def save(self) -> None:
         self.meta = self.meta.model_copy(
             update={

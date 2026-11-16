@@ -16,8 +16,10 @@ every event in a deterministic order.
 from __future__ import annotations
 
 import copy
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from functools import cached_property
 from typing import Literal
 
 from tidewrack.core.codex import items as codex_items
@@ -142,6 +144,7 @@ from tidewrack.core.gear.stat_pipeline import (
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
 from tidewrack.core.quests import quests as questing
 from tidewrack.core.rng import Rng
+from tidewrack.core.world.borders import grid_side, region_borders
 from tidewrack.core.world.location import Location, Room
 from tidewrack.core.world.overworld import Overworld
 
@@ -400,6 +403,8 @@ class MapView:
     edges: tuple[tuple[str, str], ...]
     size: int  # nodes in the whole map, known or not (for scaling)
     regions: tuple[RegionMark, ...] = ()  # world maps with more than one region
+    # Dotted lines where known regions meet (world maps): (x1, y1, x2, y2), 0..1.
+    borders: tuple[tuple[float, float, float, float], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -614,6 +619,9 @@ class GameView:
 
 
 class Game:
+    # Set only while a view is being built (_building_views); never saved.
+    _compare_with: tuple[list[Item], dict[str, int]] | None = None
+
     def __init__(
         self,
         seed: int,
@@ -1078,9 +1086,28 @@ class Game:
             if (p.location, p.room) == (location_id, room_id)
         ]
 
+    @contextmanager
+    def _building_views(self) -> Iterator[None]:
+        """While building one view (nothing can change meanwhile), item views share
+        one look-up of your equipped gear and comparison base instead of each
+        scanning the world: big packs made every screen update slow (v0.11.0)."""
+        outer = self._compare_with is not None
+        if not outer:
+            base = stats.add(self.world.get(self.player, Stats).base, cooking.buff(self))
+            self._compare_with = (self._equipped(), base)
+        try:
+            yield
+        finally:
+            if not outer:
+                self._compare_with = None
+
     def _item_view(self, entity: int, item: Item) -> ItemView:
         # Compared with what you have now, meal included, so "You" stays true.
-        base = stats.add(self.world.get(self.player, Stats).base, cooking.buff(self))
+        if self._compare_with is not None:
+            equipped, base = self._compare_with
+        else:
+            equipped = self._equipped()
+            base = stats.add(self.world.get(self.player, Stats).base, cooking.buff(self))
         return ItemView(
             id=entity,
             name=item.display_name,
@@ -1094,7 +1121,7 @@ class Game:
             gear_set_id=item.gear_set.id if item.gear_set else None,
             gear_set_color=item.gear_set.color if item.gear_set else None,
             effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
-            comparison=compare(item, self._equipped(), base),
+            comparison=compare(item, equipped, base),
             value=value(item),
             sell_price=sell_price(item, self.economy),
         )
@@ -1182,6 +1209,10 @@ class Game:
         )
 
     def quests(self) -> QuestLogView:
+        with self._building_views():
+            return self._quests()
+
+    def _quests(self) -> QuestLogView:
         """The quest log: everything accepted or found, by state."""
         known = questing.all_quests(self)
 
@@ -1253,7 +1284,34 @@ class Game:
             affordable=price is not None and price <= gold,
         )
 
+    def quest_states(self) -> dict[str, str]:
+        """Each quest's state by id (posted, hidden, active, ready, done), without
+        building quest views (cheap: for unread dots)."""
+        return {q.quest_id: q.state for q in questing.all_quests(self)}
+
+    def pack_ids(self) -> set[int]:
+        """Entity ids of what you carry but don't wear: the pack's ItemView ids,
+        without building them (cheap: for unread dots)."""
+        return {
+            e
+            for e, (_, carried) in self.world.query(Item, Carried)
+            if carried.by == self.player and not self.world.has(e, Equipped)
+        }
+
+    def satchel_keys(self) -> set[tuple[str, str]]:
+        """("material", id), ("meal", id) and ("recipe", name) for what's in your
+        satchel and the recipes you know (cheap: for unread dots)."""
+        return (
+            {("material", s.material.material_id) for s in crafting.held(self).values()}
+            | {("meal", s.meal.meal_id) for s in cooking.held(self).values()}
+            | {("recipe", r.name) for r in crafting.known(self).values()}
+        )
+
     def inventory(self) -> InventoryView:
+        with self._building_views():
+            return self._inventory()
+
+    def _inventory(self) -> InventoryView:
         equipped = self._equipped_entities()
         by_slot = {item.slot: (e, item) for e, item in equipped}
         slots = []
@@ -1419,6 +1477,52 @@ class Game:
                 marks.append(RegionMark(region.name, round(x, 4), round(y, 4)))
         return tuple(marks)
 
+    @cached_property
+    def _grid_side(self) -> int | None:
+        """The overworld grid's size, worked out once (places never move)."""
+        return grid_side([loc.pos for loc in self.overworld.locations.values()])
+
+    def _region_borders(self, shown: MapView) -> tuple[tuple[float, float, float, float], ...]:
+        """Borders between the regions of the places on the map (never further)."""
+        if len(self.overworld.regions) < 2:
+            return ()
+        side = self._grid_side
+        if side is None:
+            return ()
+        key = tuple(n.id for n in shown.nodes)  # they only change as places are found
+        cached = self._borders_cache
+        if cached.get("key") != key:
+            order = {region_id: i for i, region_id in enumerate(self.overworld.regions)}
+            places = [
+                (n.x, n.y, order[region])
+                for n in shown.nodes
+                if (region := self.overworld.locations[n.id].region) in order
+            ]
+            cached.update(key=key, borders=region_borders(places, side))
+        return cached["borders"]
+
+    @cached_property
+    def _borders_cache(self) -> dict:
+        return {}
+
+    def reveal_map(self) -> bool:
+        """Dev builds only (the UI offers it there): every place and room known
+        and visited, and every warden gone so every road is open. Refused in a
+        fight (False). Not a command: it takes no turn and nothing reacts to it."""
+        if self.world.has(self.player, Fighting):
+            return False
+        explorer = self._explorer()
+        for loc in self.overworld.locations.values():
+            explorer.locations_discovered.add(loc.id)
+            explorer.locations_visited.add(loc.id)
+            rooms = set(loc.rooms)
+            explorer.rooms_discovered.setdefault(loc.id, set()).update(rooms)
+            explorer.rooms_visited.setdefault(loc.id, set()).update(rooms)
+        for entity, _ in list(self.world.query(Warden)):
+            self.world.destroy(entity)
+        self._say("(Dev) The whole map is revealed and every road is open.")
+        return True
+
     def region(self) -> str | None:
         """The name of the region the player is in (None in a world without regions)."""
         region = self.overworld.region_of(self.world.get(self.player, Position).location)
@@ -1435,6 +1539,10 @@ class Game:
     # --- view model ------------------------------------------------------------------
 
     def view(self) -> GameView:
+        with self._building_views():
+            return self._view()
+
+    def _view(self) -> GameView:
         location, room = self.here()
         explorer = self._explorer()
         rooms_visited = explorer.rooms_visited.get(location.id, set())
@@ -1493,7 +1601,11 @@ class Game:
                 },
                 guarded={w.road for _, (w,) in self.world.query(Warden)},
             )
-            world_map = replace(world_map, regions=self._region_marks(world_map))
+            world_map = replace(
+                world_map,
+                regions=self._region_marks(world_map),
+                borders=self._region_borders(world_map),
+            )
         return GameView(
             location=location.name,
             kind=location.kind,

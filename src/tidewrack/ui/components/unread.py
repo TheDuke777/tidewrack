@@ -26,19 +26,15 @@ PARTS = ("quests", "codex", "pack", "satchel")
 
 def keys(game: Game, part: str) -> set[Hashable]:
     if part == "quests":
-        log = game.quests()
-        return {q.id for q in (*log.ready, *log.active)}
+        # Not game.quests(): that compares every quest's reward with your gear.
+        return {i for i, state in game.quest_states().items() if state in ("ready", "active")}
     if part == "codex":
         # New entries only: more learned about one you know isn't a "new" thing.
         return codex_items.keys(game)
-    inventory = game.inventory()
+    # Not game.inventory(): that compares every item you carry, on every command.
     if part == "pack":
-        return {item.id for item in inventory.pack}
-    return (
-        {("material", m.id) for m in inventory.materials}
-        | {("meal", m.id) for m in inventory.meals}
-        | {("recipe", r) for r in inventory.recipes}
-    )
+        return game.pack_ids()
+    return game.satchel_keys()
 
 
 def dot_icon(icon: ft.IconData, dot: bool) -> ft.Icon:
@@ -94,7 +90,8 @@ class Unread:
     # --- the dots ----------------------------------------------------------------
 
     def quests(self) -> bool:
-        return bool(self.game.quests().ready) or bool(self.new("quests"))
+        ready = "ready" in self.game.quest_states().values()
+        return ready or bool(self.new("quests"))
 
     def codex(self) -> bool:
         return bool(self.new("codex"))

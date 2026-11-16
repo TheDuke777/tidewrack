@@ -4,11 +4,15 @@ from tidewrack.core.data.loader import ContentError
 from tidewrack.services.content import load_bundled_content
 from tidewrack.services.settings import SettingsStore, settings_path
 from tidewrack.services.storage import FileSaveStore, saves_dir
+from tidewrack.ui import dev
 from tidewrack.ui.app import App
 from tidewrack.ui.theme import Theming
+from tidewrack.version import get_build_info
 
 
 def main(page: ft.Page):
+    if get_build_info().tag is None:  # a dev build or `flet run`, never a release
+        dev.enable()  # timings and the Reveal map menu item
     page.title = "Tidewrack"
     page.theme_mode = ft.ThemeMode.SYSTEM
     settings = SettingsStore(settings_path())

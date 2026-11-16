@@ -60,6 +60,7 @@ from tidewrack.core.engine.game import (
 )
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
+from tidewrack.ui import dev, perf
 from tidewrack.ui.components.card import card
 from tidewrack.ui.components.coins import coins
 from tidewrack.ui.components.combat_panel import combat_panel
@@ -336,6 +337,17 @@ class GameScreen:
                             icon=ft.Icons.PUBLIC,
                             on_click=lambda _: on_back(),
                         ),
+                        *(
+                            [
+                                ft.PopupMenuItem(
+                                    content="Reveal map (dev)",
+                                    icon=ft.Icons.TRAVEL_EXPLORE,
+                                    on_click=lambda _: self._reveal_map(),
+                                )
+                            ]
+                            if dev.ENABLED
+                            else []
+                        ),
                     ],
                 ),
                 self.where,
@@ -364,7 +376,16 @@ class GameScreen:
     # --- handlers ----------------------------------------------------------------
 
     def act(self, command: Command) -> None:
-        self.session.perform(command)  # autosaves
+        if isinstance(command, Move) and self.map_choice.selected == ["world"]:
+            # Walking to another room here: show where you're walking, not the world.
+            self.map_choice.selected = ["area"]
+        with perf.timed("command"):
+            self.session.perform(command)  # autosaves
+        self.refresh()
+
+    def _reveal_map(self) -> None:
+        if not self.session.reveal_map():
+            self.notify("Not in the middle of a fight.")
         self.refresh()
 
     def _look(self, _: ft.Event) -> None:
@@ -437,6 +458,10 @@ class GameScreen:
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
+        with perf.timed("screen.refresh"):
+            self._refresh()
+
+    def _refresh(self) -> None:
         view = self.session.game.view()
         self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
         self.room.value = view.room

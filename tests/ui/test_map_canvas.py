@@ -385,3 +385,114 @@ def test_a_tap_between_places_zooms_in_instead_of_guessing():
     assert abs(canvas._points["a"][0] - canvas._points["b"][0]) > abs(ax - bx)
     tap(canvas, *canvas._points["a"])  # now far enough apart to tell
     assert commands == [Travel("a")]
+
+
+def test_a_tap_near_places_you_cant_go_to_still_zooms_in():
+    from types import SimpleNamespace
+
+    from tidewrack.core.engine.game import MapNode, MapView, Travel
+    from tidewrack.ui.map_canvas import TAP_ZOOM, MapCanvas
+
+    nodes = (
+        MapNode("a", 0.50, 0.5, "seen", "A", Travel("a")),  # next door
+        MapNode("b", 0.56, 0.5, "visited", "B", None),  # not reachable from here
+    )
+    commands = []
+    canvas = MapCanvas(on_command=commands.append)
+    canvas.width, canvas.height = 400, 260
+    canvas.show(MapView(nodes, (), 2), "", "w", labels=True)
+    (ax, ay), (bx, _) = canvas._points["a"], canvas._points["b"]
+    canvas._tapped(SimpleNamespace(local_position=SimpleNamespace(x=(ax + bx) / 2, y=ay)))
+    assert commands == [] and canvas.viewport.zoom == TAP_ZOOM
+    x, y = canvas._points["b"]  # zoomed: a clear tap on a place you can't go does nothing
+    canvas._tapped(SimpleNamespace(local_position=SimpleNamespace(x=x, y=y)))
+    assert commands == [] and canvas.viewport.zoom == TAP_ZOOM
+
+
+def test_walking_to_another_room_switches_from_the_world_map_to_this_place(tmp_path):
+    from tidewrack.core.engine.game import Move
+    from tidewrack.services.content import load_bundled_content
+    from tidewrack.services.session import GameSession
+    from tidewrack.services.settings import SettingsStore
+    from tidewrack.services.storage import FileSaveStore
+    from tidewrack.ui.shell import WorldShell
+
+    session = GameSession.generate(
+        FileSaveStore(tmp_path / "saves"),
+        load_bundled_content(),
+        "world.standard",
+        "W",
+        20261103,
+    )
+    shell = WorldShell(
+        session,
+        SettingsStore(tmp_path / "s.json"),
+        on_back=lambda: None,
+        confirm=lambda *_: None,
+        notify=lambda _: None,
+    )
+    screen = shell.explore
+    screen.map_choice.selected = ["world"]
+    screen.refresh()
+    town = session.game.overworld.location(session.game.overworld.start)
+    screen.act(Move(town.room(town.start).exits[0].label))
+    assert screen.map_choice.selected == ["area"]
+
+
+def test_region_borders_are_one_dashed_path_behind_the_places():
+    import flet.canvas as cv
+
+    from tidewrack.ui.map_canvas import BORDER_DASH, MapCanvas, Viewport
+
+    view = _whole_world()
+    assert view.borders
+    canvas = MapCanvas(on_command=lambda _: None)
+    canvas.width, canvas.height = 360, 260
+    canvas.show(view, "", "world", labels=True)
+    canvas.viewport = Viewport()
+    canvas._draw()
+    paths = [s for s in canvas.canvas.shapes if isinstance(s, cv.Path)]
+    assert len(paths) == 1 and paths[0].paint.stroke_dash_pattern == BORDER_DASH
+    first_dot = next(i for i, s in enumerate(canvas.canvas.shapes) if isinstance(s, cv.Circle))
+    assert canvas.canvas.shapes.index(paths[0]) < first_dot  # drawn underneath
+
+
+def test_map_only_events_send_just_the_map_not_the_whole_page(monkeypatch):
+    from types import SimpleNamespace
+
+    import flet as ft
+
+    from tidewrack.core.engine.game import MapNode, MapView, Travel
+    from tidewrack.ui import map_canvas
+    from tidewrack.ui.map_canvas import MapCanvas
+
+    disabled, updated, commands = [], [], []
+    monkeypatch.setattr(ft.Column, "page", property(lambda self: object()))  # "on a page"
+    monkeypatch.setattr(ft.context, "disable_auto_update", lambda: disabled.append(1))
+    canvas = MapCanvas(on_command=commands.append)
+    monkeypatch.setattr(canvas.control, "update", lambda: updated.append(1))
+    nodes = (
+        MapNode("a", 0.2, 0.5, "current", "A", None),
+        MapNode("b", 0.8, 0.5, "seen", "B", Travel("b")),
+    )
+    clock = [100.0]
+    monkeypatch.setattr(map_canvas.time, "monotonic", lambda: clock[0])
+    canvas.show(MapView(nodes, (), 2), "", "w", labels=True)
+
+    def point(x, y):
+        return SimpleNamespace(x=x, y=y)
+
+    canvas._gesture_started(SimpleNamespace(local_focal_point=point(50, 50)))
+    assert (len(disabled), len(updated)) == (1, 0)  # nothing to send yet
+    clock[0] += 1
+    canvas._gesture_moved(SimpleNamespace(local_focal_point=point(60, 50), scale=1.5))
+    assert (len(disabled), len(updated)) == (2, 1)  # redrawn: the map alone is sent
+    canvas._gesture_moved(SimpleNamespace(local_focal_point=point(61, 50), scale=1.5))
+    assert (len(disabled), len(updated)) == (3, 1)  # too soon to redraw: nothing sent
+    canvas._gesture_ended(SimpleNamespace())
+    assert (len(disabled), len(updated)) == (4, 2)
+
+    disabled.clear()
+    x, y = canvas._points["b"]
+    canvas._tapped(SimpleNamespace(local_position=point(x, y)))
+    assert commands == [Travel("b")] and disabled == []  # a move updates the whole page

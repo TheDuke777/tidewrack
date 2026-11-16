@@ -16,8 +16,9 @@ Big maps (8a beta 3) get level of detail: labels are placed by priority (you,
 places you can tap, quest targets and guarded places always; then towns, then
 the rest) and a lesser label that would land on others is left out, so zooming
 in reveals more names. Zoomed out, region names are drawn large and clear and
-labels steer around them. A tap that falls between places that would do
-different things zooms in there instead of guessing.
+labels steer around them. Dashed lines mark where known regions meet
+(core/world/borders.py). A tap among two or more places (any places, not
+just ones you can go to) zooms in there instead of guessing.
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ import flet as ft
 import flet.canvas as cv
 
 from tidewrack.core.engine.game import Command, MapNode, MapView
+from tidewrack.ui import perf
 
 MAP_HEIGHT = 260
 BACKGROUND = ft.Colors.SURFACE_CONTAINER_HIGHEST
@@ -48,9 +50,11 @@ FOLLOW_MARGIN = 0.15  # recentre when you walk within this fraction of the edge
 REDRAW_INTERVAL = 0.03  # s; at most ~30 redraws a second while pinching/panning
 REGION_ZOOMED_OUT = 1.5  # at or below this zoom, region names are large and clear
 REGION_SIZE_OUT = 16
+BORDER_WIDTH = 1.5  # region borders: dashed lines where regions meet
+BORDER_DASH = [4, 4]  # px on, px off
 DROP_OVERLAP = 0.15  # a lesser label is left out if this share of it would be covered
 TAP_ZOOM = 2.0  # an ambiguous tap zooms in this many times, around the tap
-AMBIGUOUS = 1.5  # a tap is ambiguous if the next place is this close (× the nearest's distance)
+AMBIGUOUS = 1.5  # a tap is ambiguous if a second place is this close (× the nearest's distance)
 
 # A glyph per location kind for world-map labels and the legend; unknown kinds
 # (new roomsets before this list is updated) fall back to a plain dot.
@@ -213,6 +217,10 @@ class MapCanvas:
                 self.legend,
             ],
         )
+        # Dev builds only: the latest timings, readable without adb (ui/perf.py).
+        self.perf_line = ft.Text(size=10, color=ft.Colors.OUTLINE, visible=perf.ENABLED)
+        if perf.ENABLED:
+            self.control.controls.append(self.perf_line)
 
     def show(
         self,
@@ -253,6 +261,20 @@ class MapCanvas:
         self.on_legend(self.legend.visible)
         self._update(self.legend, self.legend_button)
 
+    def _map_only(self, changed: bool) -> None:
+        """End an event that touched nothing but the map: send just the map (if it
+        changed), not the whole page. Flet otherwise re-diffs the whole page after
+        every event, which cost ~65 ms per drag frame on a phone in a played world."""
+        try:
+            on_page = self.control.page is not None  # raises when not on a page
+        except RuntimeError:
+            on_page = False
+        if not on_page:  # tests
+            return
+        ft.context.disable_auto_update()  # for this event only
+        if changed:
+            self.control.update()
+
     @staticmethod
     def _update(*controls: ft.Control) -> None:
         for control in controls:
@@ -273,6 +295,7 @@ class MapCanvas:
 
     def _resized(self, e: cv.CanvasResizeEvent) -> None:
         if (e.width, e.height) == (self.width, self.height):
+            self._map_only(changed=False)
             return
         # Keep the zoom (the layout often settles after a move); just stay on you.
         zoom = self.viewport.zoom
@@ -283,6 +306,7 @@ class MapCanvas:
         if here is not None:
             self.viewport.centre_on(here, self._size, zoom)
         self._draw()
+        self._map_only(changed=True)
 
     def _tapped(self, e: ft.TapEvent) -> None:
         if self.view is None or e.local_position is None:
@@ -290,23 +314,31 @@ class MapCanvas:
         tx, ty = e.local_position.x, e.local_position.y
         r = self._radius()
         reach = max(MIN_TOUCH_RADIUS, r * 2.5)
+        # Every place counts when judging whether the tap was clear, tappable or not:
+        # a tap among crowded dots zooms in so you can see what's there.
         near = sorted(
             (math.hypot(x - tx, y - ty), i, node)
             for i, node in enumerate(self.view.nodes)
-            if node.command is not None or node.blocked is not None
             for x, y in (self._points[node.id],)
             if math.hypot(x - tx, y - ty) <= reach
         )
         if not near:
+            self._map_only(changed=False)
             return
-        best = near[0][2]
         close = [n for d, _, n in near if d <= AMBIGUOUS * max(near[0][0], r)]
-        if len({(n.command, n.blocked) for n in close}) > 1 and self.viewport.zoom < MAX_ZOOM:
+        if len(close) > 1 and self.viewport.zoom < MAX_ZOOM:
             # Can't tell which you meant: spread the map out around your finger.
             anchor = self.viewport.to_content((tx, ty))
             self.viewport.place(anchor, (tx, ty), self.viewport.zoom * TAP_ZOOM, self._size)
             self._draw()
+            self._map_only(changed=True)
             return
+        tappable = [n for _, _, n in near if n.command is not None or n.blocked is not None]
+        if not tappable:
+            self._map_only(changed=False)
+            return
+        # A move or a toast: those change the rest of the screen, so the page updates.
+        best = tappable[0]
         if best.command is not None:
             self.on_command(best.command)
         elif best.blocked is not None:
@@ -315,30 +347,38 @@ class MapCanvas:
     def _gesture_started(self, e: ft.ScaleStartEvent) -> None:
         focal = (e.local_focal_point.x, e.local_focal_point.y)
         self._gesture = (self.viewport.zoom, self.viewport.to_content(focal))
+        self._map_only(changed=False)
 
     def _gesture_moved(self, e: ft.ScaleUpdateEvent) -> None:
+        perf.count("map.gesture")
         if self._gesture is None:
+            self._map_only(changed=False)
             return
         zoom, anchor = self._gesture
         focal = (e.local_focal_point.x, e.local_focal_point.y)
         self.viewport.place(anchor, focal, zoom * (e.scale or 1.0), self._size)
-        if time.monotonic() - self._last_draw >= REDRAW_INTERVAL:
+        due = time.monotonic() - self._last_draw >= REDRAW_INTERVAL
+        if due:
             self._draw()
+        self._map_only(changed=due)
 
     def _gesture_ended(self, _: ft.ScaleEndEvent) -> None:
         self._gesture = None
         self._draw()  # labels placed properly again
+        self._map_only(changed=True)
 
     def _centre_on_me(self) -> None:
         here = self._current() if self.view else None
         if here is not None:
             self.viewport.centre_on(here, self._size, max(self.viewport.zoom, FOCUS_ZOOM))
             self._draw()
+        self._map_only(changed=here is not None)
 
     def _fit(self) -> None:
         self.viewport = Viewport()
         self._remember_zoom()
         self._draw()
+        self._map_only(changed=True)
 
     # --- drawing -----------------------------------------------------------------
 
@@ -358,6 +398,12 @@ class MapCanvas:
         }
 
     def _draw(self) -> None:
+        with perf.timed("map.draw"):
+            self._draw_shapes()
+        if perf.ENABLED:
+            self.perf_line.value = perf.latest
+
+    def _draw_shapes(self) -> None:
         if self.view is None:
             return
         self._last_draw = time.monotonic()
@@ -392,7 +438,7 @@ class MapCanvas:
             if not self.labels:  # area maps: badges (world maps say it in the labels)
                 shapes += _badges(node, x, y, r)
         if self.labels:
-            shapes = self._region_names() + shapes + self._labels(r)
+            shapes = self._region_names() + self._borders() + shapes + self._labels(r)
         self.canvas.shapes = shapes
 
     @property
@@ -436,6 +482,28 @@ class MapCanvas:
             )
             for name, (x, y) in self._region_spots()
         ]
+
+    def _borders(self) -> list[cv.Shape]:
+        """Where regions meet: one dashed path behind the roads and places."""
+        assert self.view is not None
+        if not self.view.borders:
+            return []
+        w, h = self.width, self.height
+        elements: list[cv.Path.PathElement] = []
+        for x1, y1, x2, y2 in self.view.borders:
+            a = self.viewport.to_screen((PAD + x1 * (w - 2 * PAD), PAD + y1 * (h - 2 * PAD)))
+            b = self.viewport.to_screen((PAD + x2 * (w - 2 * PAD), PAD + y2 * (h - 2 * PAD)))
+            if self._on_screen_line(a, b):
+                elements += [cv.Path.MoveTo(*a), cv.Path.LineTo(*b)]
+        if not elements:
+            return []
+        paint = ft.Paint(
+            color=ft.Colors.OUTLINE,
+            stroke_width=BORDER_WIDTH,
+            style=ft.PaintingStyle.STROKE,
+            stroke_dash_pattern=BORDER_DASH,
+        )
+        return [cv.Path(elements, paint=paint)]
 
     def _region_boxes(self) -> list[Box]:
         """Where zoomed-out region names are, for labels to steer around."""
@@ -482,16 +550,17 @@ class MapCanvas:
                 for i, (dx, dy) in self._label_offsets.items()
             }
         else:
-            spots = place_labels(
-                self._points,
-                names,
-                self.view.edges,
-                r,
-                self.width,
-                self.height,
-                keep={n.id for n in named if label_rank(n) <= 1},
-                obstacles=self._region_boxes(),
-            )
+            with perf.timed("map.labels"):
+                spots = place_labels(
+                    self._points,
+                    names,
+                    self.view.edges,
+                    r,
+                    self.width,
+                    self.height,
+                    keep={n.id for n in named if label_rank(n) <= 1},
+                    obstacles=self._region_boxes(),
+                )
             self._label_names, self._label_texts = everyone, names
             self._label_offsets = {
                 i: (x - self._points[i][0], y - self._points[i][1]) for i, (x, y) in spots.items()

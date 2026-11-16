@@ -6,6 +6,30 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Dotted borders on the world map where regions meet. A border appears once
+  you know places on both sides of it, so it never gives away land you haven't
+  found.
+
+### Fixed
+- Everything got slower the more you carried: after every move or action the
+  game re-compared each item in your pack against your gear (twice) just to
+  decide whether to show the Inventory dot, and each comparison searched the
+  whole world for what you're wearing. A well-played world went from about
+  half a second per action to a few hundredths (measured on a computer; a
+  phone is slower, but by the same proportion). The quest log was rebuilt
+  twice per action for the Quests dot in the same way; it isn't any more.
+- Dragging and pinching the maps was slow in a well-played world: every frame
+  re-checked the whole screen, every tab included, for changes. Map gestures,
+  tap-to-zoom, Fit and Centre on me now update only the map.
+
+### Changed
+- Walking to another room while the world map is showing switches to the map
+  of the place you're in.
+- Tapping among crowded places on a map now zooms in, whichever places they
+  are; before, it only did so between places you could travel to, which
+  almost never happened.
+
 ## [0.11.0-beta.1] - 2026-11-13
 
 ### Added
