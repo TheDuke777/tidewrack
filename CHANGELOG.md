@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.1-beta.1] - 2026-11-16
+
 ### Fixed
 - Moving around was slower than it needed to be in a well-played world: after
   every action the game checked all four tabs (Explore, Inventory, Quests and
