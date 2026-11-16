@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-11-16
+
 ### Changed
 - The map of the place you're in now opens showing the whole place, spread
   across the whole map instead of bunched into part of it; the world map still
