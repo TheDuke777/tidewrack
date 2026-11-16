@@ -1,0 +1,13 @@
+{
+  "id": "difficulty.hard",
+  "name": "Hard",
+  "description": "Tougher foes that come back sooner, slow healing, and fleeing often fails. Meals matter.",
+  "order": 2,
+  "rules": {
+    "enemy_hp": 1.3,
+    "flee_chance": 0.45,
+    "respawn_hp": 0.3,
+    "regen_fraction": 0.04,
+    "enemy_return_every": 20
+  }
+}

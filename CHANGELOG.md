@@ -7,7 +7,14 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- Dev builds only: "New world in a region" on the world list starts a new world
+- Difficulty: a new world asks for Easy, Standard or Hard, fixed for that world.
+  Easy foes are a little weaker with less health, and you heal faster, flee more
+  often and wake with more health after a defeat. Hard foes have more health
+  and come back sooner, and you heal slower, flee less often and wake weaker.
+  Standard plays as before, and existing worlds are Standard. The world list
+  shows each world's difficulty, and the Codex shows foes' stats as your world
+  makes them.
+- Dev builds only: the New world dialog's "Start in" choice starts a new world
   in the Fens, Moors or Highlands, with the wardens before it beaten, the places
   before it known, and the best gear of the regions before it fully upgraded
   (the other weapon setup, two-handed or one-handed with an off hand, in your

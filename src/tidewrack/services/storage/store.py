@@ -45,6 +45,7 @@ class SlotSummary(BaseModel):
     turn: int
     locations_visited: int
     total_locations: int
+    difficulty: str = "Standard"  # older saves are all Standard
 
 
 class SlotMeta(BaseModel):

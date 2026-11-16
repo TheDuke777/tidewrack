@@ -37,7 +37,6 @@ class SlotPickerScreen:
         on_delete: Callable[[SlotListing], None],
         footer: str,
         on_rename: Callable[[SlotListing], None] = lambda _: None,
-        on_new_in_region: Callable[[], None] | None = None,  # dev builds only
     ) -> None:
         cards = [self._card(listing, on_open, on_delete, on_rename) for listing in listings]
         empty = ft.Text(
@@ -64,17 +63,6 @@ class SlotPickerScreen:
                         ft.FilledButton(
                             content="New world", icon=ft.Icons.ADD, on_click=lambda _: on_new()
                         ),
-                        *(
-                            [
-                                ft.OutlinedButton(
-                                    content="New world in a region (dev)",
-                                    icon=ft.Icons.FAST_FORWARD,
-                                    on_click=lambda _: on_new_in_region(),
-                                )
-                            ]
-                            if on_new_in_region is not None
-                            else []
-                        ),
                         ft.ListView(expand=True, spacing=8, controls=cards or [empty]),
                         ft.Text(footer, size=12, color=ft.Colors.ON_SURFACE_VARIANT),
                     ],
@@ -92,8 +80,9 @@ class SlotPickerScreen:
         meta, summary = listing.meta, listing.meta.summary
         lines = [
             f"{summary.room} · {summary.location}",
-            f"Turn {summary.turn} · Places visited {summary.locations_visited}/"
-            f"{summary.total_locations} · Last played {_local_time(meta.updated_at)}",
+            f"{summary.difficulty} · Turn {summary.turn} · Places visited "
+            f"{summary.locations_visited}/{summary.total_locations} · "
+            f"Last played {_local_time(meta.updated_at)}",
         ]
         if listing.from_backup:
             lines.append("⚠ Restored from a backup; the latest save was unreadable.")

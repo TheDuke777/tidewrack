@@ -7,6 +7,7 @@ Unknown keys are rejected so typos in content fail loudly instead of being ignor
 
 from __future__ import annotations
 
+from dataclasses import fields as dataclass_fields
 from string import Formatter
 from typing import Annotated, Literal
 
@@ -19,6 +20,7 @@ from pydantic import (
     model_validator,
 )
 
+from tidewrack.core.combat.rules import Rules
 from tidewrack.core.gear.item import SET_COLORS, SLOTS
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, STATS
 from tidewrack.core.world.location import Exit, Location, Room
@@ -392,6 +394,33 @@ class QuestsRecipeSchema(Schema):
     found: int = Field(default=0, ge=0, le=10)  # left as clues out in the world
     reward_affix_chance: Unit = 1.0
     recipe_chance: Unit = 0.0  # each found recipe: a quest's extra reward, else a page
+
+
+# --- difficulties --------------------------------------------------------------------
+
+# Rules fields a difficulty may set (not its own name, which comes from `name`).
+RULE_FIELDS = tuple(f.name for f in dataclass_fields(Rules) if f.name != "difficulty")
+
+
+class DifficultySchema(Schema):
+    """A difficulty preset (step 8b), picked when a world is made and fixed after:
+    the core.combat.rules.Rules fields it changes from Standard's."""
+
+    id: content_id("difficulty")
+    name: Text  # "Hard"
+    description: Text  # one line for the picker
+    order: int = Field(ge=0)  # place in the picker, easiest first
+    rules: dict[str, float | int] = {}
+
+    @model_validator(mode="after")
+    def _check(self) -> DifficultySchema:
+        unknown = sorted(set(self.rules) - set(RULE_FIELDS))
+        if unknown:
+            raise ValueError(f"unknown rules: {', '.join(unknown)}")
+        return self
+
+    def to_rules(self) -> Rules:
+        return Rules(difficulty=self.name, **self.rules)
 
 
 # --- world recipes -------------------------------------------------------------------

@@ -1141,7 +1141,7 @@ class Game:
         return max(0, self.max_hp() - self.world.get(self.player, Health).damage)
 
     def foes(self) -> FoesView:
-        return foes_view(self.world.get(self.player, Codex), self._found_in())
+        return foes_view(self.world.get(self.player, Codex), self._found_in(), self.rules)
 
     def codex(self) -> codex_items.CodexView:
         """The codex's other sections: materials, ingredients, recipes, meals."""

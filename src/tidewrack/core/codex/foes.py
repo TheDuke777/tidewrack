@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from tidewrack.core.combat.rules import STANDARD, Rules, scaled
 from tidewrack.core.engine.components import Codex
 from tidewrack.core.gear.stats import StatBlock
 
@@ -50,7 +51,10 @@ class FoesView:
         return groups
 
 
-def foes_view(codex: Codex, found_in: Mapping[str, str] | None = None) -> FoesView:
+def foes_view(
+    codex: Codex, found_in: Mapping[str, str] | None = None, rules: Rules = STANDARD
+) -> FoesView:
+    """Stats are shown as the world's rules make them in a fight (its difficulty)."""
     found_in = found_in or {}
     views = []
     for enemy_id, entry in codex.foes.items():
@@ -70,7 +74,7 @@ def foes_view(codex: Codex, found_in: Mapping[str, str] | None = None) -> FoesVi
                 category=entry.category,
                 description=entry.description,
                 defeated=kills,
-                stats=dict(entry.stats) if kills >= STATS_AT else None,
+                stats=scaled(entry.stats, rules) if kills >= STATS_AT else None,
                 drops=tuple(entry.drops) if kills >= DROPS_AT else None,
                 next_reveal=hint,
                 found_in=found_in.get(enemy_id),

@@ -21,6 +21,7 @@ from pydantic import ValidationError
 
 from tidewrack.core.data.schemas import (
     AffixSchema,
+    DifficultySchema,
     DungeonSchema,
     EnemySchema,
     GearSchema,
@@ -39,6 +40,7 @@ from tidewrack.core.world.location import Location
 # kind directory -> (schema, id prefix)
 KINDS = {
     "affixes": (AffixSchema, "affix"),
+    "difficulties": (DifficultySchema, "difficulty"),
     "dungeons": (DungeonSchema, "dungeon"),
     "enemies": (EnemySchema, "enemy"),
     "gear": (GearSchema, "gear"),
@@ -75,6 +77,7 @@ class Content:
     recipes: dict[str, RecipeSchema]
     meals: dict[str, MealSchema]
     regions: dict[str, RegionSchema]
+    difficulties: dict[str, DifficultySchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
 
     def dungeon(self, dungeon_id: str) -> Location:
@@ -85,6 +88,10 @@ class Content:
 
     def world(self, world_id: str) -> WorldRecipeSchema:
         return self.worlds[world_id]
+
+    def difficulty_choices(self) -> list[DifficultySchema]:
+        """The difficulties, easiest first (the new-world picker's order)."""
+        return sorted(self.difficulties.values(), key=lambda d: (d.order, d.id))
 
 
 def load_content(files: Mapping[str, str]) -> Content:
@@ -135,6 +142,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         recipes=loaded["recipes"],
         meals=loaded["meals"],
         regions=loaded["regions"],
+        difficulties=loaded["difficulties"],
         content_hash=content_hash(files),
     )
 

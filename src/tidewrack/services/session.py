@@ -58,6 +58,8 @@ from tidewrack.services.storage.store import SLOT_FORMAT
 
 Clock = Callable[[], str]
 
+DEFAULT_DIFFICULTY = "difficulty.standard"
+
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
@@ -94,10 +96,13 @@ class GameSession:
         name: str,
         seed: int,
         clock: Clock = utc_now,
+        difficulty: str = DEFAULT_DIFFICULTY,
     ) -> GameSession:
         """Generate a fresh world from a recipe (layout, kit, finds, enemies,
-        quests, shops, materials and recipes) in a new slot."""
+        quests, shops, materials and recipes) in a new slot, under the rules of
+        the `difficulty` preset (fixed for the world's life)."""
         recipe = content.world(recipe_id)
+        rules = content.difficulties[difficulty].to_rules()
         world = generate_world(seed, recipe, content.roomsets, content.regions)
         enemies, spawners = generate_enemies(seed, world, content)
         wardens = generate_wardens(seed, world, content)
@@ -126,6 +131,7 @@ class GameSession:
             recipe_pages=recipes.pages,
             growers=generate_growers(world, content),
             wardens=wardens,
+            rules=rules,
         )
 
     @classmethod
@@ -351,6 +357,7 @@ def _summary(game: Game) -> SlotSummary:
         turn=game.turn,
         locations_visited=len(game._explorer().locations_visited),
         total_locations=len(game.overworld.locations),
+        difficulty=game.rules.difficulty,
     )
 
 

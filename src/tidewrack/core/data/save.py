@@ -34,9 +34,11 @@ class RulesState(Schema):
     regen_amount: int = Field(default=STANDARD.regen_amount, ge=0)
     respawn_hp: float = Field(default=STANDARD.respawn_hp, gt=0, le=1)
     enemy_strength: float = Field(default=STANDARD.enemy_strength, gt=0)
+    enemy_hp: float = Field(default=STANDARD.enemy_hp, gt=0)
     defend_factor: float = Field(default=STANDARD.defend_factor, ge=0, le=1)
     enemy_return_every: int = Field(default=STANDARD.enemy_return_every, ge=1)
     return_loot_factor: float = Field(default=STANDARD.return_loot_factor, ge=0, le=1)
+    difficulty: str = STANDARD.difficulty
 
 
 class EconomyState(Schema):

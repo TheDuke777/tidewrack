@@ -1,0 +1,13 @@
+{
+  "id": "difficulty.easy",
+  "name": "Easy",
+  "description": "Gentler foes, quicker healing, and a good chance to get away.",
+  "order": 0,
+  "rules": {
+    "enemy_strength": 0.95,
+    "enemy_hp": 0.85,
+    "flee_chance": 0.8,
+    "respawn_hp": 0.75,
+    "regen_fraction": 0.07
+  }
+}

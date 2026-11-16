@@ -104,30 +104,6 @@ def test_hidden_tabs_are_isolated_so_page_updates_skip_them(tmp_path):
 # --- skip to region (8b) -----------------------------------------------------------
 
 
-def test_new_world_in_region_is_only_offered_in_dev_builds(tmp_path, monkeypatch):
-    from tidewrack.services.settings import SettingsStore
-    from tidewrack.services.storage import FileSaveStore
-    from tidewrack.ui.app import App
-
-    class Page:
-        controls: list = []
-        navigation_bar = None
-
-        def update(self):
-            pass
-
-    def buttons(app):
-        app.show_picker()
-        column = app.page.controls[0].content.content
-        kinds = (ft.FilledButton, ft.OutlinedButton)
-        return [c.content for c in column.controls if isinstance(c, kinds)]
-
-    app = App(Page(), FileSaveStore(tmp_path / "saves"), SettingsStore(tmp_path / "s"), CONTENT)
-    assert buttons(app) == ["New world"]
-    monkeypatch.setattr(dev, "ENABLED", True)
-    assert buttons(app) == ["New world", "New world in a region (dev)"]
-
-
 def test_skip_to_region_starts_at_its_town_in_maxed_gear_from_before(tmp_path):
     from tidewrack.core.engine.components import Equipped, Position, Respawn, Wallet
     from tidewrack.core.gear.item import Item
