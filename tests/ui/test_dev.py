@@ -85,3 +85,17 @@ def test_reveal_map_waits_until_a_fight_is_over(tmp_path):
     revision = session.meta.revision
     assert session.reveal_map() is False and session.meta.revision == revision
     assert list(game.world.query(Warden))
+
+
+def test_hidden_tabs_are_isolated_so_page_updates_skip_them(tmp_path):
+    shell = _shell(_session(tmp_path), tmp_path)
+
+    def isolated():
+        return [screen.control.is_isolated() for screen, *_ in shell.tabs]
+
+    assert isolated() == [False, True, True, True]  # Explore on screen
+    shell.select(2)
+    assert isolated() == [True, True, False, True]
+    assert [screen.control.visible for screen, *_ in shell.tabs] == [False, False, True, False]
+    shell.back()
+    assert isolated() == [False, True, True, True]

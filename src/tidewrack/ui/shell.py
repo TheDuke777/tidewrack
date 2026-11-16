@@ -4,7 +4,8 @@ Each tab is a screen object with `control` and `refresh()`; switching refreshes
 the tab being shown, since the other one may have changed the game (dropping an
 item in the inventory puts it in the room). New tabs are one entry in `tabs`.
 
-Every tab stays mounted and switching only changes which one is visible. Taking
+Every tab stays mounted and switching only changes which one is visible (and
+which ones are isolated: hidden tabs are skipped by page updates). Taking
 a tab's controls off the page and putting the same objects back later left Flet
 diffing later changes against stale list snapshots, so the phone showed rows
 twice (duplicate set bonuses, "ghost" pack items) until the next full redraw.
@@ -97,6 +98,12 @@ class WorldShell:
         self._shown = index
         for i, (screen, *_) in enumerate(self.tabs):
             screen.control.visible = i == index
+            # Hidden tabs are isolated: Flet's page updates skip what's inside
+            # them, so a move only walks the tab on screen (v0.11.1; walking every
+            # tab cost ~150 ms a move on a phone in a well-played world). Changes
+            # made to a hidden tab wait in Flet's change tracking until it's shown,
+            # and it stays mounted throughout (see this module's docstring).
+            screen.control._isolated = i != index
         self.navigation_bar.selected_index = index
         if index == QUESTS:
             self.unread.look("quests")
