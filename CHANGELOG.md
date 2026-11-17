@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-11-17
+
 ### Changed
 - The Fens now push back: their foes hit harder and take longer to bring down,
   and the Reed Warden is a real test if you arrive in coast gear (a good meal
