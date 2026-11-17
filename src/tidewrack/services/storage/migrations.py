@@ -1080,6 +1080,15 @@ def _v15_to_v16(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v16_to_v17(envelope: Envelope) -> Envelope:
+    # v17 saves how each tide scales a world (8c): enemy ATK (Rules.enemy_atk) and
+    # foe and quest gold (EconomyRules.reward_gold). Older worlds are unscaled.
+    game = envelope["game"]
+    game.setdefault("rules", {}).setdefault("enemy_atk", 1.0)
+    game.setdefault("economy", {}).setdefault("reward_gold", 1.0)
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -1097,6 +1106,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     13: _v13_to_v14,
     14: _v14_to_v15,
     15: _v15_to_v16,
+    16: _v16_to_v17,
 }
 
 

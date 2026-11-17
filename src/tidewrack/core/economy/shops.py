@@ -51,6 +51,7 @@ def gain(game: Game, amount: int, source: str) -> None:
     """Gold in. Boons (8c) add to gold from foes and quests, never to sales, so
     buying and selling back can't make money."""
     if source in ("loot", "quest"):
+        amount = int(amount * game.economy.reward_gold)  # richer tides (8c)
         amount = prestige.with_bonus(
             amount, prestige.gold_pct(game.world.try_get(game.player, Prestige))
         )

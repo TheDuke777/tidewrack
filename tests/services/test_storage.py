@@ -582,3 +582,18 @@ def test_v15_worlds_with_their_king_alive_get_no_crown(tmp_path):
     envelope = json.loads((FIXTURES / "v15_ascended.json").read_text(encoding="utf-8"))
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert list(session.game.world.query(TideCrown)) == []
+
+
+def test_v17_fixture_keeps_its_tide_scaling(tmp_path):
+    envelope = json.loads((FIXTURES / "v17_tides.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.rules.difficulty == "Hard"
+    assert game.rules.enemy_hp == 1.3 * 1.1 and game.rules.enemy_atk == 1.02
+    assert game.economy.reward_gold == 1.1
+
+
+def test_v16_worlds_are_unscaled(tmp_path):
+    envelope = json.loads((FIXTURES / "v16_crown.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert session.game.rules.enemy_atk == 1.0 and session.game.economy.reward_gold == 1.0

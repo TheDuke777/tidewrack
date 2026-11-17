@@ -387,6 +387,19 @@ class QuestTemplateSchema(Schema):
         return self
 
 
+class TidesSchema(Schema):
+    """How much harder (and richer) each tide makes a new world (8c beta 3): per
+    tide lived through, up to `max_tide`. Enemy HP is the smooth lever; enemy ATK
+    stays a small step because of the ATK − DEF cliff (the difficulty sim checks
+    every tide)."""
+
+    enemy_hp: float = Field(default=0.0, ge=0, le=1)  # + this × tide to enemy HP
+    enemy_atk: float = Field(default=0.0, ge=0, le=0.2)  # + this × tide to enemy ATK
+    reward_gold: float = Field(default=0.0, ge=0, le=1)  # + this × tide to foe and quest gold
+    meal_stats: float = Field(default=0.0, ge=0, le=1)  # + this × tide to meal buff stats
+    max_tide: int = Field(default=10, ge=0, le=100)  # tides beyond this add nothing more
+
+
 class QuestsRecipeSchema(Schema):
     """How many quests a new world gets."""
 
@@ -499,6 +512,7 @@ class WorldRecipeSchema(Schema):
     gold: int = Field(default=0, ge=0)  # starting gold
     quests: QuestsRecipeSchema = QuestsRecipeSchema()
     final: FinalFoeSchema | None = None  # beating it turns the tide (8c)
+    tides: TidesSchema = TidesSchema()  # what each tide lived through adds (8c)
 
     @model_validator(mode="after")
     def _check(self) -> WorldRecipeSchema:

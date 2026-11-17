@@ -9,6 +9,7 @@ from tidewrack.core.engine.components import (
     Health,
     Position,
     Prestige,
+    Shop,
     TideCrown,
     Wallet,
 )
@@ -115,10 +116,11 @@ def test_wreckers_luck_adds_to_loot_and_quest_gold_but_not_sales(tmp_path):
     game = session.game
     wallet = game.world.get(game.player, Wallet)
     before = wallet.gold
+    assert game.economy.reward_gold == 1.1  # tide 1: foes and quests pay 10% more
     shops.gain(game, 100, "loot")
-    assert wallet.gold == before + 120
+    assert wallet.gold == before + 132  # 100 → 110 for the tide, +20% for the boon
     shops.gain(game, 100, "sale")
-    assert wallet.gold == before + 220
+    assert wallet.gold == before + 232  # sales get neither
 
 
 def test_long_table_makes_meals_last_longer(tmp_path):
@@ -150,3 +152,25 @@ def test_the_crown_must_be_in_your_room(tmp_path):
     game.world.get(crown, Position).room = "elsewhere"
     assert not game.can_ascend() and not game.view().can_ascend
     assert not session.ascend(CONTENT, "boon.keen_edge")
+
+
+def test_each_tide_makes_the_next_world_harder_and_richer(tmp_path):
+    session = session_with_turned_tide(tmp_path)
+    base_rules, base_economy = session.game.rules, session.game.economy
+    session.ascend(CONTENT, "boon.keen_edge")
+    game = session.game
+    assert game.rules.enemy_hp == base_rules.enemy_hp * 1.1
+    assert game.rules.enemy_atk == base_rules.enemy_atk * 1.02
+    assert game.economy.reward_gold == base_economy.reward_gold * 1.1
+    shops = [s for _, (s,) in game.world.query(Shop) if s.meals]
+    stew = next(r.meal for r in shops[0].meals if r.meal.meal_id == "meal.bear_stew")
+    assert stew.stats == {"atk": 4, "def": 4, "hp": 7}  # +10% each, rounded
+
+
+def test_tide_scaling_stops_at_the_cap():
+    from tidewrack.core.progression.prestige import tide_rules
+
+    tides = CONTENT.world("world.standard").tides
+    from tidewrack.core.combat.rules import STANDARD
+
+    assert tide_rules(STANDARD, tides, 25) == tide_rules(STANDARD, tides, tides.max_tide)

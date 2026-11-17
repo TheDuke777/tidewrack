@@ -17,5 +17,6 @@
     "room_description": "The deepest hall of all, black water to the waist. At its end, on a dais of green stone, a throne rises out of the loch, and someone sits it.",
     "guards": { "enemy": "enemy.drowned_thane", "count": 2 }
   },
+  "tides": { "enemy_hp": 0.1, "enemy_atk": 0.02, "reward_gold": 0.1, "meal_stats": 0.1, "max_tide": 10 },
   "quests": { "per_board": 3, "found": 2, "reward_affix_chance": 1.0, "recipe_chance": 0.35 }
 }

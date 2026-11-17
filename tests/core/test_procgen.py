@@ -43,32 +43,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -77,18 +77,18 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def test_golden_wardens():
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     world = new_world(20261103)
     assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
 
 
 def test_golden_final():
-    assert GENERATOR_VERSION == 19
+    assert GENERATOR_VERSION == 20
     world = new_world(20261103)
     assert final_hash(generate_final(20261103, world, CONTENT, RECIPE)) == GOLDEN_FINAL
 

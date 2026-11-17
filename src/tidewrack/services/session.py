@@ -60,7 +60,13 @@ from tidewrack.core.procgen.material_gen import (
 from tidewrack.core.procgen.quest_gen import generate_quests
 from tidewrack.core.procgen.shop_gen import generate_shops
 from tidewrack.core.procgen.world_gen import generate_world
-from tidewrack.core.progression.prestige import make_boon, next_seed
+from tidewrack.core.progression.prestige import (
+    make_boon,
+    next_seed,
+    tide_economy,
+    tide_meal,
+    tide_rules,
+)
 from tidewrack.core.versions import GENERATOR_VERSION, SCHEMA_VERSION
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.storage import SaveError, SaveStore, SlotMeta, SlotSummary
@@ -118,11 +124,18 @@ class GameSession:
 
     @staticmethod
     def build_game(
-        content: Content, recipe_id: str, seed: int, difficulty: str = DEFAULT_DIFFICULTY
+        content: Content,
+        recipe_id: str,
+        seed: int,
+        difficulty: str = DEFAULT_DIFFICULTY,
+        tide: int = 0,
     ) -> Game:
-        """A fresh world from a recipe and seed, under a difficulty preset (no slot)."""
+        """A fresh world from a recipe and seed, under a difficulty preset (no slot),
+        made harder and richer for the `tide` the player has reached (8c)."""
         recipe = content.world(recipe_id)
-        rules = content.difficulties[difficulty].to_rules()
+        rules = tide_rules(content.difficulties[difficulty].to_rules(), recipe.tides, tide)
+        economy = tide_economy(STANDARD_ECONOMY, recipe.tides, tide)
+
         world = generate_world(seed, recipe, content.roomsets, content.regions)
         enemies, spawners = generate_enemies(seed, world, content)
         wardens = generate_wardens(seed, world, content)
@@ -150,7 +163,7 @@ class GameSession:
             bounties=plan.bounties,
             quest_things=plan.placed,
             gold=recipe.gold,
-            shops=generate_shops(seed, world, content),
+            shops=_tide_meals(generate_shops(seed, world, content), recipe.tides, tide),
             gathering=generate_gathering(seed, world, content),
             recipes=known_recipes(content),
             recipe_pages=recipes.pages,
@@ -158,6 +171,7 @@ class GameSession:
             wardens=wardens,
             finals=[final] if final else [],
             rules=rules,
+            economy=economy,
         )
 
     @classmethod
@@ -307,7 +321,9 @@ class GameSession:
             (d.id for d in content.difficulties.values() if d.name == game.rules.difficulty),
             DEFAULT_DIFFICULTY,
         )
-        fresh = self.build_game(content, recipe_id, next_seed(game.seed, before.rank), difficulty)
+        fresh = self.build_game(
+            content, recipe_id, next_seed(game.seed, before.rank), difficulty, tide=rank
+        )
         fresh.carry_over(codex, prestige)
         self.game = fresh
         self._encoder = StateEncoder()  # a new world: write it all
@@ -415,6 +431,14 @@ class StateEncoder:
             "entities": entities,
         }
         return state, None if fresh else changed, commit
+
+
+def _tide_meals(placed, tides, tide: int):
+    """Every tavern's meals made stronger for the tide (their prices stay)."""
+    for _, _, shop, _ in placed:
+        for recipe in shop.meals:
+            recipe.meal = tide_meal(recipe.meal, tides, tide)
+    return placed
 
 
 def _summary(game: Game) -> SlotSummary:

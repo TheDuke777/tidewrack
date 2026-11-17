@@ -25,6 +25,7 @@ class Rules:
     respawn_hp: float = 0.5  # fraction of max HP you wake with after a defeat
     enemy_strength: float = 1.0  # multiplies enemy ATK, DEF and HP when a fight starts
     enemy_hp: float = 1.0  # and HP again: longer fights, without ATK − DEF's cliff
+    enemy_atk: float = 1.0  # and ATK again (tides, 8c): small steps, it's cliffy
     defend_factor: float = 0.5  # damage taken while defending is multiplied by this
     enemy_return_every: int = 30  # turns between each location regaining a wanderer
     return_loot_factor: float = 0.5  # returning enemies' loot chance, times their kind's
@@ -50,6 +51,8 @@ def regen(max_hp: int, rules: Rules) -> int:
 def scaled(stats: dict[str, int], rules: Rules) -> dict[str, int]:
     """An enemy's stats under these rules (at least 1 HP)."""
     result = {s: round(v * rules.enemy_strength) for s, v in stats.items()}
+    if "atk" in stats and rules.enemy_atk != 1.0:
+        result["atk"] = round(stats["atk"] * rules.enemy_strength * rules.enemy_atk)
     hp = stats.get("hp", 1) * rules.enemy_strength * rules.enemy_hp
     result["hp"] = max(1, round(hp))
     return result

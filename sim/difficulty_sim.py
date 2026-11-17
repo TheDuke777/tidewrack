@@ -261,9 +261,10 @@ class MealEdge:
 
 def meal_edges(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[MealEdge]:
     """Per region on Standard, geared there: the share of HP lost to its hardest
-    bounty (and the final foe, if it waits there) plus the next region's warden (the fights a meal is for), fed with the
-    best meal that only became cookable here versus the best from before. Each
-    region's own meals should win (8b: meals sized against their region's foes)."""
+    bounty (and the final foe, if it waits there) plus the next region's warden
+    (the fights a meal is for), fed with the best meal that only became cookable
+    here versus the best from before. Each region's own meals should win (8b:
+    meals sized against their region's foes)."""
     rng = Rng(seed).derive("meal_edges")
     rules = Rules()  # Standard
     tiers = material_tiers(content)
@@ -373,7 +374,111 @@ def main(argv: list[str]) -> None:
     for e in meal_edges(load_bundled_content(), fights):
         before = f"{e.earlier} {e.earlier_lost:.0%}" if e.earlier else "none"
         print(f"  {e.region:18} own: {e.own} {e.own_lost:.0%}   best before: {before}")
+    print(tide_report(tide_curve(load_bundled_content(), max(fights // 4, 100))))
 
 
 if __name__ == "__main__":
     main(sys.argv)
+
+
+# --- tides (8c beta 3) ---------------------------------------------------------------
+
+# Boon picks a player might make on each ascent, cycled (boon ids).
+BOON_PLANS = {
+    "mixed": ["boon.keen_edge", "boon.sea_hardened", "boon.deep_lungs"],
+    "all DEF": ["boon.sea_hardened"],
+    "all ATK": ["boon.keen_edge"],
+    "no stats": ["boon.wreckers_luck", "boon.long_table"],
+}
+TIDES = range(0, 11)
+
+
+@dataclass(frozen=True)
+class TideRow:
+    tide: int
+    plan: str
+    difficulty: str
+    you: Mapping[str, int]  # geared in the last region, boons included, unfed
+    king: Odds  # the final foe, fed with the best meal (scaled for the tide)
+    bounty: Odds  # the last region's hardest bounty, fed
+    warden: Odds  # its warden on arrival (gear from the regions before), fed
+
+
+def boon_stats_for(content: Content, plan: list[str], tide: int) -> dict[str, int]:
+    """Stats from the boons a plan has picked by `tide` (one per ascent so far)."""
+    from tidewrack.core.progression.prestige import boon_stats, make_boon
+
+    picks = [make_boon(content.boons[plan[(t - 1) % len(plan)]], t) for t in range(1, tide + 1)]
+    return boon_stats(picks)
+
+
+def tide_curve(
+    content: Content, fights: int = FIGHTS, seed: int = 1, tides: Iterable[int] = TIDES
+) -> list[TideRow]:
+    """The last region's hardest fights on each tide, per boon plan and preset."""
+    from tidewrack.core.progression.prestige import tide_rules
+
+    rng = Rng(seed).derive("tide_curve")
+    order = regions(content)
+    recipe = content.world(WORLD)
+    last = order[-1]
+    region = content.regions[last]
+    fights_here = {f.kind: f for f in foes(content, last)}
+    geared, arriving = gear_stats(content, order), gear_stats(content, order[:-1])
+    rows = []
+    for tide in tides:
+        own = _tide_meals(content, region.tier, tide)
+        before = _tide_meals(content, region.tier - 1, tide)
+        for plan_name, plan in BOON_PLANS.items():
+            boons = boon_stats_for(content, plan, tide)
+            you = {s: v + boons.get(s, 0) for s, v in geared.items()}
+            came = {s: v + boons.get(s, 0) for s, v in arriving.items()}
+            for preset in content.difficulty_choices():
+                rules = tide_rules(preset.to_rules(), recipe.tides, tide)
+                rows.append(
+                    TideRow(
+                        tide,
+                        plan_name,
+                        preset.name,
+                        you,
+                        _fed_fight(rng, you, fights_here["final"], rules, own, fights),
+                        _fed_fight(rng, you, fights_here["bounty"], rules, own, fights),
+                        _fed_fight(rng, came, fights_here["warden"], rules, before, fights),
+                    )
+                )
+    return rows
+
+
+def _tide_meals(content: Content, tier: int, tide: int) -> list[MealSchema]:
+    """The meals cookable by `tier`, their stats scaled for `tide` (as a world on
+    that tide's taverns snapshot them)."""
+    from tidewrack.core.procgen.material_gen import make_meal
+    from tidewrack.core.progression.prestige import tide_meal
+
+    tides = content.world(WORLD).tides
+    out = []
+    for schema in meals_by(content, tier):
+        meal = tide_meal(make_meal(schema, content), tides, tide)
+        out.append(schema.model_copy(update={"stats": dict(meal.stats)}))
+    return out
+
+
+def _fed_fight(
+    rng: Rng, you: Mapping[str, int], foe: Foe, rules: Rules, meals, fights: int
+) -> Odds:
+    meal = best_meal(you, foe, rules, meals)
+    return fight(rng, fed(you, meal), foe, rules, fights)
+
+
+def tide_report(rows: list[TideRow]) -> str:
+    lines = ["\nTides: the last region's hardest fights, fed (win/HP lost)"]
+    for difficulty in dict.fromkeys(r.difficulty for r in rows):
+        lines.append(f"  {difficulty}")
+        for plan in BOON_PLANS:
+            cells = [
+                f"t{r.tide}:{_pct(r.king.win).strip()}/{_pct(r.king.hp_lost).strip()}"
+                for r in rows
+                if (r.plan, r.difficulty) == (plan, difficulty)
+            ]
+            lines.append(f"    king, {plan:8} " + " ".join(cells))
+    return "\n".join(lines)

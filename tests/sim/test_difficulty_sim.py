@@ -100,3 +100,31 @@ def test_the_drowned_king_needs_a_meal(rows):
         assert s["final fed"].win >= 0.95, difficulty
         assert s["final fed"].hp_lost < s["final"].hp_lost, difficulty
     assert sim.summary(rows, last, "geared", "Standard")["final"].win <= 0.5
+
+
+@pytest.fixture(scope="module")
+def tides():
+    return sim.tide_curve(CONTENT, fights=300)
+
+
+def _tide_rows(tides, plan, difficulty):
+    return [r for r in tides if (r.plan, r.difficulty) == (plan, difficulty)]
+
+
+def test_the_tides_hold_the_king_steady_for_a_balanced_player(tides):
+    # 8c beta 3: each tide adds enemy HP (+ a little ATK), stronger meals and a
+    # boon. A player who spreads their boons over ATK, DEF and HP should find the
+    # Drowned King (fed) about as hard on tide 10 as on the first: beatable, and
+    # never a walkover.
+    standard = _tide_rows(tides, "mixed", "Standard")
+    assert len(standard) == len(sim.TIDES)
+    for row in standard:
+        assert row.king.win >= 0.95, row.tide
+        assert 0.3 <= row.king.hp_lost <= 0.7, (row.tide, row.king.hp_lost)
+        assert row.bounty.hp_lost <= 0.55, row.tide
+        assert row.warden.win >= 0.95, row.tide
+    assert standard[-1].king.hp_lost >= standard[0].king.hp_lost - 0.15
+    for row in _tide_rows(tides, "mixed", "Hard"):
+        assert row.king.win >= 0.85, row.tide
+    for row in _tide_rows(tides, "mixed", "Easy"):
+        assert row.king.win >= 0.98, row.tide

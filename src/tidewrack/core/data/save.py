@@ -35,6 +35,7 @@ class RulesState(Schema):
     respawn_hp: float = Field(default=STANDARD.respawn_hp, gt=0, le=1)
     enemy_strength: float = Field(default=STANDARD.enemy_strength, gt=0)
     enemy_hp: float = Field(default=STANDARD.enemy_hp, gt=0)
+    enemy_atk: float = Field(default=STANDARD.enemy_atk, gt=0)
     defend_factor: float = Field(default=STANDARD.defend_factor, ge=0, le=1)
     enemy_return_every: int = Field(default=STANDARD.enemy_return_every, ge=1)
     return_loot_factor: float = Field(default=STANDARD.return_loot_factor, ge=0, le=1)
@@ -55,6 +56,7 @@ class EconomyState(Schema):
     meal_markup: float = Field(default=STANDARD_ECONOMY.meal_markup, ge=1)
     cook_fee: float = Field(default=STANDARD_ECONOMY.cook_fee, ge=0)
     regrow_every: int = Field(default=STANDARD_ECONOMY.regrow_every, ge=1)
+    reward_gold: float = Field(default=STANDARD_ECONOMY.reward_gold, gt=0)
 
 
 class EntityState(Schema):

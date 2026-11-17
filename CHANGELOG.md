@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Each tide you ride makes the next world a little harder and a little richer:
+  foes have more health and hit slightly harder, they and quests pay more gold,
+  and tavern meals give bigger boosts. Your boons help you keep up. (Worlds
+  you've already started keep their foes as they are.)
+
 ## [0.12.0-beta.3] - 2026-11-17
 
 ### Changed
