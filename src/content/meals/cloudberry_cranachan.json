@@ -8,9 +8,10 @@
     "material.heather_honey": 1
   },
   "stats": {
-    "atk": 2,
+    "atk": 3,
+    "def": 2,
     "hp": 4
   },
   "regen": 1,
-  "turns": 90
+  "turns": 60
 }

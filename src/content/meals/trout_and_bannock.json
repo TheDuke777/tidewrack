@@ -7,6 +7,7 @@
     "material.barley": 1
   },
   "stats": {
+    "def": 1,
     "hp": 6
   },
   "regen": 1,

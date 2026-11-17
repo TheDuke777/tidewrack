@@ -4,11 +4,13 @@
   "description": "Mutton and oats stewed all day in a pot buried in the embers. Drovers swear it keeps the cold out of a body for a week.",
   "ingredients": {
     "material.mutton": 2,
-    "material.oatmeal": 1
+    "material.oatmeal": 1,
+    "material.bilberries": 1
   },
   "stats": {
+    "atk": 2,
     "def": 3,
-    "hp": 4
+    "hp": 6
   },
   "turns": 60
 }

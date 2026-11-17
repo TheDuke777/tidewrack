@@ -8,8 +8,9 @@
     "material.ships_biscuit": 1
   },
   "stats": {
+    "def": 3,
     "hp": 6
   },
   "regen": 1,
-  "turns": 80
+  "turns": 60
 }

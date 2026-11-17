@@ -9,8 +9,9 @@ inward, it fights each foe kind, the hardest bounty and the warden with:
   world); on the coast, the starting kit;
 - **geared**: the same, counting this region's gear too;
 
-each unfed and with the best meal cooked from ingredients found so far, under
-each difficulty preset. The bot always attacks (no Defend, no Flee), starts at
+each unfed and with the best meal cooked from ingredients found so far (for a
+warden, which bars the road in, only those of the regions before), under each
+difficulty preset. The bot always attacks (no Defend, no Flee), starts at
 full health and fights with the real ``damage()``, ``scaled()`` and bounty rule.
 
 Per fight kind it reports the win rate and the share of max HP lost (a defeat
@@ -214,13 +215,18 @@ def simulate(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[Row]
     rows = []
     for i, region_id in enumerate(order):
         region = content.regions[region_id]
-        meals = meals_by(content, region.tier)
+        # A warden bars the road in, so it's fought with the meals of the
+        # regions before; the region's own foes and bounty with its own too.
+        meals = {
+            "foe": meals_by(content, region.tier),
+            "warden": meals_by(content, region.tier - 1),
+        }
         for gear, ids in (("arriving", order[:i]), ("geared", order[: i + 1])):
             you = gear_stats(content, ids)
             for preset in presets:
                 rules = preset.to_rules()
                 for foe in foes(content, region_id):
-                    meal = best_meal(you, foe, rules, meals)
+                    meal = best_meal(you, foe, rules, meals.get(foe.kind, meals["foe"]))
                     unfed = fight(rng, you, foe, rules, fights)
                     full = fight(rng, fed(you, meal), foe, rules, fights) if meal else unfed
                     rows.append(
