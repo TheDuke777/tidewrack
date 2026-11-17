@@ -93,3 +93,25 @@ def test_the_dialog_needs_a_boon_before_you_ride(tmp_path):
     assert not ride.disabled
     ride.on_click(None)
     assert ridden == ["boon.long_table"]
+
+
+def test_dialogs_fit_their_content(tmp_path):
+    # A scrolling Flet Column grows to the height it's given, so a dialog whose
+    # content is one fills the screen. Dialogs scroll themselves instead.
+    from tidewrack.ui.screens.new_world import NewWorldDialog
+
+    session = _session(tmp_path)
+    dialogs = [
+        TideDialog(1, session.boon_choices(CONTENT), [], lambda _: None, lambda: None).control,
+        NewWorldDialog(CONTENT, "world.standard", lambda *_: None, lambda: None).control,
+    ]
+    for dialog in dialogs:
+        assert dialog.scrollable
+        assert getattr(dialog.content, "scroll", None) is None
+
+
+def test_boon_names_stay_short_and_their_effects_wrap(tmp_path):
+    session = _session(tmp_path)
+    dialog = TideDialog(1, session.boon_choices(CONTENT), [], lambda _: None, lambda: None)
+    radios = [c.controls[0] for c in dialog.boon.content.controls]
+    assert [r.label for r in radios] == [b.name for b in CONTENT.boon_choices()]

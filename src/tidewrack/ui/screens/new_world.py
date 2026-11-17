@@ -82,7 +82,9 @@ class NewWorldDialog:
         self.control = ft.AlertDialog(
             modal=True,
             title=ft.Text("New world"),
-            content=ft.Column(tight=True, scroll=ft.ScrollMode.AUTO, controls=controls),
+            # The dialog scrolls, not the Column (see TideDialog): sized to fit.
+            scrollable=True,
+            content=ft.Column(tight=True, controls=controls),
             actions=[
                 ft.TextButton(content="Cancel", on_click=lambda _: on_cancel()),
                 ft.FilledButton(content="Start", on_click=start),

@@ -406,9 +406,8 @@ class GameScreen:
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(milestone.title),
-            content=ft.Column(
-                tight=True, scroll=ft.ScrollMode.AUTO, controls=[ft.Text(milestone.text)]
-            ),
+            scrollable=True,  # sized to the text; scrolls only if it's taller than the screen
+            content=ft.Text(milestone.text),
             actions=[ft.FilledButton(content="Onward", on_click=lambda _: page.pop_dialog())],
         )
         page.show_dialog(dialog)

@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Pop-ups are only as tall as what's in them, instead of filling the screen.
+- Boon names no longer run off the edge of the tide dialog: what each boon
+  does now wraps underneath its name.
+
 ### Changed
 - Each tide you ride makes the next world a little harder and a little richer:
   foes have more health and hit slightly harder, they and quests pay more gold,

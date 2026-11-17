@@ -25,11 +25,22 @@ class TideDialog:
             return ft.Column(
                 spacing=0,
                 controls=[
-                    ft.Radio(value=boon.boon_id, label=f"{boon.name}: {boon_text(boon)}"),
+                    # A radio's label is one line that won't wrap, so it holds just
+                    # the name; what the boon does wraps underneath.
+                    ft.Radio(value=boon.boon_id, label=boon.name),
                     ft.Container(
-                        padding=ft.Padding(left=48, top=0, right=0, bottom=4),
-                        content=ft.Text(
-                            boon.description, size=13, color=ft.Colors.ON_SURFACE_VARIANT
+                        padding=ft.Padding(left=48, top=0, right=0, bottom=6),
+                        content=ft.Column(
+                            tight=True,
+                            spacing=2,
+                            controls=[
+                                ft.Text(boon_text(boon), size=14, weight=ft.FontWeight.W_500),
+                                ft.Text(
+                                    boon.description,
+                                    size=13,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
+                                ),
+                            ],
                         ),
                     ),
                 ],
@@ -77,6 +88,9 @@ class TideDialog:
         self.control = ft.AlertDialog(
             modal=True,
             title=ft.Text(f"Ride the tide (tide {tide})"),
-            content=ft.Column(tight=True, scroll=ft.ScrollMode.AUTO, controls=controls),
+            # The dialog scrolls, not the Column: a scrolling Flet Column grows to
+            # the height it's given, which made dialogs fill the screen.
+            scrollable=True,
+            content=ft.Column(tight=True, controls=controls),
             actions=[ft.TextButton(content="Not yet", on_click=lambda _: on_cancel()), ride],
         )
