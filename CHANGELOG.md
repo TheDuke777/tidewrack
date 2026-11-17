@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-11-16
+
 ### Added
 - Difficulty: a new world asks for Easy, Standard or Hard, fixed for that world.
   Easy foes are a little weaker with less health, and you heal faster, flee more
