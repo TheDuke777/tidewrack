@@ -59,6 +59,7 @@ from tidewrack.core.engine.components import (
     Equipped,
     Explorer,
     Fighting,
+    FinalFoe,
     Grower,
     Health,
     Materials,
@@ -69,6 +70,7 @@ from tidewrack.core.engine.components import (
     Name,
     Player,
     Position,
+    Prestige,
     Quest,
     QuestItem,
     Recipe,
@@ -127,6 +129,7 @@ from tidewrack.core.engine.events import (
     Rested,
     RoomDiscovered,
     RoomEntered,
+    TideTurned,
     TurnEnded,
     Waited,
     WayBarred,
@@ -646,6 +649,7 @@ class Game:
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
         growers: Iterable[Grower] = (),
         wardens: Iterable[tuple[str, str, Enemy, Warden]] = (),
+        finals: Iterable[tuple[str, str, Enemy, FinalFoe]] = (),
     ) -> None:
         """Start a new run in `world`, wearing `kit`, with `finds` and `enemies`
         (location id, room id, thing) where they were placed at world creation,
@@ -654,7 +658,8 @@ class Game:
         start with; its `shops` (location, room, shop, stock) under `economy`;
         materials to `gathering`, the `recipes` known from the start, and found
         `recipe_pages` (location, room, thing), and the `wardens` at the gates
-        of the roads into deeper regions (location, room, enemy, warden)."""
+        of the roads into deeper regions (location, room, enemy, warden), and the
+        world's final foe in `finals` (location, room, enemy, final; 8c)."""
         self._setup(seed, world)
         self.rules = rules
         self.economy = economy
@@ -672,6 +677,7 @@ class Game:
             Materials(),
             Recipes({r.recipe_id: r for r in recipes}),
             Meals(),
+            Prestige(),
         )
         for location in world.locations.values():
             for room in location.rooms.values():
@@ -718,6 +724,16 @@ class Game:
             if room_id not in location.gates or warden.road not in location.roads:
                 raise ValueError(f"warden not at a gate on its road: {location_id}/{room_id}")
             self.world.create(enemy, warden, Position(location_id, room_id))
+        for location_id, room_id, enemy, final in finals:
+            location = world.location(location_id)
+            if room_id not in location.rooms or room_id in location.gates:
+                raise ValueError(f"final foe in a gate or unknown room {location_id}/{room_id}")
+            if any(
+                (p.location, p.room) == (location_id, room_id)
+                for _, (_, p) in self.world.query(Enemy, Position)
+            ):
+                raise ValueError(f"final foe shares a room: {location_id}/{room_id}")
+            self.world.create(enemy, final, Position(location_id, room_id))
         for location_id, room_id, thing in [*gathering, *recipe_pages]:
             location = world.location(location_id)
             if room_id not in location.rooms or room_id in location.gates:
@@ -1736,6 +1752,14 @@ class Game:
                         if crossed:
                             self._say(f"You cross into {crossed}.")
                     self._say(f"— {location.name} · {location.kind} —")
+                    if any(
+                        at.location == location_id
+                        for _, (_, at) in self.world.query(FinalFoe, Position)
+                    ):
+                        self._say(
+                            "A bell tolls somewhere under the water. Deep in this hall"
+                            " the Drowned King keeps his court, and waits."
+                        )
             case RoomEntered(
                 entity=entity,
                 location=location_id,
@@ -1804,6 +1828,12 @@ class Game:
                     self._say(f"It drops {_and(dropped)}.")
             case RegionOpened(name=name):
                 self._say(f"The way into {name} lies open.")
+            case TideTurned(enemy=name):
+                self._say(
+                    f"The {name} sinks into the black water and does not rise. Far off,"
+                    " the sea draws a long breath: the old pact that held it back is"
+                    " broken, and the tide is turning."
+                )
             case PlayerDefeated(name=name):
                 self._say(f"The {name} strikes you down. Everything goes dark.")
             case Respawned(location=location_id):

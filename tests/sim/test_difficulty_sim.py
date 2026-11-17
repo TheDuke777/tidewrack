@@ -88,3 +88,15 @@ def test_each_region_cooks_its_own_best_meal():
     # fights they're for (its hardest bounty and the next warden), by a margin.
     for edge in sim.meal_edges(CONTENT, fights=300)[1:]:
         assert edge.own_lost <= 0.9 * edge.earlier_lost, edge
+
+
+def test_the_drowned_king_needs_a_meal(rows):
+    # 8c milestone: geared in the last region, the final foe is a real test you
+    # feed up for. Unfed it's no better than a coin flip on Standard; with the best
+    # meal you can cook it falls on every preset.
+    last = regions(rows)[-1]
+    for difficulty in ("Easy", "Standard", "Hard"):
+        s = sim.summary(rows, last, "geared", difficulty)
+        assert s["final fed"].win >= 0.95, difficulty
+        assert s["final fed"].hp_lost < s["final"].hp_lost, difficulty
+    assert sim.summary(rows, last, "geared", "Standard")["final"].win <= 0.5

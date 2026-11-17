@@ -4,7 +4,9 @@ from tidewrack.core.engine.events import LocationDiscovered, LocationEntered
 from tidewrack.core.engine.game import Game, Move, Travel
 from tidewrack.core.procgen.enemy_gen import (
     enemies_hash,
+    final_hash,
     generate_enemies,
+    generate_final,
     generate_wardens,
     wardens_hash,
 )
@@ -40,32 +42,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -74,14 +76,32 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def test_golden_wardens():
-    assert GENERATOR_VERSION == 17
+    assert GENERATOR_VERSION == 18
     world = new_world(20261103)
     assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
+
+
+def test_golden_final():
+    assert GENERATOR_VERSION == 18
+    world = new_world(20261103)
+    assert final_hash(generate_final(20261103, world, CONTENT, RECIPE)) == GOLDEN_FINAL
+
+
+def test_the_drowned_king_waits_deep_in_a_highlands_hall():
+    for seed in range(20):
+        world = new_world(seed)
+        final = generate_final(seed, world, CONTENT, RECIPE)
+        assert final is not None, seed  # every standard world has a Drowned Hall up there
+        location = world.location(final.location)
+        assert location.kind == "Drowned Hall"
+        assert world.region_of(location.id).tier == max(r.tier for r in world.regions.values())
+        assert final.room not in location.gates
+        assert final.enemy.enemy_id == "enemy.drowned_king"
 
 
 def quests_for(seed: int):
@@ -97,6 +117,7 @@ GOLDEN_SHOPS = "9c7ee00416f35dd730afb04a530de6bc7814e92ea8ff508560583b4336a615ff
 GOLDEN_GATHERING = "65f19da122f78aeb06401d6554053c8f03fa50d72d07a6119ca1b0f7f381ed7b"
 GOLDEN_RECIPES = "6cfa72986d0bdde987accf116a45b7ccdb3dad08015329b2fba47772e6066d79"
 GOLDEN_WARDENS = "7c25ef50e325400b3af0dd53a099e033b2bbf9db31f0d6fd3c43efa3d2fa0d77"
+GOLDEN_FINAL = "f2baf8d0f0d19d64c90455015bc955b1aa205716a7d5fe4847c41a408452e7a5"
 GOLDEN_FINDS = "61c92a48d56bd5b3048294845417a12167c0a21d788b6b5098cd92cc35112ce0"
 
 

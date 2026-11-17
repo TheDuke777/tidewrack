@@ -171,6 +171,11 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
             region = loaded["regions"].get(plan.region)
             if region is not None and region.warden is None:
                 problems.append(f"{path}: {plan.region} needs a warden to guard the way in")
+        if recipe.final is not None:
+            check(path, [recipe.final.enemy], "enemies", "enemy")
+            last = loaded["regions"].get(recipe.regions[-1].region)
+            if last is not None and recipe.final.roomset not in last.roomsets:
+                problems.append(f"{path}: final.roomset must be one of the last region's")
         check(path, recipe.kit, "gear", "gear")
         slots = [s for g in recipe.kit if g in loaded["gear"] for s in _slots(loaded["gear"][g])]
         if len(slots) != len(set(slots)):

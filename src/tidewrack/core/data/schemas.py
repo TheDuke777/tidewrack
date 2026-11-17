@@ -445,6 +445,16 @@ class RegionPlanSchema(Schema):
     locations: int = Field(ge=2, le=20)
 
 
+class FinalFoeSchema(Schema):
+    """The foe whose defeat ends a world's story (step 8c): it waits in a place of
+    `roomset` in the last region, in the room named `room` farthest from the
+    way in (else that place's farthest room)."""
+
+    enemy: content_id("enemy")
+    roomset: content_id("roomset")
+    room: Text  # a room noun, e.g. "Throne Room"
+
+
 class WorldRecipeSchema(Schema):
     """What a new world is made of: its regions, coast first, and how many places
     each has. The world starts in the first region's town."""
@@ -456,6 +466,7 @@ class WorldRecipeSchema(Schema):
     kit: list[content_id("gear")] = []  # starting gear, equipped
     gold: int = Field(default=0, ge=0)  # starting gold
     quests: QuestsRecipeSchema = QuestsRecipeSchema()
+    final: FinalFoeSchema | None = None  # beating it turns the tide (8c)
 
     @model_validator(mode="after")
     def _check(self) -> WorldRecipeSchema:

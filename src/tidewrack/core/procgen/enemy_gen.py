@@ -20,12 +20,13 @@ from dataclasses import asdict
 from typing import NamedTuple
 
 from tidewrack.core.data.loader import Content
-from tidewrack.core.data.schemas import EnemySchema
-from tidewrack.core.engine.components import Enemy, EnemyTemplate, Spawner, Warden
+from tidewrack.core.data.schemas import EnemySchema, WorldRecipeSchema
+from tidewrack.core.engine.components import Enemy, EnemyTemplate, FinalFoe, Spawner, Warden
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import roll_item
 from tidewrack.core.procgen.material_gen import drop_table, roll_drops
 from tidewrack.core.rng import Rng
+from tidewrack.core.world.location import Location
 from tidewrack.core.world.overworld import Overworld
 
 LOOT_AFFIX_CHANCE = 0.3
@@ -138,6 +139,69 @@ def wardens_hash(wardens: Iterable[PlacedWarden]) -> str:
     """Stable fingerprint of a world's wardens, for golden-seed tests (§9)."""
     blob = json.dumps(
         [[w.location, w.room, asdict(w.enemy), asdict(w.warden)] for w in wardens], sort_keys=True
+    )
+    return hashlib.sha256(blob.encode()).hexdigest()
+
+
+class PlacedFinal(NamedTuple):
+    """The world's final foe in its room; Game takes it as (location, room, enemy,
+    final)."""
+
+    location: str
+    room: str
+    enemy: Enemy
+    final: FinalFoe
+
+
+def generate_final(
+    seed: int, world: Overworld, content: Content, recipe: WorldRecipeSchema
+) -> PlacedFinal | None:
+    """The recipe's final foe (step 8c), on the seed's "final" substream: in one
+    place of its roomset in the deepest region, in the room with its noun farthest
+    from the way in (none: that place's farthest room). None if the recipe has
+    no final foe or the world no such place."""
+    final = recipe.final
+    if final is None or not world.regions:
+        return None
+    deepest = max(world.regions.values(), key=lambda r: r.tier)
+    kind = content.roomsets[final.roomset].name
+    places = sorted(
+        loc.id for loc in world.locations.values() if loc.region == deepest.id and loc.kind == kind
+    )
+    if not places:
+        return None
+    rng = Rng(seed).derive("final")
+    location = world.location(rng.choice(places))
+    room = farthest_room(location, final.room)
+    enemy = make_enemy(rng, content.enemies[final.enemy], content)
+    return PlacedFinal(location.id, room, enemy, FinalFoe(deepest.id))
+
+
+def farthest_room(location: Location, noun: str) -> str:
+    """The non-gate room named for `noun` farthest (in steps) from where you
+    arrive; if none has that name, the farthest non-gate room."""
+    depth = {location.start: 0}
+    frontier = [location.start]
+    while frontier:
+        nxt = []
+        for room_id in frontier:
+            for neighbour in location.neighbours(room_id):
+                if neighbour not in depth:
+                    depth[neighbour] = depth[room_id] + 1
+                    nxt.append(neighbour)
+        frontier = nxt
+    rooms = [r for r in location.rooms if r not in location.gates and r in depth]
+    named = [r for r in rooms if location.rooms[r].name.endswith(noun)]
+    return max(named or rooms, key=lambda r: (depth[r], r))
+
+
+def final_hash(final: PlacedFinal | None) -> str:
+    """Stable fingerprint of a world's final foe, for golden-seed tests (§9)."""
+    blob = json.dumps(
+        None
+        if final is None
+        else [final.location, final.room, asdict(final.enemy), asdict(final.final)],
+        sort_keys=True,
     )
     return hashlib.sha256(blob.encode()).hexdigest()
 

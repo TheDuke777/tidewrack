@@ -10,5 +10,6 @@
   "player": { "atk": 2, "def": 1, "hp": 20 },
   "kit": ["gear.driftwood_club", "gear.patched_coat"],
   "gold": 10,
+  "final": { "enemy": "enemy.drowned_king", "roomset": "roomset.drowned_hall", "room": "Throne Room" },
   "quests": { "per_board": 3, "found": 2, "reward_affix_chance": 1.0, "recipe_chance": 0.35 }
 }

@@ -11,6 +11,7 @@ backups before writing the upgraded version.
 
 from __future__ import annotations
 
+import copy
 import re
 from collections.abc import Callable
 from typing import Any
@@ -921,6 +922,133 @@ def _v12_to_v13(envelope: Envelope) -> Envelope:
     return envelope
 
 
+# What v14 put in every world with a Drowned Hall in its deepest region, written
+# out so later content changes can't alter this migration.
+V14_KING = {
+    "enemy_id": "enemy.drowned_king",
+    "name": "Drowned King",
+    "category": "spirit",
+    "description": (
+        "The king who made the old pact with the sea: his kingdom kept from the tide,"
+        " and he and his hall kept under it. He sits his throne in a crown of green"
+        " gold, weed for a cloak, and waits for someone to come and break the bargain."
+    ),
+    "stats": {"atk": 36, "def": 16, "hp": 150},
+    "drops": [
+        "Cairngorm Brooch",
+        "Claymore",
+        "Mail Byrnie",
+        "Thane's Sword",
+        "Drowned Gold",
+        "River Pearl",
+    ],
+    "loot": [
+        {
+            "gear_id": "gear.thanes_sword",
+            "name": "Thane's Sword",
+            "slot": "main_hand",
+            "two_handed": False,
+            "base": {"atk": 15, "hp": 3},
+            "roll": {"atk": 1},
+            "upgrade": 0,
+            "max_upgrade": 3,
+            "upgrade_step": {"atk": 1},
+            "affixes": [],
+            "effects": [],
+            "gear_set": None,
+        }
+    ],
+    "gold": 140,
+    "materials": [
+        {
+            "material": {
+                "material_id": "material.drowned_gold",
+                "name": "Drowned Gold",
+                "description": (
+                    "Red-gold rings and torcs out of the drowned king's hall, cold even in"
+                    " the hand."
+                ),
+                "value": 8,
+                "ingredient": False,
+            },
+            "count": 4,
+        },
+        {
+            "material": {
+                "material_id": "material.river_pearl",
+                "name": "River Pearl",
+                "description": (
+                    "A lumpy grey pearl from a loch mussel, with a sheen like moonlight on water."
+                ),
+                "value": 7,
+                "ingredient": False,
+            },
+            "count": 1,
+        },
+    ],
+}
+
+
+def _v13_to_v14(envelope: Envelope) -> Envelope:
+    # v14 adds prestige (8c): the player's Prestige, and the Drowned King, the final
+    # foe, in a Drowned Hall of the deepest region (worlds without one, such as
+    # three-region worlds, get no king). He takes the farthest Throne Room from the
+    # way in that is free (no enemy, not where you stand), else the farthest free
+    # room; the first such hall by id, as there's no generator stream to draw on.
+    game = envelope["game"]
+    entities = [e["components"] for e in game["entities"]]
+    player = next(c for c in entities if "Player" in c)
+    player["Prestige"] = {"rank": 0, "tide_turned": False}
+    world = game["world"]
+    if not world.get("regions"):
+        return envelope
+    deepest = max(world["regions"], key=lambda r: r["tier"])["id"]
+    halls = sorted(
+        (
+            loc
+            for loc in world["locations"]
+            if loc["region"] == deepest and loc["kind"] == "Drowned Hall"
+        ),
+        key=lambda loc: loc["id"],
+    )
+    if not halls:
+        return envelope
+    hall = halls[0]
+    busy = {
+        (c["Position"]["location"], c["Position"]["room"])
+        for c in entities
+        if "Position" in c and ("Enemy" in c or "Player" in c)
+    }
+    rooms = {r["id"]: r for r in hall["rooms"]}
+    depth = {hall["start"]: 0}
+    frontier = [hall["start"]]
+    while frontier:
+        nxt = []
+        for room_id in frontier:
+            for exit_ in rooms[room_id]["exits"]:
+                if exit_["to"] not in depth:
+                    depth[exit_["to"]] = depth[room_id] + 1
+                    nxt.append(exit_["to"])
+        frontier = nxt
+    free = [r for r in depth if r not in hall["gates"] and (hall["id"], r) not in busy]
+    if not free:
+        return envelope
+    named = [r for r in free if rooms[r]["name"].endswith("Throne Room")]
+    room = max(named or free, key=lambda r: (depth[r], r))
+    game["entities"].append(
+        {
+            "id": game["next_entity_id"],
+            "components": {
+                "Enemy": copy.deepcopy(V14_KING),
+                "FinalFoe": {"region": deepest},
+                "Position": {"location": hall["id"], "room": room},
+            },
+        }
+    )
+    game["next_entity_id"] += 1
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -935,6 +1063,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     10: _v10_to_v11,
     11: _v11_to_v12,
     12: _v12_to_v13,
+    13: _v13_to_v14,
 }
 
 

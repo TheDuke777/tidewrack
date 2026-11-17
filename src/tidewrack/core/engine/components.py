@@ -252,6 +252,24 @@ class Warden:
 
 
 @dataclass
+class FinalFoe:
+    """On the enemy whose defeat ends a world's story (step 8c: the Drowned King,
+    deep in the last region). Beating it turns the tide: ascending (prestige)
+    becomes possible, never forced."""
+
+    region: str  # the region it waits in (its id)
+
+
+@dataclass
+class Prestige:
+    """On the player (step 8c): how many tides they've lived through (prestige
+    rank), and whether this world's tide has turned (its final foe is beaten)."""
+
+    rank: int = 0
+    tide_turned: bool = False
+
+
+@dataclass
 class Quest:
     """A quest, on an entity of its own: a snapshot, reward included.
 
@@ -433,5 +451,7 @@ COMPONENTS: dict[str, type] = {
         WellFed,
         Grower,
         Warden,
+        FinalFoe,
+        Prestige,
     )
 }

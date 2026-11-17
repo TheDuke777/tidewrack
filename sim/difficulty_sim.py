@@ -46,7 +46,7 @@ MAX_ROUNDS = 200  # a fight neither side can finish (never happens: hits are ≥
 @dataclass(frozen=True)
 class Foe:
     name: str
-    kind: str  # "foe", "bounty" or "warden"
+    kind: str  # "foe", "bounty", "warden" or "final" (the world's final foe, 8c)
     stats: Mapping[str, int]
     rolls: Mapping[str, tuple[int, int]]
     strength: float = 1.0  # bounties: stats × this after rolling (quest_gen)
@@ -102,8 +102,9 @@ def _pool(content: Content, region_id: str) -> list[EnemySchema]:
     return [content.enemies[e] for e in sorted(ids)]
 
 
-def foes(content: Content, region_id: str) -> list[Foe]:
-    """Each foe kind in the region, its hardest bounty, and its warden."""
+def foes(content: Content, region_id: str, world: str = WORLD) -> list[Foe]:
+    """Each foe kind in the region, its hardest bounty, its warden, and the
+    world's final foe if it waits here (the last region)."""
     pool = _pool(content, region_id)
     out = [Foe(e.name, "foe", dict(e.stats), dict(e.rolls)) for e in pool]
     strength = content.quests["quest.bounty"].strength
@@ -113,6 +114,10 @@ def foes(content: Content, region_id: str) -> list[Foe]:
     if warden is not None:
         e = content.enemies[warden]
         out.append(Foe(e.name, "warden", dict(e.stats), dict(e.rolls)))
+    recipe = content.world(world)
+    if recipe.final is not None and recipe.regions[-1].region == region_id:
+        e = content.enemies[recipe.final.enemy]
+        out.append(Foe(e.name, "final", dict(e.stats), dict(e.rolls)))
     return out
 
 
@@ -256,7 +261,7 @@ class MealEdge:
 
 def meal_edges(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[MealEdge]:
     """Per region on Standard, geared there: the share of HP lost to its hardest
-    bounty plus the next region's warden (the fights a meal is for), fed with the
+    bounty (and the final foe, if it waits there) plus the next region's warden (the fights a meal is for), fed with the
     best meal that only became cookable here versus the best from before. Each
     region's own meals should win (8b: meals sized against their region's foes)."""
     rng = Rng(seed).derive("meal_edges")
@@ -267,7 +272,7 @@ def meal_edges(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[Me
     for i, region_id in enumerate(order):
         region = content.regions[region_id]
         you = gear_stats(content, order[: i + 1])
-        hard = [f for f in foes(content, region_id) if f.kind == "bounty"]
+        hard = [f for f in foes(content, region_id) if f.kind in ("bounty", "final")]
         if i + 1 < len(order):
             hard += [f for f in foes(content, order[i + 1]) if f.kind == "warden"]
         lost: dict[str, float] = {}
@@ -297,7 +302,7 @@ def summary(rows: list[Row], region: str, gear: str, difficulty: str) -> dict[st
     plain = sorted((r.unfed for r in picked if r.foe.kind == "foe"), key=lambda o: o.hp_lost)
     out = {"worst foe": plain[-1], "median foe": plain[len(plain) // 2]}
     for r in picked:
-        if r.foe.kind in ("bounty", "warden"):
+        if r.foe.kind in ("bounty", "warden", "final"):
             out[r.foe.kind] = r.unfed
             out[f"{r.foe.kind} fed"] = r.fed
     return out
@@ -343,6 +348,13 @@ def report(rows: list[Row]) -> str:
                 for r in sorted(picked, key=lambda r: -r.unfed.hp_lost)
                 if r.foe.kind == "foe"
             )
+            for r in picked:
+                if r.foe.kind == "final":
+                    lines.append(
+                        f"  {r.foe.name} (final): unfed {_pct(r.unfed.win).strip()} won,"
+                        f" {_pct(r.unfed.hp_lost).strip()} HP lost; fed ({r.meal})"
+                        f" {_pct(r.fed.win).strip()} won, {_pct(r.fed.hp_lost).strip()} lost"
+                    )
             meals = sorted({r.meal for r in picked if r.meal})
             lines.append(f"  Standard per foe (HP lost): {per_foe}")
             lines.append(f"  meals used: {', '.join(meals) or 'none available'}")

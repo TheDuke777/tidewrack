@@ -24,9 +24,11 @@ from tidewrack.core.engine.components import (
     Enemy,
     Explorer,
     Fighting,
+    FinalFoe,
     FoeEntry,
     Health,
     Position,
+    Prestige,
     Respawn,
     Spawner,
     Warden,
@@ -42,6 +44,7 @@ from tidewrack.core.engine.events import (
     RegionOpened,
     Respawned,
     RoomEntered,
+    TideTurned,
     WayBarred,
 )
 
@@ -189,6 +192,7 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
     codex.kills[enemy.enemy_id] = codex.kills.get(enemy.enemy_id, 0) + 1
     bounty = game.world.try_get(fighting.enemy, Bounty)
     warden = game.world.try_get(fighting.enemy, Warden)
+    final = game.world.try_get(fighting.enemy, FinalFoe)
     game.world.remove(game.player, Fighting)
     game.world.destroy(fighting.enemy)
     game.bus.emit(
@@ -207,6 +211,10 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
         crafting.add(game, stack, "loot", enemy.enemy_id)
     if warden is not None:
         game.bus.emit(RegionOpened(warden.region, game.overworld.regions[warden.region].name))
+    if final is not None:
+        game.world.get(game.player, Prestige).tide_turned = True
+        region = game.overworld.regions.get(final.region)
+        game.bus.emit(TideTurned(enemy.name, region.name if region else ""))
 
 
 def _lose(game: Game, fighting: Fighting, enemy: Enemy) -> None:

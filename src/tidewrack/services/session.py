@@ -24,6 +24,7 @@ from tidewrack.core.engine.components import (
     Bounty,
     Clue,
     Enemy,
+    FinalFoe,
     Grower,
     MaterialStack,
     Quest,
@@ -38,7 +39,12 @@ from tidewrack.core.engine.components import (
 from tidewrack.core.engine.game import Command, Game, TurnResult
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
-from tidewrack.core.procgen.enemy_gen import generate_enemies, generate_wardens
+from tidewrack.core.procgen.enemy_gen import (
+    PlacedEnemy,
+    generate_enemies,
+    generate_final,
+    generate_wardens,
+)
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit
 from tidewrack.core.procgen.head_start import GOLD_PER_REGION, best_loadout, candidates
 from tidewrack.core.procgen.material_gen import (
@@ -106,7 +112,15 @@ class GameSession:
         world = generate_world(seed, recipe, content.roomsets, content.regions)
         enemies, spawners = generate_enemies(seed, world, content)
         wardens = generate_wardens(seed, world, content)
-        plan = generate_quests(seed, world, content, recipe, enemies, spawners)
+        final = generate_final(seed, world, content, recipe)
+        if final is not None:
+            # The final foe holds its room alone, and quests keep out of it.
+            spot = (final.location, final.room)
+            enemies = [e for e in enemies if (e.location, e.room) != spot]
+        taken = (
+            [*enemies, PlacedEnemy(final.location, final.room, final.enemy)] if final else enemies
+        )
+        plan = generate_quests(seed, world, content, recipe, taken, spawners)
         recipes = generate_recipes(seed, world, content, recipe, plan.quests)
         quests = [replace(q, recipe=recipes.rewards.get(q.quest_id)) for q in plan.quests]
         return cls.new(
@@ -131,6 +145,7 @@ class GameSession:
             recipe_pages=recipes.pages,
             growers=generate_growers(world, content),
             wardens=wardens,
+            finals=[final] if final else [],
             rules=rules,
         )
 
@@ -161,6 +176,7 @@ class GameSession:
         recipe_pages: Iterable[tuple[str, str, RecipePage]] = (),
         growers: Iterable[Grower] = (),
         wardens: Iterable[tuple[str, str, Enemy, Warden]] = (),
+        finals: Iterable[tuple[str, str, Enemy, FinalFoe]] = (),
     ) -> GameSession:
         """Start a world in a new slot (saved immediately)."""
         game = Game(
@@ -183,6 +199,7 @@ class GameSession:
             recipe_pages,
             growers,
             wardens,
+            finals,
         )
         now = clock()
         meta = SlotMeta(

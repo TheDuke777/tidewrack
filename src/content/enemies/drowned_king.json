@@ -1,0 +1,42 @@
+{
+  "id": "enemy.drowned_king",
+  "name": "Drowned King",
+  "category": "spirit",
+  "description": "The king who made the old pact with the sea: his kingdom kept from the tide, and he and his hall kept under it. He sits his throne in a crown of green gold, weed for a cloak, and waits for someone to come and break the bargain.",
+  "stats": {
+    "atk": 36,
+    "def": 16,
+    "hp": 150
+  },
+  "loot": {
+    "chance": 1.0,
+    "gear": {
+      "gear.thanes_sword": 1,
+      "gear.claymore": 1,
+      "gear.mail_byrnie": 1,
+      "gear.cairngorm_brooch": 1
+    }
+  },
+  "gold": [
+    120,
+    160
+  ],
+  "materials": [
+    {
+      "material": "material.drowned_gold",
+      "chance": 1.0,
+      "count": [
+        3,
+        5
+      ]
+    },
+    {
+      "material": "material.river_pearl",
+      "chance": 1.0,
+      "count": [
+        1,
+        2
+      ]
+    }
+  ]
+}

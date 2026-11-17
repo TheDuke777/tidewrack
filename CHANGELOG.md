@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The Drowned King waits on his throne deep in a drowned hall in the
+  Highlands. He's the hardest fight in the game: go in well fed. Beating him
+  turns the tide, the first step towards starting again on a new shore
+  (coming soon). Worlds you've already started that reach the Highlands get
+  him too.
+
 ## [0.11.5] - 2026-11-17
 
 ### Changed

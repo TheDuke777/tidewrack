@@ -192,6 +192,15 @@ class RegionOpened(Event):
 
 
 @dataclass(frozen=True)
+class TideTurned(Event):
+    """The world's final foe is beaten (step 8c): the tide turns, and the player
+    may ascend whenever they choose."""
+
+    enemy: str  # its name
+    region: str  # the region's name
+
+
+@dataclass(frozen=True)
 class PlayerDefeated(Event):
     enemy_id: str
     name: str

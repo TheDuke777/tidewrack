@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from tidewrack.core.combat.rules import STANDARD
+from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige
 from tidewrack.core.engine.game import Attack, Defend, Look, Move, Wait
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
@@ -499,3 +500,44 @@ def test_v13_fixture_keeps_what_its_codex_learned(tmp_path):
     entries = {e.material.name: e for e in session.game.codex().materials}
     assert entries["Iron Ore"].dropped_by == "Wrecker"  # it dropped some for you
     assert entries["Hide"].dropped_by.startswith("Wild Boar")
+
+
+def test_v14_fixture_keeps_its_king_and_prestige(tmp_path):
+    envelope = json.loads((FIXTURES / "v14_prestige.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.world.get(game.player, Prestige) == Prestige(rank=0, tide_turned=False)
+    [(enemy, final, _)] = [c for _, c in game.world.query(Enemy, FinalFoe, Position)]
+    assert enemy.name == "Drowned King" and final.region == "region.highlands"
+
+
+def test_v13_worlds_with_a_drowned_hall_get_their_king(tmp_path):
+    # Made a v13 save from the v14 fixture: no Prestige, no king.
+    envelope = json.loads((FIXTURES / "v14_prestige.json").read_text(encoding="utf-8"))
+    king = next(e for e in envelope["game"]["entities"] if "FinalFoe" in e["components"])
+    envelope["game"]["entities"].remove(king)
+    for entity in envelope["game"]["entities"]:
+        entity["components"].pop("Prestige", None)
+    envelope["schema_version"] = 13
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.world.get(game.player, Prestige) == Prestige()
+    [(entity, (enemy, final, at))] = list(game.world.query(Enemy, FinalFoe, Position))
+    hall = game.overworld.location(at.location)
+    assert hall.kind == "Drowned Hall" and hall.region == final.region == "region.highlands"
+    assert at.room not in hall.gates
+    assert enemy.stats == {"atk": 36, "def": 16, "hp": 150}
+    sharing = [
+        e
+        for e, (_, p) in game.world.query(Enemy, Position)
+        if e != entity and (p.location, p.room) == (at.location, at.room)
+    ]
+    assert sharing == []
+
+
+def test_v13_worlds_without_the_highlands_get_prestige_but_no_king(tmp_path):
+    envelope = json.loads((FIXTURES / "v13_codex.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.world.get(game.player, Prestige) == Prestige()
+    assert list(game.world.query(FinalFoe)) == []
