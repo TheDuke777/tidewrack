@@ -261,12 +261,29 @@ class FinalFoe:
 
 
 @dataclass
+class Boon:
+    """A boon chosen when the tide turned (step 8c): a snapshot, so saves don't
+    need content. It does one of: `stats`, +`gold_pct`% gold from foes and quests,
+    meals lasting +`meal_turns_pct`% longer."""
+
+    boon_id: str
+    name: str
+    description: str
+    tide: int  # the tide (prestige rank) it was chosen for
+    stats: dict[str, int] = field(default_factory=dict)
+    gold_pct: int = 0
+    meal_turns_pct: int = 0
+
+
+@dataclass
 class Prestige:
     """On the player (step 8c): how many tides they've lived through (prestige
-    rank), and whether this world's tide has turned (its final foe is beaten)."""
+    rank), whether this world's tide has turned (its final foe is beaten), and
+    the boons chosen so far (kept from world to world)."""
 
     rank: int = 0
     tide_turned: bool = False
+    boons: list[Boon] = field(default_factory=list)
 
 
 @dataclass

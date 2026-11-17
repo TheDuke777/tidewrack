@@ -145,6 +145,7 @@ class GameScreen:
         confirm: Confirm = _confirm_now,
         choices: PackChoices | None = None,
         shop_choices: PackChoices | None = None,
+        on_ascend: Callable[[], None] = lambda: None,
     ) -> None:
         self.session = session
         self.notify = notify
@@ -325,6 +326,13 @@ class GameScreen:
         )
         self._shown_room: tuple[str, str] | None = None
         self._was_fighting = False
+        # Shown once the world's final foe has fallen (8c); see refresh().
+        self.ride_tide = ft.PopupMenuItem(
+            content="Ride the tide…",
+            icon=ft.Icons.WAVES,
+            visible=False,
+            on_click=lambda _: on_ascend(),
+        )
         header = ft.Row(
             controls=[
                 # A menu, not a back arrow: an arrow up here reads as "back one
@@ -334,6 +342,7 @@ class GameScreen:
                     icon=ft.Icons.MENU,
                     tooltip="Menu",
                     items=[
+                        self.ride_tide,
                         ft.PopupMenuItem(
                             content="Switch world",
                             icon=ft.Icons.PUBLIC,
@@ -472,6 +481,7 @@ class GameScreen:
         # Only an open shop panel needs its upgrade and recipe lists (v0.11.2).
         view = self.session.game.view(lists_for=self.opened or False)
         self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
+        self.ride_tide.visible = view.can_ascend
         self.room.value = view.room
         self.description.value = view.description
         if self._shown_room not in (None, (view.location, view.room)):

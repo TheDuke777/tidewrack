@@ -19,6 +19,7 @@ from tidewrack.services.storage import SaveError, SaveStore, SlotListing
 from tidewrack.ui import dev, theme
 from tidewrack.ui.screens.new_world import NewWorldDialog
 from tidewrack.ui.screens.slot_picker import SlotPickerScreen
+from tidewrack.ui.screens.tide import TideDialog
 from tidewrack.ui.shell import WorldShell
 from tidewrack.version import get_build_info, version_label
 
@@ -119,6 +120,7 @@ class App:
             on_back=self.show_picker,
             confirm=self.confirm,
             notify=self._notify,
+            on_ascend=lambda: self.ask_ascend(session),
         )
         theme.redraw = lambda: shell.select(shell.current)
         self.shell = shell
@@ -129,6 +131,31 @@ class App:
             )
 
     # --- actions -----------------------------------------------------------------
+
+    def ask_ascend(self, session: GameSession) -> None:
+        """Offer the boons, then ride the tide into a new world in this slot (8c)."""
+        game = session.game
+        if not game.can_ascend():
+            self._notify("The tide hasn't turned yet.")
+            return
+        prestige = game._prestige()
+
+        def ride(boon_id: str) -> None:
+            self.page.pop_dialog()
+            if session.ascend(self.content, boon_id):
+                self.show_game(session)  # a new world: every tab built afresh
+            else:
+                self._notify("Not in the middle of a fight.")
+            self.page.update()
+
+        dialog = TideDialog(
+            prestige.rank + 1,
+            session.boon_choices(self.content),
+            prestige.boons,
+            on_ride=ride,
+            on_cancel=self.page.pop_dialog,
+        )
+        self.page.show_dialog(dialog.control)
 
     def ask_new_world(self) -> None:
         """Pick a difficulty (and in dev builds a region to start in), then start."""

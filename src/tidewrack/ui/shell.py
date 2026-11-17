@@ -37,6 +37,7 @@ class WorldShell:
         on_back: Callable[[], None],
         confirm: Confirm,
         notify: Callable[[str], None],
+        on_ascend: Callable[[], None] = lambda: None,
     ) -> None:
         self.unread = Unread(session.game)
         choices = PackChoices()  # one set of pack filters and sort for the whole world
@@ -49,6 +50,7 @@ class WorldShell:
             confirm=confirm,
             choices=choices,
             shop_choices=shop_choices,
+            on_ascend=on_ascend,
         )
         self.inventory = InventoryScreen(
             session,

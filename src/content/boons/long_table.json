@@ -1,0 +1,7 @@
+{
+  "id": "boon.long_table",
+  "name": "Long Table",
+  "description": "You learned to make a meal last when the sea took everything else.",
+  "order": 5,
+  "meal_turns_pct": 50
+}

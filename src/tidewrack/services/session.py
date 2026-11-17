@@ -21,12 +21,15 @@ from tidewrack.core.data.loader import Content
 from tidewrack.core.data.save import EconomyState, GameState, RulesState, encode_component
 from tidewrack.core.economy.value_model import STANDARD_ECONOMY, EconomyRules
 from tidewrack.core.engine.components import (
+    Boon,
     Bounty,
     Clue,
+    Codex,
     Enemy,
     FinalFoe,
     Grower,
     MaterialStack,
+    Prestige,
     Quest,
     QuestItem,
     Recipe,
@@ -56,6 +59,7 @@ from tidewrack.core.procgen.material_gen import (
 from tidewrack.core.procgen.quest_gen import generate_quests
 from tidewrack.core.procgen.shop_gen import generate_shops
 from tidewrack.core.procgen.world_gen import generate_world
+from tidewrack.core.progression.prestige import make_boon, next_seed
 from tidewrack.core.versions import GENERATOR_VERSION, SCHEMA_VERSION
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.storage import SaveError, SaveStore, SlotMeta, SlotSummary
@@ -65,6 +69,7 @@ from tidewrack.services.storage.store import SLOT_FORMAT
 Clock = Callable[[], str]
 
 DEFAULT_DIFFICULTY = "difficulty.standard"
+DEFAULT_RECIPE = "world.standard"
 
 
 def utc_now() -> str:
@@ -107,6 +112,14 @@ class GameSession:
         """Generate a fresh world from a recipe (layout, kit, finds, enemies,
         quests, shops, materials and recipes) in a new slot, under the rules of
         the `difficulty` preset (fixed for the world's life)."""
+        game = cls.build_game(content, recipe_id, seed, difficulty)
+        return cls._start(store, content, game, name, clock)
+
+    @staticmethod
+    def build_game(
+        content: Content, recipe_id: str, seed: int, difficulty: str = DEFAULT_DIFFICULTY
+    ) -> Game:
+        """A fresh world from a recipe and seed, under a difficulty preset (no slot)."""
         recipe = content.world(recipe_id)
         rules = content.difficulties[difficulty].to_rules()
         world = generate_world(seed, recipe, content.roomsets, content.regions)
@@ -123,13 +136,9 @@ class GameSession:
         plan = generate_quests(seed, world, content, recipe, taken, spawners)
         recipes = generate_recipes(seed, world, content, recipe, plan.quests)
         quests = [replace(q, recipe=recipes.rewards.get(q.quest_id)) for q in plan.quests]
-        return cls.new(
-            store,
-            content,
-            world,
-            name,
+        return Game(
             seed,
-            clock,
+            world,
             player_base=recipe.player,
             kit=generate_kit(recipe, content),
             finds=generate_finds(seed, world, content),
@@ -201,6 +210,13 @@ class GameSession:
             wardens,
             finals,
         )
+        return cls._start(store, content, game, name, clock)
+
+    @classmethod
+    def _start(
+        cls, store: SaveStore, content: Content, game: Game, name: str, clock: Clock
+    ) -> GameSession:
+        """Put a new game in a new slot and save it."""
         now = clock()
         meta = SlotMeta(
             slot_id=uuid.uuid4().hex,
@@ -258,6 +274,41 @@ class GameSession:
         gold = GOLD_PER_REGION * len(before)
         if not game.skip_to_region(region_id, loadout.worn, loadout.spare, gold):
             return False
+        self.save()
+        return True
+
+    # --- the tide (8c) -------------------------------------------------------------
+
+    def boon_choices(self, content: Content) -> list[Boon]:
+        """The boons on offer if the player ascends now, sized for the next tide."""
+        rank = self.game._prestige().rank + 1
+        return [make_boon(b, rank) for b in content.boon_choices()]
+
+    def ascend(self, content: Content, boon_id: str, recipe_id: str = DEFAULT_RECIPE) -> bool:
+        """Ride the turned tide into a new world in this slot (8c): a fresh world
+        from the recipe, on a seed drawn from this one's, under the same
+        difficulty; the player keeps their codex and boons, adds `boon_id`, and is
+        one tide further on. Saved at once (the old world stays in the slot's
+        backups). False (nothing changed) unless the tide has turned and no fight
+        is on."""
+        game = self.game
+        if not game.can_ascend() or boon_id not in content.boons:
+            return False
+        before = game._prestige()
+        rank = before.rank + 1
+        prestige = Prestige(
+            rank=rank,
+            boons=[*copy.deepcopy(before.boons), make_boon(content.boons[boon_id], rank)],
+        )
+        codex = copy.deepcopy(game.world.get(game.player, Codex))
+        difficulty = next(
+            (d.id for d in content.difficulties.values() if d.name == game.rules.difficulty),
+            DEFAULT_DIFFICULTY,
+        )
+        fresh = self.build_game(content, recipe_id, next_seed(game.seed, before.rank), difficulty)
+        fresh.carry_over(codex, prestige)
+        self.game = fresh
+        self._encoder = StateEncoder()  # a new world: write it all
         self.save()
         return True
 
@@ -375,6 +426,7 @@ def _summary(game: Game) -> SlotSummary:
         locations_visited=len(game._explorer().locations_visited),
         total_locations=len(game.overworld.locations),
         difficulty=game.rules.difficulty,
+        tide=game._prestige().rank,
     )
 
 

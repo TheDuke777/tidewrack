@@ -15,12 +15,13 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pydantic import ValidationError
 
 from tidewrack.core.data.schemas import (
     AffixSchema,
+    BoonSchema,
     DifficultySchema,
     DungeonSchema,
     EnemySchema,
@@ -40,6 +41,7 @@ from tidewrack.core.world.location import Location
 # kind directory -> (schema, id prefix)
 KINDS = {
     "affixes": (AffixSchema, "affix"),
+    "boons": (BoonSchema, "boon"),
     "difficulties": (DifficultySchema, "difficulty"),
     "dungeons": (DungeonSchema, "dungeon"),
     "enemies": (EnemySchema, "enemy"),
@@ -79,6 +81,7 @@ class Content:
     regions: dict[str, RegionSchema]
     difficulties: dict[str, DifficultySchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
+    boons: dict[str, BoonSchema] = field(default_factory=dict)
 
     def dungeon(self, dungeon_id: str) -> Location:
         return self.dungeons[dungeon_id]
@@ -88,6 +91,10 @@ class Content:
 
     def world(self, world_id: str) -> WorldRecipeSchema:
         return self.worlds[world_id]
+
+    def boon_choices(self) -> list[BoonSchema]:
+        """The boons, in the chooser's order."""
+        return sorted(self.boons.values(), key=lambda b: (b.order, b.id))
 
     def difficulty_choices(self) -> list[DifficultySchema]:
         """The difficulties, easiest first (the new-world picker's order)."""
@@ -144,6 +151,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         regions=loaded["regions"],
         difficulties=loaded["difficulties"],
         content_hash=content_hash(files),
+        boons=loaded["boons"],
     )
 
 

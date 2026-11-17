@@ -80,7 +80,9 @@ class SlotPickerScreen:
         meta, summary = listing.meta, listing.meta.summary
         lines = [
             f"{summary.room} · {summary.location}",
-            f"{summary.difficulty} · Turn {summary.turn} · Places visited "
+            f"{summary.difficulty} · "
+            + (f"Tide {summary.tide} · " if summary.tide else "")
+            + f"Turn {summary.turn} · Places visited "
             f"{summary.locations_visited}/{summary.total_locations} · "
             f"Last played {_local_time(meta.updated_at)}",
         ]

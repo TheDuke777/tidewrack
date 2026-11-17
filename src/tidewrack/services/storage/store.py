@@ -46,6 +46,7 @@ class SlotSummary(BaseModel):
     locations_visited: int
     total_locations: int
     difficulty: str = "Standard"  # older saves are all Standard
+    tide: int = 0  # prestige rank (8c); older saves are on the first tide
 
 
 class SlotMeta(BaseModel):

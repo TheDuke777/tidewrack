@@ -18,7 +18,15 @@ from typing import TYPE_CHECKING
 
 from tidewrack.core.economy import crafting, shops
 from tidewrack.core.economy.value_model import cook_fee, meal_price
-from tidewrack.core.engine.components import Meal, MealRecipe, Meals, MealStack, Shop, WellFed
+from tidewrack.core.engine.components import (
+    Meal,
+    MealRecipe,
+    Meals,
+    MealStack,
+    Prestige,
+    Shop,
+    WellFed,
+)
 from tidewrack.core.engine.events import (
     ActionRejected,
     MealBought,
@@ -26,6 +34,7 @@ from tidewrack.core.engine.events import (
     MealEaten,
     MealWoreOff,
 )
+from tidewrack.core.progression import prestige
 
 if TYPE_CHECKING:
     from tidewrack.core.engine.game import Game
@@ -122,8 +131,11 @@ def eat(game: Game, meal_id: str) -> None:
     replaced = before.meal.name if before else None
     if before is not None:
         game.world.remove(game.player, WellFed)
-    game.world.add(game.player, WellFed(copy.deepcopy(stack.meal), stack.meal.turns))
-    game.bus.emit(MealEaten(meal_id, stack.meal.name, stack.meal.turns, replaced))
+    turns = prestige.with_bonus(
+        stack.meal.turns, prestige.meal_turns_pct(game.world.try_get(game.player, Prestige))
+    )
+    game.world.add(game.player, WellFed(copy.deepcopy(stack.meal), turns))
+    game.bus.emit(MealEaten(meal_id, stack.meal.name, turns, replaced))
 
 
 # --- systems -----------------------------------------------------------------------

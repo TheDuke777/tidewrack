@@ -1,0 +1,7 @@
+{
+  "id": "boon.keen_edge",
+  "name": "Keen Edge",
+  "description": "You fought the drowned and won. Your arm remembers how.",
+  "order": 1,
+  "stats": { "atk": 2 }
+}

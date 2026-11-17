@@ -201,6 +201,16 @@ class TideTurned(Event):
 
 
 @dataclass(frozen=True)
+class TideCarried(Event):
+    """A new world after ascending (step 8c): the player wakes on its shore, on
+    tide `rank`, having chosen `boon`."""
+
+    rank: int
+    boon: str  # its name
+    boon_text: str  # what it does
+
+
+@dataclass(frozen=True)
 class PlayerDefeated(Event):
     enemy_id: str
     name: str

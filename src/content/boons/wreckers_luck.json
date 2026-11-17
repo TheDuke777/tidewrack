@@ -1,0 +1,7 @@
+{
+  "id": "boon.wreckers_luck",
+  "name": "Wrecker's Luck",
+  "description": "Every tide leaves something shining on the shore, and you know where to look.",
+  "order": 4,
+  "gold_pct": 20
+}

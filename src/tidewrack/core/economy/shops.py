@@ -23,6 +23,7 @@ from tidewrack.core.engine.components import (
     Equipped,
     Health,
     Position,
+    Prestige,
     Shop,
     Stocked,
     Wallet,
@@ -36,6 +37,7 @@ from tidewrack.core.engine.events import (
     Rested,
 )
 from tidewrack.core.gear.item import Item
+from tidewrack.core.progression import prestige
 
 if TYPE_CHECKING:
     from tidewrack.core.engine.game import Game
@@ -46,6 +48,12 @@ def gold(game: Game) -> int:
 
 
 def gain(game: Game, amount: int, source: str) -> None:
+    """Gold in. Boons (8c) add to gold from foes and quests, never to sales, so
+    buying and selling back can't make money."""
+    if source in ("loot", "quest"):
+        amount = prestige.with_bonus(
+            amount, prestige.gold_pct(game.world.try_get(game.player, Prestige))
+        )
     if amount > 0:
         game.world.get(game.player, Wallet).gold += amount
         game.bus.emit(GoldGained(amount, source))

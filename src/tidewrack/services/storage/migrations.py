@@ -1049,6 +1049,15 @@ def _v13_to_v14(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v14_to_v15(envelope: Envelope) -> Envelope:
+    # v15 keeps the boons chosen on ascending (8c): none yet in older worlds.
+    for entity in envelope["game"]["entities"]:
+        prestige = entity["components"].get("Prestige")
+        if prestige is not None:
+            prestige.setdefault("boons", [])
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -1064,6 +1073,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     11: _v11_to_v12,
     12: _v12_to_v13,
     13: _v13_to_v14,
+    14: _v14_to_v15,
 }
 
 

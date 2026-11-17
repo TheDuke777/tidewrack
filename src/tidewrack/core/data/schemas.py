@@ -402,6 +402,30 @@ class QuestsRecipeSchema(Schema):
 RULE_FIELDS = tuple(f.name for f in dataclass_fields(Rules) if f.name != "difficulty")
 
 
+class BoonSchema(Schema):
+    """A boon (step 8c): one is chosen each time the tide turns and kept for good.
+    It does one thing: adds `stats`, adds `gold_pct`% to gold from foes and quests,
+    or makes meals last `meal_turns_pct`% longer. These are its first-ascent
+    amounts; later ascents give less (core.progression.prestige)."""
+
+    id: content_id("boon")
+    name: Text
+    description: Text  # the story line, e.g. "The sea taught your arm a thing or two."
+    order: int = Field(ge=0)  # place in the chooser
+    stats: StatBlock = {}
+    gold_pct: int = Field(default=0, ge=0, le=100)
+    meal_turns_pct: int = Field(default=0, ge=0, le=200)
+
+    @model_validator(mode="after")
+    def _check(self) -> BoonSchema:
+        effects = [bool(self.stats), bool(self.gold_pct), bool(self.meal_turns_pct)]
+        if sum(effects) != 1:
+            raise ValueError("a boon does exactly one thing: stats, gold_pct or meal_turns_pct")
+        if any(v <= 0 for v in self.stats.values()):
+            raise ValueError("boon stats must be positive")
+        return self
+
+
 class DifficultySchema(Schema):
     """A difficulty preset (step 8b), picked when a world is made and fixed after:
     the core.combat.rules.Rules fields it changes from Standard's."""

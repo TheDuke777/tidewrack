@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Ride the tide: once the Drowned King has fallen, the world menu lets you let
+  the Wrack take your world and wake on a new shore in the same slot, whenever
+  you're ready. You start again with no gear, gold or map but keep your Codex,
+  and choose a boon to keep for good: more attack, defence or health, more gold
+  from foes and quests, or longer-lasting meals. Each tide's boons are a little
+  smaller than the last. The world list shows which tide each world is on.
+
 ## [0.12.0-beta.1] - 2026-11-17
 
 ### Added

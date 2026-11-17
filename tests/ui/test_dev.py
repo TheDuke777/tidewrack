@@ -41,7 +41,7 @@ def _menu_items(shell) -> list[str]:
                     yield from walk(c)
 
     menu = next(c for c in walk(shell.explore.control) if isinstance(c, ft.PopupMenuButton))
-    return [item.content for item in menu.items]
+    return [item.content for item in menu.items if item.visible is not False]
 
 
 def test_reveal_map_is_only_in_dev_builds(tmp_path, monkeypatch):

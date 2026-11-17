@@ -1,0 +1,7 @@
+{
+  "id": "boon.deep_lungs",
+  "name": "Deep Lungs",
+  "description": "You held your breath under the Wrack longer than anyone should. There's more of you to hurt.",
+  "order": 3,
+  "stats": { "hp": 8 }
+}

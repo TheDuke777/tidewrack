@@ -541,3 +541,19 @@ def test_v13_worlds_without_the_highlands_get_prestige_but_no_king(tmp_path):
     game = session.game
     assert game.world.get(game.player, Prestige) == Prestige()
     assert list(game.world.query(FinalFoe)) == []
+
+
+def test_v15_fixture_keeps_its_tide_and_boon(tmp_path):
+    envelope = json.loads((FIXTURES / "v15_ascended.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    prestige = game.world.get(game.player, Prestige)
+    assert (prestige.rank, prestige.tide_turned) == (1, False)
+    assert [(b.name, b.stats) for b in prestige.boons] == [("Sea-Hardened", {"def": 2})]
+    assert session.meta.summary.tide == 1
+
+
+def test_v14_saves_get_no_boons(tmp_path):
+    envelope = json.loads((FIXTURES / "v14_prestige.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert session.game.world.get(session.game.player, Prestige).boons == []

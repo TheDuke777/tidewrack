@@ -23,7 +23,8 @@ when the same seed would produce different results (RNG or generation changes).
 # 12: regions (Overworld regions; region and town on every location; Warden)
 # 13: a fuller codex (materials and meals in Codex)
 # 14: prestige (Prestige on the player; FinalFoe: the Drowned King)
-SCHEMA_VERSION = 14
+# 15: ascending (Boon snapshots kept in Prestige.boons)
+SCHEMA_VERSION = 15
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)

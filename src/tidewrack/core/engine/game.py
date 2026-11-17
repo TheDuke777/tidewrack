@@ -129,6 +129,7 @@ from tidewrack.core.engine.events import (
     Rested,
     RoomDiscovered,
     RoomEntered,
+    TideCarried,
     TideTurned,
     TurnEnded,
     Waited,
@@ -145,6 +146,7 @@ from tidewrack.core.gear.stat_pipeline import (
     player_stats,
 )
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
+from tidewrack.core.progression.prestige import boon_stats, boon_text
 from tidewrack.core.quests import quests as questing
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.borders import grid_side, region_borders
@@ -619,6 +621,8 @@ class GameView:
     fed: FedView | None = None
     log_total: int = 0  # lines ever written while open (log keeps the last LOG_LIMIT)
     region: str | None = None  # the region you're in, e.g. "The Sallow Fens"
+    tide: int = 0  # prestige rank: tides lived through (8c)
+    can_ascend: bool = False  # the tide has turned and you're not fighting
 
 
 # --- the game ----------------------------------------------------------------------
@@ -1264,6 +1268,30 @@ class Game:
         }
         return places, rooms  # type: ignore[return-value]
 
+    def _prestige(self) -> Prestige:
+        return self.world.try_get(self.player, Prestige) or Prestige()
+
+    def can_ascend(self) -> bool:
+        """Whether the player may ride the tide into a new world now (8c): its
+        final foe is beaten, and no fight is on. Never forced."""
+        return self._prestige().tide_turned and not self.world.has(self.player, Fighting)
+
+    def carry_over(self, codex: Codex, prestige: Prestige) -> None:
+        """Start this new world with what survived the tide (8c; GameSession.ascend
+        calls it right after making the world): the old codex, with anything this
+        world already told you added, and the prestige, one tide on with its new
+        boon last. Narrated as waking on a new shore."""
+        fresh = self.world.get(self.player, Codex)
+        for material_id, entry in fresh.materials.items():
+            codex.materials.setdefault(material_id, entry)
+        for meal_id, meal in fresh.meals.items():
+            codex.meals.setdefault(meal_id, meal)
+        self.world.add(self.player, codex)
+        self.world.add(self.player, prestige)
+        boon = prestige.boons[-1]
+        self.bus.emit(TideCarried(prestige.rank, boon.name, boon_text(boon)))
+        self.bus.flush()
+
     def sheet(self) -> StatSheet:
         well_fed = cooking.fed(self)
         meal = (
@@ -1271,7 +1299,10 @@ class Game:
             if well_fed and any(well_fed.meal.stats.values())
             else []
         )
-        return player_stats(self.world.get(self.player, Stats).base, self._equipped(), meal)
+        prestige = self.world.try_get(self.player, Prestige)
+        boons = boon_stats(prestige.boons) if prestige else {}
+        kept = [StatSource("Boons", boons)] if boons else []
+        return player_stats(self.world.get(self.player, Stats).base, self._equipped(), kept + meal)
 
     def _meal_view(self, meal: Meal, count: int) -> MealView:
         return MealView(
@@ -1712,6 +1743,8 @@ class Game:
             gold=shops.gold(self),
             shops=self._shops(lists_for),
             fed=self._fed(),
+            tide=self._prestige().rank,
+            can_ascend=self.can_ascend(),
             region=self.region(),
         )
 
@@ -1828,11 +1861,25 @@ class Game:
                     self._say(f"It drops {_and(dropped)}.")
             case RegionOpened(name=name):
                 self._say(f"The way into {name} lies open.")
+            case TideCarried(rank=rank, boon=boon, boon_text=does):
+                self._say(
+                    "The Wrack came in the night: one great tide over everything you"
+                    " knew. You remember the cold, and the dark, and holding on."
+                )
+                self._say(
+                    f"You wake on a strange shore, the {_ordinal(rank)} tide behind you,"
+                    " the land new and the drowned already stirring. You remember all"
+                    f" you learned. {boon}: {does}."
+                )
             case TideTurned(enemy=name):
                 self._say(
                     f"The {name} sinks into the black water and does not rise. Far off,"
                     " the sea draws a long breath: the old pact that held it back is"
                     " broken, and the tide is turning."
+                )
+                self._say(
+                    "When you're ready, ride the tide from the menu. It will wait while"
+                    " you finish what you came for."
                 )
             case PlayerDefeated(name=name):
                 self._say(f"The {name} strikes you down. Everything goes dark.")
@@ -2017,3 +2064,11 @@ def buff_text(meal: Meal) -> str:
         parts.append(f"faster healing (+{meal.regen} HP)")
     text = ", ".join(parts)
     return text[:1].upper() + text[1:]
+
+
+def _ordinal(n: int) -> str:
+    words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"]
+    if 1 <= n <= len(words):
+        return words[n - 1]
+    suffix = "th" if 10 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
