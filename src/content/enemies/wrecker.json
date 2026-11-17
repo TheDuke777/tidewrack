@@ -19,10 +19,7 @@
     "gear": {
       "gear.cutlass": 1,
       "gear.boathook": 1,
-      "gear.buckler": 1,
-      "gear.wreckers_cap": 1,
-      "gear.wreckers_smock": 1,
-      "gear.wreckers_boots": 1
+      "gear.buckler": 1
     }
   },
   "gold": [

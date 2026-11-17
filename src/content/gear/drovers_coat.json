@@ -19,5 +19,6 @@
   "upgrade_materials": {
     "material.wool": 2,
     "material.wolf_pelt": 1
-  }
+  },
+  "set": "gearset.drovers"
 }

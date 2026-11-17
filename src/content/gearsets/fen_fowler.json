@@ -1,0 +1,9 @@
+{
+  "id": "gearset.fen_fowler",
+  "name": "Fen-Fowler",
+  "color": "green",
+  "bonuses": [
+    { "pieces": 2, "stats": { "hp": 3 } },
+    { "pieces": 3, "stats": { "hp": 4 } }
+  ]
+}

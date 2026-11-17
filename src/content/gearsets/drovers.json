@@ -1,0 +1,9 @@
+{
+  "id": "gearset.drovers",
+  "name": "Drover's Garb",
+  "color": "amber",
+  "bonuses": [
+    { "pieces": 2, "stats": { "hp": 5 } },
+    { "pieces": 3, "stats": { "hp": 7 } }
+  ]
+}

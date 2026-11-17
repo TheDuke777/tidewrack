@@ -19,5 +19,6 @@
   "upgrade_materials": {
     "material.toad_skin": 1,
     "material.reeds": 1
-  }
+  },
+  "set": "gearset.fen_fowler"
 }

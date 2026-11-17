@@ -18,5 +18,6 @@
   "upgrade_materials": {
     "material.iron_ore": 1,
     "material.adder_skin": 1
-  }
+  },
+  "set": "gearset.drovers"
 }

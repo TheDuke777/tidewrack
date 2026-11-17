@@ -19,10 +19,7 @@
     "gear": {
       "gear.billhook": 2,
       "gear.fowlers_cap": 1,
-      "gear.wading_boots": 1,
-      "gear.leech_hood": 1,
-      "gear.leech_jerkin": 1,
-      "gear.leech_waders": 1
+      "gear.wading_boots": 1
     }
   },
   "gold": [
