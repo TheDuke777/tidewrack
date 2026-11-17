@@ -24,6 +24,7 @@ from tidewrack.core.engine.events import (
     ActionRejected,
     ItemBought,
     ItemCrafted,
+    ItemEnchanted,
     ItemSold,
     ItemUpgraded,
     MaterialsBought,
@@ -43,6 +44,7 @@ from tidewrack.core.engine.game import (
     Cook,
     CostView,
     Craft,
+    Enchant,
     Equip,
     GameView,
     ItemView,
@@ -649,11 +651,15 @@ class GameScreen:
                 parts.append("buys gear")
             if shop.crafts:
                 parts.append("crafts")
+            if shop.enchants:
+                parts = ["enchants your gear"]
             buttons.append(
                 ft.FilledTonalButton(
                     content=coins(f"{shop.name} · " + " · ".join(parts)),
                     icon=ft.Icons.BED_OUTLINED
                     if shop.inn_price is not None
+                    else ft.Icons.AUTO_FIX_HIGH
+                    if shop.enchants
                     else ft.Icons.STOREFRONT_OUTLINED,
                     on_click=lambda _, name=shop.name: self.open(name),
                 )
@@ -740,6 +746,8 @@ class GameScreen:
             ]
         if shop.cooks:
             return controls + self._kitchen(shop)
+        if shop.enchants:
+            return controls + self._enchanter(shop)
         if shop.materials or shop.buys_materials:
             return controls + self._market(view, shop)
         pack = self.session.game.inventory().pack if shop.buys_gear else ()
@@ -962,6 +970,108 @@ class GameScreen:
 
     # --- a market --------------------------------------------------------------------
 
+    def _enchanter(self, shop: ShopView) -> list[ft.Control]:
+        """Your gear, worn first, each with an Enchant… button (v0.13.0)."""
+        controls: list[ft.Control] = [
+            _muted(
+                f"The {shop.name} works an enchantment into a piece you carry, for"
+                " materials and a small fee. A new one replaces the one already in that"
+                " place (each piece holds one at the front of its name, one at the end)."
+            )
+        ]
+        if not shop.enchantable:
+            controls.append(_muted("You carry nothing that can be enchanted here."))
+        for entry in shop.enchantable:
+            item = entry.item
+            now = ", ".join(item.affixes) or "nothing yet"
+            lines = [
+                ft.Text(item.name, size=17, weight=ft.FontWeight.BOLD),
+                _muted(f"{item.slot}{' · worn' if item.equipped else ''} · enchanted with: {now}"),
+                *(_muted(f"Effect: {e}") for e in item.effects),
+                ft.Row(
+                    controls=[
+                        ft.FilledTonalButton(
+                            content="Enchant…",
+                            icon=ft.Icons.AUTO_FIX_HIGH,
+                            on_click=lambda _, e=entry: self._choose_enchantment(e),
+                        )
+                    ]
+                ),
+            ]
+            controls.append(
+                card(ft.Container(padding=12, content=ft.Column(spacing=6, controls=lines)))
+            )
+        return controls
+
+    def _choose_enchantment(self, entry) -> None:
+        """A dialog of what can go on this piece: pick one, then Enchant."""
+        try:
+            page = self.control.page
+        except RuntimeError:  # not on screen (tests)
+            page = None
+        choice = ft.RadioGroup(value=None, content=ft.Column(spacing=0, controls=[]))
+        go = ft.FilledButton(content="Enchant", disabled=True)
+        for option in entry.options:
+            costs = " · ".join(f"{c.name} {c.have}/{c.need}" for c in option.costs)
+            details = [
+                ft.Text(option.does, size=14, weight=ft.FontWeight.W_500),
+                coins(f"{costs} · {option.fee} gold", size=13, color=ft.Colors.ON_SURFACE_VARIANT),
+            ]
+            if option.replaces:
+                details.append(_muted(f"Replaces {option.replaces}"))
+            choice.content.controls.append(
+                ft.Column(
+                    spacing=0,
+                    controls=[
+                        ft.Radio(
+                            value=f"{option.enchant_id}|{option.tier}",
+                            label=option.name,
+                            disabled=not option.can_afford,
+                        ),
+                        ft.Container(
+                            padding=ft.Padding(left=48, top=0, right=0, bottom=6),
+                            content=ft.Column(tight=True, spacing=2, controls=details),
+                        ),
+                    ],
+                )
+            )
+
+        def picked(_: ft.Event) -> None:
+            go.disabled = not choice.value
+
+        def enchant(_: ft.Event) -> None:
+            if not choice.value:
+                return
+            enchant_id, tier = choice.value.split("|")
+            if page is not None:
+                page.pop_dialog()
+            self._act_and_tell(Enchant(entry.item.id, enchant_id, int(tier)))
+
+        choice.on_change = picked
+        go.on_click = enchant
+        self._enchant_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(f"Enchant the {entry.item.name}"),
+            scrollable=True,  # sized to its content (see TideDialog)
+            content=ft.Column(
+                tight=True,
+                controls=[
+                    _muted("Greyed out: you're short of materials or gold."),
+                    choice,
+                ],
+            ),
+            actions=[
+                ft.TextButton(
+                    content="Not now",
+                    on_click=lambda _: page.pop_dialog() if page is not None else None,
+                ),
+                go,
+            ],
+        )
+        if page is not None:
+            page.show_dialog(self._enchant_dialog)
+            page.update()
+
     def _market(self, view: GameView, shop: ShopView) -> list[ft.Control]:
         held = self.session.game.inventory().materials
         tabs = [(BUY_TAB, f"Buy ({len(shop.materials)})", ft.Icons.SHOPPING_BAG_OUTLINED)]
@@ -1090,6 +1200,9 @@ class GameScreen:
                 return
             if isinstance(event, ItemBought):
                 self.notify(f"{event.name} added to your pack for {event.price} gold.")
+                return
+            if isinstance(event, ItemEnchanted):
+                self.notify(f"It's now a {event.name}, for a {event.fee} gold fee.")
                 return
             if isinstance(event, ItemCrafted):
                 self.notify(f"{event.name} added to your pack, for a {event.fee} gold fee.")

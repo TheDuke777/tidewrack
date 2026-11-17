@@ -501,3 +501,58 @@ def tide_report(rows: list[TideRow]) -> str:
             ]
             lines.append(f"    king, {plan:8} " + " ".join(cells))
     return "\n".join(lines)
+
+
+# --- enchanting (v0.13.0) ----------------------------------------------------------
+
+
+def fight_enchants(content: Content, tier: int) -> tuple[dict[str, int], dict[str, int]]:
+    """The strongest fight enchantments a region of `tier` offers, all on at once
+    (each enchantment's best tier there, one per affix slot of its pieces):
+    (effects, stats), capped as the game caps them."""
+    from tidewrack.core.gear import effects as gear_effects
+
+    found, stats = [], {}
+    for schema in content.enchantments.values():
+        level = schema.tiers[min(tier, len(schema.tiers)) - 1]
+        kinds = {gear_effects.parse(e)[0] for e in level.effects}
+        if kinds & {"bane", "lifesteal", "exposed"}:
+            found += level.effects
+            for s, v in level.stats.items():
+                stats[s] = stats.get(s, 0) + v
+    return gear_effects.total(found), stats
+
+
+@dataclass(frozen=True)
+class EnchantRow:
+    region: str
+    foe: str
+    plain: Odds
+    enchanted: Odds
+    effects: Mapping[str, int]
+
+
+def enchant_odds(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[EnchantRow]:
+    """Each region's hardest bounty (and the king in the last), geared and fed on
+    Standard, plain versus with the strongest fight enchantments its Enchanter
+    offers: enchanting's slice of the power budget."""
+    rng = Rng(seed).derive("enchant_odds")
+    rules = Rules()
+    order = regions(content)
+    rows = []
+    for i, region_id in enumerate(order):
+        region = content.regions[region_id]
+        you = gear_stats(content, order[: i + 1])
+        effects, stats = fight_enchants(content, region.tier)
+        boosted = {s: v + stats.get(s, 0) for s, v in you.items()}
+        meals = meals_by(content, region.tier)
+        for foe in foes(content, region_id):
+            if foe.kind not in ("bounty", "final"):
+                continue
+            plain = _fed_fight(rng, you, foe, rules, meals, fights)
+            meal = best_meal(boosted, foe, rules, meals)
+            enchanted = fight(rng, fed(boosted, meal), foe, rules, fights, effects)
+            rows.append(
+                EnchantRow(region.name, f"{foe.name} ({foe.kind})", plain, enchanted, effects)
+            )
+    return rows

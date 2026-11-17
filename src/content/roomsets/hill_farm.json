@@ -155,6 +155,7 @@
   "shops": [
     "shop.moor_smithy",
     "shop.tavern",
-    "shop.moor_market"
+    "shop.moor_market",
+    "shop.stone_reader"
   ]
 }

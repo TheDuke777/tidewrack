@@ -378,6 +378,18 @@ class ItemUpgraded(Event):
 
 
 @dataclass(frozen=True)
+class ItemEnchanted(Event):
+    """An Enchanter put an enchantment on a carried piece (v0.13.0)."""
+
+    item: int
+    name: str  # the item's new name
+    enchantment: str
+    tier: str  # "II"
+    replaced: str | None  # the affix it took the place of
+    fee: int
+
+
+@dataclass(frozen=True)
 class MealCooked(Event):
     meal_id: str
     name: str

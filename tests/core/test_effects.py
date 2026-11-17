@@ -52,7 +52,7 @@ def game_with(*found: str, enemy=None, bounty=False, player=None, rules=STANDARD
 def test_effects_parse_add_up_and_read_well():
     assert effects.parse("lifesteal:2") == ("lifesteal", 2)
     assert effects.parse("glows faintly") is None  # plain text from older items
-    assert effects.total(["bane:3", "lifesteal:1", "bane:4"]) == {"lifesteal": 1, "bane": 7}
+    assert effects.total(["bane:2", "lifesteal:1", "bane:3"]) == {"lifesteal": 1, "bane": 5}
     assert effects.describe("salvage:15") == (
         "15% chance of an extra material when you loot or gather"
     )
@@ -69,14 +69,15 @@ def test_set_bonuses_bring_their_effects_into_the_stat_sheet():
 
 
 def test_lifesteal_heals_with_every_blow():
-    game = game_with("lifesteal:3", enemy=foe(atk=1, defence=0, hp=100))
+    game = game_with("lifesteal:2", enemy=foe(atk=1, defence=0, hp=100))
     game.world.get(game.player, Health).damage = 10
     game.perform(Move(DOWN))
-    game.perform(Attack())  # +3 back for your blow, then the crab's blow (1)
-    assert game.world.get(game.player, Health).damage == 10 - 3 + 1
+    game.perform(Attack())  # +2 back for your blow, then the crab's blow (1)
+    assert game.world.get(game.player, Health).damage == 10 - 2 + 1
 
 
-def test_bane_hits_bounties_wardens_and_kings_harder():
+def test_bane_hits_bounties_wardens_and_kings_harder(monkeypatch):
+    monkeypatch.setitem(effects.CAPS, "bane", 10_000)  # caps tested below
     tough = foe(atk=1, defence=500, hp=20)
     plain = game_with("bane:600", enemy=tough)
     plain.perform(Move(DOWN))
@@ -95,7 +96,8 @@ def test_exposed_adds_to_every_blow_you_take():
     assert game.world.get(game.player, Health).damage == 1 + 5  # the minimum blow, +5
 
 
-def test_stealth_keeps_wanderers_off_you():
+def test_stealth_keeps_wanderers_off_you(monkeypatch):
+    monkeypatch.setitem(effects.CAPS, "stealth", 10_000)  # caps tested below
     crabs = [foe(), foe(), foe()]
     seen = game_with(spawners=[Spawner(CAVE, 1.0, list(crabs))])
     assert any(isinstance(e, CombatStarted) for e in seen.perform(Move(DOWN)).events)
@@ -103,7 +105,8 @@ def test_stealth_keeps_wanderers_off_you():
     assert not any(isinstance(e, CombatStarted) for e in hidden.perform(Move(DOWN)).events)
 
 
-def test_sure_footed_flees_more_often_but_never_always():
+def test_sure_footed_flees_more_often_but_never_always(monkeypatch):
+    monkeypatch.setitem(effects.CAPS, "sure_footed", 10_000)  # caps tested below
     from tidewrack.core.engine.game import Flee
 
     escapes = 0
@@ -116,7 +119,8 @@ def test_sure_footed_flees_more_often_but_never_always():
     assert 30 <= escapes < 40  # capped at 95%
 
 
-def test_salvage_finds_an_extra_material():
+def test_salvage_finds_an_extra_material(monkeypatch):
+    monkeypatch.setitem(effects.CAPS, "salvage", 10_000)  # caps tested below
     game = game_with("salvage:100")
     hide = make_material(CONTENT.materials["material.hide"])
     crafting.add(game, MaterialStack(hide, 2), "gathered")
@@ -147,3 +151,11 @@ def test_content_with_a_bad_effect_is_refused(bad):
 
     with pytest.raises(ValidationError):
         SetBonusSchema(pieces=2, effects=[bad])
+
+
+def test_stacking_stops_at_each_effects_cap():
+    assert effects.total(["lifesteal:2", "lifesteal:2", "bane:20"]) == {
+        "lifesteal": effects.CAPS["lifesteal"],
+        "bane": effects.CAPS["bane"],
+    }
+    assert effects.total(["exposed:9"]) == {"exposed": 9}  # drawbacks aren't capped

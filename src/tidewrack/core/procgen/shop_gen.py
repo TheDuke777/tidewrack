@@ -27,7 +27,7 @@ from typing import NamedTuple
 
 from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import GearSchema, ShopSchema
-from tidewrack.core.engine.components import Shop
+from tidewrack.core.engine.components import EnchantOffer, Shop
 from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import STATS
 from tidewrack.core.procgen.gear_gen import make_item
@@ -101,9 +101,29 @@ def generate_shops(seed: int, world: Overworld, content: Content) -> list[Placed
                 upgrades=upgrade_table(content) if schema.crafts else {},
                 cooks=schema.cooks,
                 meals=meal_recipes(content) if schema.cooks else [],
+                enchants=enchant_offers(content, schema.enchants),
             )
             placed.append(PlacedShop(location.id, shop_room(location, schema.room), shop, stock))
     return placed
+
+
+def enchant_offers(content: Content, up_to: int) -> list[EnchantOffer]:
+    """Every enchantment at every tier up to `up_to`, for an Enchanter (v0.13.0)."""
+    return [
+        EnchantOffer(
+            enchant_id=schema.id,
+            name=schema.name,
+            prefix=schema.position == "prefix",
+            tier=tier,
+            slots=list(schema.slots),
+            description=schema.description,
+            effects=list(level.effects),
+            stats=dict(level.stats),
+            materials=stacks(level.materials, content),
+        )
+        for _, schema in sorted(content.enchantments.items())
+        for tier, level in enumerate(schema.tiers[:up_to], start=1)
+    ]
 
 
 def upgrade_table(content: Content) -> dict[str, list]:

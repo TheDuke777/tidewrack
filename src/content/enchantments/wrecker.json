@@ -1,0 +1,48 @@
+{
+  "id": "enchant.wrecker",
+  "name": "of the Wrecker",
+  "position": "suffix",
+  "slots": [
+    "head",
+    "trinket"
+  ],
+  "description": "A wrecker's eye for what's worth taking: more turns up when you loot and gather.",
+  "tiers": [
+    {
+      "effects": [
+        "salvage:10"
+      ],
+      "materials": {
+        "material.sailcloth": 2,
+        "material.driftwood": 1
+      }
+    },
+    {
+      "effects": [
+        "salvage:15"
+      ],
+      "materials": {
+        "material.reeds": 2,
+        "material.bog_amber": 1
+      }
+    },
+    {
+      "effects": [
+        "salvage:20"
+      ],
+      "materials": {
+        "material.wool": 2,
+        "material.flint": 1
+      }
+    },
+    {
+      "effects": [
+        "salvage:25"
+      ],
+      "materials": {
+        "material.pine_resin": 2,
+        "material.river_pearl": 1
+      }
+    }
+  ]
+}

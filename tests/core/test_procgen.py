@@ -43,32 +43,32 @@ def new_world(seed: int) -> Overworld:
 def test_golden_world():
     # If this fails, the same seed now builds a different world: if that's intended,
     # bump core.versions.GENERATOR_VERSION and update the hash (§9).
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     assert world_hash(new_world(20261103)) == GOLDEN_STANDARD
 
 
 def test_golden_finds():
     # Same rule for the gear lying about a world (procgen/gear_gen.py).
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     world = new_world(20261103)
     assert finds_hash(generate_finds(20261103, world, CONTENT)) == GOLDEN_FINDS
 
 
 def test_golden_enemies():
     # Same rule for enemies, placed and wandering (procgen/enemy_gen.py).
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     world = new_world(20261103)
     assert enemies_hash(*generate_enemies(20261103, world, CONTENT)) == GOLDEN_ENEMIES
 
 
 def test_golden_quests():
     # Same rule for quests, their bounties, items and clues (procgen/quest_gen.py).
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     assert quests_hash(quests_for(20261103)) == GOLDEN_QUESTS
 
 
 def test_golden_gathering_and_recipes():
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     world = new_world(20261103)
     assert gathering_hash(generate_gathering(20261103, world, CONTENT)) == GOLDEN_GATHERING
     plan = generate_recipes(20261103, world, CONTENT, RECIPE, quests_for(20261103).quests)
@@ -77,18 +77,18 @@ def test_golden_gathering_and_recipes():
 
 def test_golden_shops():
     # Same rule for shops and their stock (procgen/shop_gen.py).
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     assert shops_hash(generate_shops(20261103, new_world(20261103), CONTENT)) == GOLDEN_SHOPS
 
 
 def test_golden_wardens():
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     world = new_world(20261103)
     assert wardens_hash(generate_wardens(20261103, world, CONTENT)) == GOLDEN_WARDENS
 
 
 def test_golden_final():
-    assert GENERATOR_VERSION == 21
+    assert GENERATOR_VERSION == 22
     world = new_world(20261103)
     assert final_hash(generate_final(20261103, world, CONTENT, RECIPE)) == GOLDEN_FINAL
 
@@ -120,7 +120,7 @@ def quests_for(seed: int):
 GOLDEN_QUESTS = "1a068c96ae6750d227ac5ce2da348b8f81553a6bece6f1f693e1654d8e11952a"
 GOLDEN_STANDARD = "9df3835609cf36c0392caa011e50b2d7a9874a72e039dac508e9a5ab1e1e5f9c"
 GOLDEN_ENEMIES = "3c066909945c8af5e4dd28bbde451fc3d1ac2bba7d5b003f018f9bdbc9010b47"
-GOLDEN_SHOPS = "5b81a1aac50931343612d4ddd4fe00195ced60273b23c08e046527999f35ce64"
+GOLDEN_SHOPS = "a79a5eed544672c9815156ad981769b87a2b152c9cb73b598cd1e7d3b954504d"
 GOLDEN_GATHERING = "65f19da122f78aeb06401d6554053c8f03fa50d72d07a6119ca1b0f7f381ed7b"
 GOLDEN_RECIPES = "16b0dc1bf149ce9eed00aee22393590252058b30f42ab9144a6319382298534f"
 GOLDEN_WARDENS = "c2116b9a8d6c8b1d5d79a3d935b7c46e2e122d2cc171ca31b56a58ebd76a6eae"
@@ -520,20 +520,20 @@ def test_every_town_has_each_shop_in_its_room_or_at_its_gate():
         shops = generate_shops(seed, world, CONTENT)
         assert shops == generate_shops(seed, world, CONTENT)
         towns = [loc for loc in world.locations.values() if loc.town]
-        assert len(shops) == 3 * len(towns)
+        assert len(shops) == 4 * len(towns)  # smithy, tavern, market, enchanter
         for town in towns:
             here = [s for s in shops if s.location == town.id]
             roomset = next(r for r in ROOMSETS.values() if r.name == town.kind)
             assert sorted(s.shop.shop_id for s in here) == sorted(roomset.shops)
             for placed in here:
                 noun = CONTENT.shops[placed.shop.shop_id].room
-                named = [r for r in town.rooms.values() if noun in r.name.split()]
+                named = [r for r in town.rooms.values() if r.name.endswith(noun)]
                 if placed.room == town.start:
                     saw_gate = True
                     assert not named
                 else:
                     saw_room = True
-                    assert noun in town.room(placed.room).name
+                    assert town.room(placed.room).name.endswith(noun)
     assert saw_room and saw_gate
 
 

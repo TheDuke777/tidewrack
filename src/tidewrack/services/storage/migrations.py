@@ -1096,6 +1096,16 @@ def _v16_to_v17(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v17_to_v18(envelope: Envelope) -> Envelope:
+    # v18 adds enchanting (v0.13.0): a shop's Enchanter offers (Shop.enchants).
+    # Older worlds' towns have no Enchanter; new and ascended worlds do.
+    for entity in envelope["game"]["entities"]:
+        shop = entity["components"].get("Shop")
+        if shop is not None:
+            shop.setdefault("enchants", [])
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -1114,6 +1124,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     14: _v14_to_v15,
     15: _v15_to_v16,
     16: _v16_to_v17,
+    17: _v17_to_v18,
 }
 
 

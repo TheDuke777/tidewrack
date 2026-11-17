@@ -277,6 +277,7 @@ class ShopSchema(Schema):
     buys_materials: bool = False
     crafts: bool = False  # upgrades gear and crafts from recipes
     cooks: bool = False  # cooks every meal (and sells the `sold` ones ready-made)
+    enchants: int = Field(default=0, ge=0, le=4)  # enchants up to this tier (0: doesn't)
 
     @model_validator(mode="after")
     def _check(self) -> ShopSchema:
@@ -291,8 +292,35 @@ class ShopSchema(Schema):
             or self.buys_materials
             or self.crafts
             or self.cooks
+            or self.enchants
         ):
-            raise ValueError("a shop must trade gear or materials, craft, or be an inn")
+            raise ValueError("a shop must trade gear or materials, craft, enchant, or be an inn")
+        return self
+
+
+class EnchantTierSchema(Schema):
+    effects: Effects = Field(min_length=1)
+    stats: StatBlock = {}
+    materials: Counts = Field(min_length=1)  # paid each time it's enchanted
+
+
+class EnchantmentSchema(Schema):
+    """An enchantment (v0.13.0): an Enchanter puts it in a piece's prefix or suffix
+    slot (replacing what's there), for materials. Tier n is the n-th entry of
+    `tiers`; a region's Enchanter offers tiers up to its region's tier. No DEF:
+    the ATK - DEF cliff makes DEF the one stat effects must not touch."""
+
+    id: content_id("enchant")
+    name: Text  # as it reads on the item: "Leeching" (prefix), "of the Leech" (suffix)
+    position: Literal["prefix", "suffix"]
+    slots: list[Slot] = Field(min_length=1)
+    description: Text
+    tiers: list[EnchantTierSchema] = Field(min_length=1, max_length=4)
+
+    @model_validator(mode="after")
+    def _check(self) -> EnchantmentSchema:
+        if any(t.stats.get("def") for t in self.tiers):
+            raise ValueError("enchantments can't add DEF (the ATK - DEF cliff)")
         return self
 
 

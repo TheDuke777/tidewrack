@@ -155,6 +155,7 @@
   "shops": [
     "shop.fen_smithy",
     "shop.tavern",
-    "shop.fen_market"
+    "shop.fen_market",
+    "shop.bog_wife"
   ]
 }

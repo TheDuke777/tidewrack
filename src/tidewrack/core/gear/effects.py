@@ -21,6 +21,17 @@ EFFECTS: dict[str, Callable[[int], str]] = {
     "second_wind": lambda v: f"+{v} HP each time you recover between fights",
 }
 
+# The most of each effect a loadout can have (v0.13.0, enchanting): more than this
+# from enchantments, sets and gear adds nothing, so stacking stays in bounds.
+CAPS: dict[str, int] = {
+    "lifesteal": 2,
+    "bane": 6,
+    "sure_footed": 40,
+    "stealth": 60,
+    "salvage": 50,
+    "second_wind": 4,
+}
+
 # Effects that make things harder for you: shown as drawbacks, never "better".
 DRAWBACKS = frozenset({"exposed"})
 
@@ -52,13 +63,14 @@ def problem(effect: str) -> str | None:
 
 
 def total(effects: Iterable[str]) -> dict[str, int]:
-    """Every effect added up by kind, in EFFECTS order (plain text is skipped)."""
+    """Every effect added up by kind, in EFFECTS order, capped (CAPS; plain text
+    is skipped)."""
     sums: dict[str, int] = {}
     for effect in effects:
         parsed = parse(effect)
         if parsed is not None:
             sums[parsed[0]] = sums.get(parsed[0], 0) + parsed[1]
-    return {k: sums[k] for k in EFFECTS if k in sums}
+    return {k: min(sums[k], CAPS.get(k, sums[k])) for k in EFFECTS if k in sums}
 
 
 def describe(effect: str) -> str:

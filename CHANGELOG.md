@@ -13,6 +13,16 @@ All notable changes to this project are documented here. The format follows
   the Highlands' Crag Guard. Every set piece's card lists what the whole set
   does.
 
+- Enchanting: every town has an Enchanter (the Tide-Priest on the coast, the
+  Bog-Wife in the Fens, the Stone-Reader on the Moors, the Rune-Carver in the
+  Highlands) who works an enchantment into a piece you carry, for that
+  region's materials and a small fee. Each piece holds two, one at the front
+  of its name and one at the end: Baneful (hit wardens, bounties and the
+  Drowned King harder), of the Leech (heal as you strike), Fleet (get away
+  from fights), of Shadows (fewer ambushes), of the Wrecker (extra materials)
+  and of Second Wind (recover faster). Deeper regions' Enchanters offer
+  stronger versions. New and ascended worlds only.
+
 ### Changed
 - The Barrow Wight is a little tougher.
 

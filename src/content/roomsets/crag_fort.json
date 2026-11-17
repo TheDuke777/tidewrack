@@ -156,6 +156,7 @@
   "shops": [
     "shop.crag_smithy",
     "shop.tavern",
-    "shop.crag_market"
+    "shop.crag_market",
+    "shop.rune_carver"
   ]
 }

@@ -24,6 +24,7 @@ from tidewrack.core.data.schemas import (
     BoonSchema,
     DifficultySchema,
     DungeonSchema,
+    EnchantmentSchema,
     EnemySchema,
     GearSchema,
     GearSetSchema,
@@ -43,6 +44,7 @@ KINDS = {
     "affixes": (AffixSchema, "affix"),
     "boons": (BoonSchema, "boon"),
     "difficulties": (DifficultySchema, "difficulty"),
+    "enchantments": (EnchantmentSchema, "enchant"),
     "dungeons": (DungeonSchema, "dungeon"),
     "enemies": (EnemySchema, "enemy"),
     "gear": (GearSchema, "gear"),
@@ -82,6 +84,7 @@ class Content:
     difficulties: dict[str, DifficultySchema]
     content_hash: str  # identifies this exact content set (saves/sharing, §6 & §9)
     boons: dict[str, BoonSchema] = field(default_factory=dict)
+    enchantments: dict[str, EnchantmentSchema] = field(default_factory=dict)
 
     def dungeon(self, dungeon_id: str) -> Location:
         return self.dungeons[dungeon_id]
@@ -152,6 +155,7 @@ def load_content(files: Mapping[str, str]) -> Content:
         difficulties=loaded["difficulties"],
         content_hash=content_hash(files),
         boons=loaded["boons"],
+        enchantments=loaded["enchantments"],
     )
 
 
@@ -197,6 +201,10 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
             problems.append(f"{path}: {region.town} isn't a town")
         if region.warden is not None:
             check(path, [region.warden], "enemies", "enemy")
+    for enchant in loaded["enchantments"].values():
+        path = _path("enchantments", enchant.id)
+        for tier in enchant.tiers:
+            check(path, tier.materials, "materials", "material")
     names: dict[str, str] = {}
     for roomset in loaded["roomsets"].values():
         path = _path("roomsets", roomset.id)

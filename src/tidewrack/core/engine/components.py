@@ -413,6 +413,21 @@ class RecipePage:
 
 
 @dataclass
+class EnchantOffer:
+    """An enchantment an Enchanter can put on gear (v0.13.0): a snapshot of one tier."""
+
+    enchant_id: str
+    name: str  # as it reads on the item
+    prefix: bool
+    tier: int
+    slots: list[str]
+    description: str
+    effects: list[str] = field(default_factory=list)
+    stats: dict[str, int] = field(default_factory=dict)
+    materials: list[MaterialStack] = field(default_factory=list)
+
+
+@dataclass
 class Shop:
     """A shop in a town room (with a Position). Its wares for sale are Items with
     Stocked; it restocks slowly from `wares`, pre-rolled at world creation, up to
@@ -435,6 +450,7 @@ class Shop:
     # materials for one upgrade level (times the level being reached)
     cooks: bool = False  # a tavern that cooks `meals` (and sells the `sold` ones)
     meals: list[MealRecipe] = field(default_factory=list)
+    enchants: list[EnchantOffer] = field(default_factory=list)  # an Enchanter's (v0.13.0)
 
 
 @dataclass

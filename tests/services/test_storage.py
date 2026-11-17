@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tidewrack.core.combat.rules import STANDARD
-from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige, TideCrown
+from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige, Shop, TideCrown
 from tidewrack.core.engine.game import Attack, Defend, Look, Move, Wait
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
@@ -597,3 +597,17 @@ def test_v16_worlds_are_unscaled(tmp_path):
     envelope = json.loads((FIXTURES / "v16_crown.json").read_text(encoding="utf-8"))
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert session.game.rules.enemy_atk == 1.0 and session.game.economy.reward_gold == 1.0
+
+
+def test_v18_fixture_keeps_its_enchanted_weapon_and_enchanters(tmp_path):
+    envelope = json.loads((FIXTURES / "v18_enchanting.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.sheet().effects == {"bane": 1}
+    assert any(s.enchants for _, (s,) in game.world.query(Shop))
+
+
+def test_v17_worlds_have_no_enchanters(tmp_path):
+    envelope = json.loads((FIXTURES / "v17_tides.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert not any(s.enchants for _, (s,) in session.game.world.query(Shop))

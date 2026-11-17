@@ -1,0 +1,48 @@
+{
+  "id": "enchant.shadows",
+  "name": "of Shadows",
+  "position": "suffix",
+  "slots": [
+    "head",
+    "body"
+  ],
+  "description": "Worn dark and quiet: fewer things on the road notice you pass.",
+  "tiers": [
+    {
+      "effects": [
+        "stealth:15"
+      ],
+      "materials": {
+        "material.spider_silk": 2,
+        "material.wisp_essence": 1
+      }
+    },
+    {
+      "effects": [
+        "stealth:25"
+      ],
+      "materials": {
+        "material.reeds": 2,
+        "material.toad_skin": 1
+      }
+    },
+    {
+      "effects": [
+        "stealth:35"
+      ],
+      "materials": {
+        "material.wool": 2,
+        "material.grave_silver": 1
+      }
+    },
+    {
+      "effects": [
+        "stealth:45"
+      ],
+      "materials": {
+        "material.bear_pelt": 2,
+        "material.coal": 1
+      }
+    }
+  ]
+}

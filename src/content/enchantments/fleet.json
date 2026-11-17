@@ -1,0 +1,47 @@
+{
+  "id": "enchant.fleet",
+  "name": "Fleet",
+  "position": "prefix",
+  "slots": [
+    "feet"
+  ],
+  "description": "Boots that find the way out of a fight before you do.",
+  "tiers": [
+    {
+      "effects": [
+        "sure_footed:10"
+      ],
+      "materials": {
+        "material.hide": 2,
+        "material.spider_silk": 1
+      }
+    },
+    {
+      "effects": [
+        "sure_footed:15"
+      ],
+      "materials": {
+        "material.reeds": 2,
+        "material.toad_skin": 1
+      }
+    },
+    {
+      "effects": [
+        "sure_footed:20"
+      ],
+      "materials": {
+        "material.wolf_pelt": 2,
+        "material.adder_skin": 1
+      }
+    },
+    {
+      "effects": [
+        "sure_footed:25"
+      ],
+      "materials": {
+        "material.eagle_feather": 2,
+        "material.sinew": 1
+      }
+    }
+  ]
+}

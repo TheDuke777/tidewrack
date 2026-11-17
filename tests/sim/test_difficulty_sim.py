@@ -140,3 +140,14 @@ def test_no_boon_plan_breaks_the_tides(tides):
             assert 0.15 <= row.king.hp_lost <= 0.7, (plan, row.tide, row.king.hp_lost)
         for row in _tide_rows(tides, plan, "Hard"):
             assert row.king.win >= 0.9, (plan, row.tide)
+
+
+def test_enchanting_helps_but_never_makes_the_king_a_walkover():
+    # v0.13.0 power budget: the strongest fight enchantments the Highlands offer
+    # (Baneful + of the Leech on your weapon) take a real slice off the Drowned
+    # King, never all of it. Dread and post-king fights are where they're needed.
+    rows = sim.enchant_odds(CONTENT, fights=600)
+    [king] = [r for r in rows if r.foe.endswith("(final)")]
+    assert king.enchanted.win >= 0.95
+    assert 0.2 <= king.enchanted.hp_lost <= 0.75 * king.plain.hp_lost, king
+    assert all(r.enchanted.win >= r.plain.win - 0.01 for r in rows)

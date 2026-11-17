@@ -1,0 +1,56 @@
+{
+  "id": "enchant.leech",
+  "name": "of the Leech",
+  "position": "suffix",
+  "slots": [
+    "main_hand"
+  ],
+  "description": "A weapon that drinks for you: every blow you land closes your own wounds a little.",
+  "tiers": [
+    {
+      "effects": [
+        "lifesteal:1"
+      ],
+      "materials": {
+        "material.eel_skin": 2,
+        "material.wisp_essence": 1
+      }
+    },
+    {
+      "effects": [
+        "lifesteal:1"
+      ],
+      "stats": {
+        "hp": 2
+      },
+      "materials": {
+        "material.toad_skin": 2,
+        "material.bog_amber": 1
+      }
+    },
+    {
+      "effects": [
+        "lifesteal:1"
+      ],
+      "stats": {
+        "hp": 3
+      },
+      "materials": {
+        "material.adder_skin": 2,
+        "material.grave_silver": 1
+      }
+    },
+    {
+      "effects": [
+        "lifesteal:1"
+      ],
+      "stats": {
+        "hp": 4
+      },
+      "materials": {
+        "material.sinew": 2,
+        "material.drowned_gold": 1
+      }
+    }
+  ]
+}

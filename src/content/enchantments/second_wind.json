@@ -1,0 +1,48 @@
+{
+  "id": "enchant.second_wind",
+  "name": "of Second Wind",
+  "position": "suffix",
+  "slots": [
+    "body",
+    "trinket"
+  ],
+  "description": "You catch your breath quicker between fights.",
+  "tiers": [
+    {
+      "effects": [
+        "second_wind:1"
+      ],
+      "materials": {
+        "material.crab_shell": 2,
+        "material.wisp_essence": 1
+      }
+    },
+    {
+      "effects": [
+        "second_wind:2"
+      ],
+      "materials": {
+        "material.bog_amber": 2,
+        "material.toad_skin": 1
+      }
+    },
+    {
+      "effects": [
+        "second_wind:3"
+      ],
+      "materials": {
+        "material.grave_silver": 2,
+        "material.wool": 1
+      }
+    },
+    {
+      "effects": [
+        "second_wind:4"
+      ],
+      "materials": {
+        "material.river_pearl": 2,
+        "material.coal": 1
+      }
+    }
+  ]
+}

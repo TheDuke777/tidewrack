@@ -1,0 +1,47 @@
+{
+  "id": "enchant.baneful",
+  "name": "Baneful",
+  "position": "prefix",
+  "slots": [
+    "main_hand"
+  ],
+  "description": "A weapon that bites deepest into the great and the dreadful: wardens, bounties, kings.",
+  "tiers": [
+    {
+      "effects": [
+        "bane:1"
+      ],
+      "materials": {
+        "material.iron_ore": 2,
+        "material.wisp_essence": 1
+      }
+    },
+    {
+      "effects": [
+        "bane:2"
+      ],
+      "materials": {
+        "material.bog_iron": 2,
+        "material.bog_amber": 1
+      }
+    },
+    {
+      "effects": [
+        "bane:3"
+      ],
+      "materials": {
+        "material.flint": 2,
+        "material.grave_silver": 1
+      }
+    },
+    {
+      "effects": [
+        "bane:4"
+      ],
+      "materials": {
+        "material.silver_ore": 2,
+        "material.drowned_gold": 1
+      }
+    }
+  ]
+}

@@ -36,7 +36,7 @@ from tidewrack.core.data.save import (
     encode_component,
 )
 from tidewrack.core.data.schemas import OverworldSchema
-from tidewrack.core.economy import cooking, crafting, shops
+from tidewrack.core.economy import cooking, crafting, enchanting, shops
 from tidewrack.core.economy.value_model import (
     STANDARD_ECONOMY,
     EconomyRules,
@@ -101,6 +101,7 @@ from tidewrack.core.engine.events import (
     ItemBought,
     ItemCrafted,
     ItemDropped,
+    ItemEnchanted,
     ItemEquipped,
     ItemSold,
     ItemTaken,
@@ -294,6 +295,15 @@ class Craft:
 
 
 @dataclass(frozen=True)
+class Enchant:
+    """Put an enchantment (tier `tier`) on a carried item, at an Enchanter here (free)."""
+
+    item: int
+    enchant_id: str
+    tier: int
+
+
+@dataclass(frozen=True)
 class Upgrade:
     """Raise a carried item one upgrade level, at a smithy here (free)."""
 
@@ -343,6 +353,7 @@ Command = (
     | SellMaterials
     | Craft
     | Upgrade
+    | Enchant
     | Cook
     | BuyMeal
     | Eat
@@ -549,6 +560,27 @@ class WareView:
 
 
 @dataclass(frozen=True)
+class EnchantOptionView:
+    """One enchantment an Enchanter could put on one of your pieces (v0.13.0)."""
+
+    enchant_id: str
+    tier: int
+    name: str  # "Baneful II"
+    does: str  # its effects (and any stats), as players read them
+    description: str
+    costs: tuple[CostView, ...]
+    fee: int
+    replaces: str | None  # the affix it would take the place of
+    can_afford: bool
+
+
+@dataclass(frozen=True)
+class EnchantableView:
+    item: ItemView
+    options: tuple[EnchantOptionView, ...]  # best tier first, by enchantment
+
+
+@dataclass(frozen=True)
 class ShopView:
     name: str  # "Smithy"
     wares: tuple[WareView, ...]
@@ -561,6 +593,8 @@ class ShopView:
     upgrades: tuple[UpgradeView, ...] = ()  # your gear it can upgrade
     cooks: bool = False
     menu: tuple[MenuView, ...] = ()  # a tavern's meals
+    enchants: bool = False  # an Enchanter (v0.13.0)
+    enchantable: tuple[EnchantableView, ...] = ()  # your gear it can enchant, worn first
 
 
 @dataclass(frozen=True)
@@ -982,6 +1016,8 @@ class Game:
                 crafting.craft(self, recipe_id)
             case Upgrade(item=entity):
                 crafting.upgrade(self, entity)
+            case Enchant(item=entity, enchant_id=enchant_id, tier=tier):
+                enchanting.enchant(self, entity, enchant_id, tier)
             case Cook(meal=meal_id):
                 cooking.cook(self, meal_id)
             case BuyMeal(meal=meal_id):
@@ -1537,9 +1573,47 @@ class Game:
                     upgrades=upgrades,
                     cooks=shop.cooks,
                     menu=self._menu(shop) if shop.cooks else (),
+                    enchants=bool(shop.enchants),
+                    enchantable=self._enchantable(shop) if shop.enchants and lists else (),
                 )
             )
         return tuple(views)
+
+    def _enchantable(self, shop: Shop) -> tuple[EnchantableView, ...]:
+        """Your gear (worn first, then your pack) with what this Enchanter can put on
+        each piece, strongest tier first within each enchantment."""
+        gold = shops.gold(self)
+        carried = [
+            (e, item) for e, (item, by) in self.world.query(Item, Carried) if by.by == self.player
+        ]
+        carried.sort(key=lambda pair: (not self.world.has(pair[0], Equipped), pair[1].display_name))
+        out = []
+        for entity, item in carried:
+            options = []
+            offers = sorted(shop.enchants, key=lambda o: (o.name, -o.tier))
+            for offer in offers:
+                if not enchanting.fits(offer, item):
+                    continue
+                costs = self._costs(offer.materials)
+                cost = enchanting.fee(offer)
+                does = [gear_effects.describe(e) for e in offer.effects]
+                does += [f"+{v} {s.upper()}" for s, v in offer.stats.items() if v]
+                options.append(
+                    EnchantOptionView(
+                        offer.enchant_id,
+                        offer.tier,
+                        f"{offer.name} {enchanting.ROMAN[offer.tier - 1]}",
+                        "; ".join(does),
+                        offer.description,
+                        costs,
+                        cost,
+                        enchanting.replaces(offer, item),
+                        all(c.enough for c in costs) and cost <= gold,
+                    )
+                )
+            if options:
+                out.append(EnchantableView(self._item_view(entity, item), tuple(options)))
+        return tuple(out)
 
     def _shop_rooms(self, location_id: str) -> set[str]:
         return {
@@ -1997,6 +2071,11 @@ class Game:
                 self._say(f"The {name} has worn off.")
             case ItemUpgraded(name=name, fee=fee):
                 self._say(f"The smith works on it for {fee} gold: it's now a {name}.")
+            case ItemEnchanted(name=name, enchantment=what, tier=tier, replaced=old, fee=fee):
+                was = f", and the {old} is gone" if old else ""
+                self._say(
+                    f"For {fee} gold, {what} ({tier}) is worked into it{was}: it's now a {name}."
+                )
             case AmbientNoticed(text=text):
                 self._say(text)
             case ActionRejected(reason=reason):
