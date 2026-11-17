@@ -148,7 +148,7 @@ from tidewrack.core.gear.stat_pipeline import (
     player_stats,
 )
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, StatBlock
-from tidewrack.core.progression.prestige import boon_stats, boon_text
+from tidewrack.core.progression.prestige import TidesView, boon_stats, boon_text, tides_view
 from tidewrack.core.quests import quests as questing
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.borders import grid_side, region_borders
@@ -1168,6 +1168,11 @@ class Game:
 
     def foes(self) -> FoesView:
         return foes_view(self.world.get(self.player, Codex), self._found_in(), self.rules)
+
+    def tides(self) -> TidesView:
+        """The Codex's tides section (8c): your tide, what it did to this world,
+        and the boons you've kept."""
+        return tides_view(self._prestige(), self.rules, self.economy)
 
     def codex(self) -> codex_items.CodexView:
         """The codex's other sections: materials, ingredients, recipes, meals."""

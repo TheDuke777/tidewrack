@@ -46,6 +46,7 @@ class EconomyRules:
     cook_fee: float = 0.5  # a tavern's fee to cook a meal = its value × this
     regrow_every: int = 25  # turns between each wild place regrowing a gathering spot
     reward_gold: float = 1.0  # gold from foes and quests is multiplied by this (tides, 8c)
+    meal_boost: float = 1.0  # tavern meal buffs were made this much stronger (tides, 8c)
 
 
 STANDARD_ECONOMY = EconomyRules()

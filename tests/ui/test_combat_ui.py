@@ -117,10 +117,11 @@ def test_gear_actions_mid_fight_explain_themselves(tmp_path):
 def test_codex_sections_collapse_at_every_level_and_remember(tmp_path):
     session, shell, _ = _shell_in_a_fight(tmp_path)
     shell.select(3)
-    foes, *others = shell.codex.sections.controls
+    tides, foes, *others = shell.codex.sections.controls
     titles = [_title(s) for s in shell.codex.sections.controls]
-    assert titles[0] == "Foes (1)"
-    assert [t.split(" (")[0] for t in titles[1:]] == [
+    assert titles[:2] == ["The tides", "Foes (1)"]  # 8c: your tides come first
+    assert not tides.expanded
+    assert [t.split(" (")[0] for t in titles[2:]] == [
         "Materials",
         "Ingredients",
         "Recipes",
@@ -136,7 +137,7 @@ def test_codex_sections_collapse_at_every_level_and_remember(tmp_path):
 
     people.on_change(Changed())
     shell.codex.refresh()
-    foes = shell.codex.sections.controls[0]
+    foes = shell.codex.sections.controls[1]
     assert foes.expanded and not foes.controls[0].expanded
 
 

@@ -1084,8 +1084,10 @@ def _v16_to_v17(envelope: Envelope) -> Envelope:
     # v17 saves how each tide scales a world (8c): enemy ATK (Rules.enemy_atk) and
     # foe and quest gold (EconomyRules.reward_gold). Older worlds are unscaled.
     game = envelope["game"]
-    game.setdefault("rules", {}).setdefault("enemy_atk", 1.0)
-    game.setdefault("economy", {}).setdefault("reward_gold", 1.0)
+    for key in ("enemy_atk", "tide_hp"):
+        game.setdefault("rules", {}).setdefault(key, 1.0)
+    for key in ("reward_gold", "meal_boost"):
+        game.setdefault("economy", {}).setdefault(key, 1.0)
     # Boons can make meals stronger too (Long Table, reworked).
     for entity in game["entities"]:
         for boon in entity["components"].get("Prestige", {}).get("boons", []):

@@ -115,3 +115,63 @@ def test_boon_names_stay_short_and_their_effects_wrap(tmp_path):
     dialog = TideDialog(1, session.boon_choices(CONTENT), [], lambda _: None, lambda: None)
     radios = [c.controls[0] for c in dialog.boon.content.controls]
     assert [r.label for r in radios] == [b.name for b in CONTENT.boon_choices()]
+
+
+def test_the_toast_comes_after_the_screen_is_refreshed(tmp_path):
+    # Showing a toast updates the page and turns off Flet's update at the end of
+    # the event, so it must come last, or the fight (warden) or the new place
+    # (crossing) only appears after a second tap.
+    from tidewrack.core.engine.game import Wait
+
+    session = _session(tmp_path)
+    order: list[str] = []
+    shell = _shell(session, tmp_path, [], None)
+    screen = shell.explore
+    screen.notify = lambda text: order.append(f"toast: {text}")
+    real = screen._refresh
+
+    def refresh_then_note():
+        real()
+        order.append("refreshed")
+
+    screen._refresh = refresh_then_note
+    screen.split.visible = False
+    screen._apply_split()
+    session.game._say("A warden bars the way.", important=True)
+    screen.act(Wait())
+    assert order == ["refreshed", "toast: A warden bars the way."]
+
+
+def _texts(control) -> list[str]:
+    out = []
+
+    def walk(c):
+        if isinstance(c, ft.Text) and isinstance(c.value, str):
+            out.append(c.value)
+        for attr in ("content", "controls", "title"):
+            child = getattr(c, attr, None)
+            for x in child if isinstance(child, list) else [child]:
+                if isinstance(x, ft.Control):
+                    walk(x)
+
+    walk(control)
+    return out
+
+
+def test_the_codex_shows_your_tides_and_boons(tmp_path):
+    from tidewrack.ui.screens.codex import CodexScreen
+
+    session = _session(tmp_path)
+    first = _texts(CodexScreen(session).sections.controls[0])
+    assert "The tides" in first and any("first tide" in t for t in first)
+
+    game = session.game
+    game.world.get(game.player, Prestige).tide_turned = True
+    here = game.world.get(game.player, Position)
+    game.world.create(TideCrown(), Position(here.location, here.room))
+    session.ascend(CONTENT, "boon.keen_edge")
+    texts = _texts(CodexScreen(session).sections.controls[0])
+    assert "The tides (tide 1)" in texts
+    assert "Foes have 10% more health and hit 1% harder." in texts
+    assert "+2 ATK" in texts  # all told
+    assert "Tide 1: Keen Edge (+2 ATK)" in texts

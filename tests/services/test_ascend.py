@@ -184,7 +184,7 @@ def test_each_tide_makes_the_next_world_harder_and_richer(tmp_path):
     base_rules, base_economy = session.game.rules, session.game.economy
     session.ascend(CONTENT, "boon.keen_edge")
     game = session.game
-    assert game.rules.enemy_hp == base_rules.enemy_hp * 1.1
+    assert (game.rules.enemy_hp, game.rules.tide_hp) == (base_rules.enemy_hp, 1.1)
     assert game.rules.enemy_atk == base_rules.enemy_atk * 1.01
     assert game.economy.reward_gold == base_economy.reward_gold * 1.1
     shops = [s for _, (s,) in game.world.query(Shop) if s.meals]

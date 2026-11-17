@@ -10,7 +10,7 @@ power prestige adds tails off; the difficulty sim counts it (beta 3).
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 from tidewrack.core.combat.rules import Rules
 from tidewrack.core.data.schemas import BoonSchema, TidesSchema
@@ -123,15 +123,19 @@ def tide_rules(rules: Rules, tides: TidesSchema, rank: int) -> Rules:
     n = tide_steps(tides, rank)
     return replace(
         rules,
-        enemy_hp=rules.enemy_hp * (1 + tides.enemy_hp * n),
-        enemy_atk=rules.enemy_atk * (1 + tides.enemy_atk * n),
+        tide_hp=1 + tides.enemy_hp * n,
+        enemy_atk=1 + tides.enemy_atk * n,
     )
 
 
 def tide_economy(economy: EconomyRules, tides: TidesSchema, rank: int) -> EconomyRules:
     """Gold from foes and quests made richer for tide `rank`."""
     n = tide_steps(tides, rank)
-    return replace(economy, reward_gold=economy.reward_gold * (1 + tides.reward_gold * n))
+    return replace(
+        economy,
+        reward_gold=1 + tides.reward_gold * n,
+        meal_boost=1 + tides.meal_stats * n,
+    )
 
 
 def tide_meal(meal: Meal, tides: TidesSchema, rank: int) -> Meal:
@@ -148,3 +152,56 @@ def next_seed(seed: int, rank: int) -> int:
     """The seed of the world the tide washes you up in after tide `rank`: drawn
     from this world's seed, so a slot's tides are reproducible."""
     return Rng(seed).derive(f"tide.{rank + 1}").next_u64() >> 1
+
+
+# --- what the Codex shows (8c) --------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BoonView:
+    tide: int
+    name: str
+    text: str  # what it does
+
+
+@dataclass(frozen=True)
+class TidesView:
+    tide: int  # tides lived through
+    turned: bool  # this world's tide has turned (the king has fallen)
+    world: tuple[str, ...]  # how this world's tide changed it, one line each
+    boons: tuple[BoonView, ...]  # in the order chosen
+    totals: tuple[str, ...]  # everything the boons add up to, one line each
+
+
+def _pct(factor: float) -> int:
+    return round((factor - 1) * 100)
+
+
+def tides_view(prestige: Prestige, rules: Rules, economy: EconomyRules) -> TidesView:
+    world = []
+    if prestige.rank:
+        world = [
+            f"Foes have {_pct(rules.tide_hp)}% more health and hit"
+            f" {_pct(rules.enemy_atk)}% harder.",
+            f"Tavern meals give {_pct(economy.meal_boost)}% more.",
+            f"Foes and quests pay {_pct(economy.reward_gold)}% more gold.",
+        ]
+    totals = []
+    stats = boon_stats(prestige.boons)
+    if stats:
+        totals.append(", ".join(f"+{v} {s.upper()}" for s, v in stats.items()))
+    if (pct := materials_pct(prestige)) > 0:
+        totals.append(f"{pct}% chance of an extra material when you loot or gather")
+    if (pct := meal_stats_pct(prestige)) > 0:
+        totals.append(f"Meals give {pct}% more")
+    if (pct := meal_turns_pct(prestige)) > 0:
+        totals.append(f"Meals last {pct}% longer")
+    if (pct := gold_pct(prestige)) > 0:
+        totals.append(f"+{pct}% gold from foes and quests")
+    return TidesView(
+        tide=prestige.rank,
+        turned=prestige.tide_turned,
+        world=tuple(world),
+        boons=tuple(BoonView(b.tide, b.name, boon_text(b)) for b in prestige.boons),
+        totals=tuple(totals),
+    )

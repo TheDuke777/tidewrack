@@ -589,9 +589,7 @@ def test_v17_fixture_keeps_its_tide_scaling(tmp_path):
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     game = session.game
     assert game.rules.difficulty == "Hard"
-    assert (
-        game.rules.enemy_hp == 1.3 * 1.1 and game.rules.enemy_atk == 1.01
-    )  # made before the retune
+    assert (game.rules.enemy_hp, game.rules.tide_hp, game.rules.enemy_atk) == (1.3, 1.1, 1.01)
     assert game.economy.reward_gold == 1.1
 
 

@@ -6,8 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- The Codex opens with "The tides": which tide you're on, what it did to this
+  world (tougher foes, stronger meals, more gold), and every boon you've
+  chosen, by tide and all added up.
+
 ### Fixed
 - Pop-ups are only as tall as what's in them, instead of filling the screen.
+- Fighting a warden or crossing into a new region from the world map no
+  longer needs a second tap before the screen catches up.
 - Boon names no longer run off the edge of the tide dialog: what each boon
   does now wraps underneath its name.
 

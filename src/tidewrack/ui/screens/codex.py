@@ -54,6 +54,7 @@ class CodexScreen:
     def refresh(self) -> None:
         book = self.session.game.codex()
         self.sections.controls = [
+            self._tides_section(),
             self._foes_section(),
             self._materials_section(
                 "materials",
@@ -72,6 +73,33 @@ class CodexScreen:
         ]
 
     # --- sections ------------------------------------------------------------------
+
+    def _tides_section(self) -> ft.Control:
+        """Your tide, what it did to this world, and your boons (8c)."""
+        tides = self.session.game.tides()
+        if not tides.tide:
+            first = (
+                "The tide has turned. Take the Drowned Crown from his throne when you're"
+                " ready to ride it to a new shore."
+                if tides.turned
+                else "You're on the first tide. Beat the Drowned King, deep in the"
+                " Highlands, and the tide will turn: you can ride it to a new, harsher"
+                " shore, keeping what you've learned and a boon of your choosing."
+            )
+            inner: list[ft.Control] = [_empty(first)]
+        else:
+            inner = [
+                ft.Text("This world", size=15, weight=ft.FontWeight.BOLD),
+                *(_empty(line) for line in tides.world),
+                ft.Text("Your boons, all told", size=15, weight=ft.FontWeight.BOLD),
+                *(_empty(line) for line in tides.totals),
+                ft.Text("Boons by tide", size=15, weight=ft.FontWeight.BOLD),
+                *(_empty(f"Tide {b.tide}: {b.name} ({b.text})") for b in tides.boons),
+            ]
+            if tides.turned:
+                inner.append(_empty("The tide has turned here too: the crown waits on the throne."))
+        title = f"The tides (tide {tides.tide})" if tides.tide else "The tides"
+        return self._tile("tides", title, inner, size=18, top=True)
 
     def _foes_section(self) -> ft.Control:
         foes = self.session.game.foes()

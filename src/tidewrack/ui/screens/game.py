@@ -411,6 +411,9 @@ class GameScreen:
             actions=[ft.FilledButton(content="Onward", on_click=lambda _: page.pop_dialog())],
         )
         page.show_dialog(dialog)
+        # show_dialog updates only the dialog layer and turns off Flet's page update
+        # at the end of the event; send the rest of the refreshed screen too.
+        page.update()
 
     def _reveal_map(self) -> None:
         if not self.session.reveal_map():
@@ -496,8 +499,15 @@ class GameScreen:
     # --- rendering ---------------------------------------------------------------
 
     def refresh(self) -> None:
+        self._toast: str | None = None
         with perf.timed("screen.refresh"):
             self._refresh()
+        # Toast only once the whole screen is up to date: showing one updates the
+        # page and turns off Flet's update at the end of the event, so anything
+        # changed after it (the fight replacing the map, the new place's map)
+        # would wait for the next tap.
+        if self._toast is not None:
+            self.notify(self._toast)
 
     def _refresh(self) -> None:
         # Only an open shop panel needs its upgrade and recipe lists (v0.11.2).
@@ -558,7 +568,7 @@ class GameScreen:
             important = [line for line in new if line.startswith(IMPORTANT)]
             if important and not self.split.visible:
                 self._log_missed = True
-                self.notify(important[-1].removeprefix(IMPORTANT))
+                self._toast = important[-1].removeprefix(IMPORTANT)
         self._log_total = view.log_total
         self.log.controls = log_lines(view.log[-LOG_LINES_SHOWN:], view.log_total, self._fresh_from)
         self.log_hint.value = view.log[-1] if view.log else ""
