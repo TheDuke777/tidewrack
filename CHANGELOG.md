@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-11-17
+
 ### Changed
 - Meals from deeper regions are now worth cooking: each region's meals beat
   anything you could cook before you got there, against its toughest bounties
