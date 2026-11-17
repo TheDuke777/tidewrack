@@ -17,13 +17,14 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from tidewrack.core.gear import stats
-from tidewrack.core.gear.item import SLOT_LABELS, Item, slots_taken
+from tidewrack.core.gear import effects, stats
+from tidewrack.core.gear.item import SLOT_LABELS, GearSet, Item, SetBonus, slots_taken
 from tidewrack.core.gear.stat_pipeline import (
     active_set_bonuses,
     at_max_upgrade,
     item_base,
     item_total,
+    loadout_effects,
     player_stats,
 )
 from tidewrack.core.gear.stats import STATS, StatBlock
@@ -146,14 +147,24 @@ def _verdict(change: StatBlock) -> Verdict:
 def _set_bonus_labels(loadout: list[Item]) -> list[str]:
     labels = []
     for gear_set, bonus in active_set_bonuses(loadout):
-        parts = [p for p in [format_stats(bonus.stats), *bonus.effects] if p]
+        parts = bonus_parts(bonus)
         labels.append(f"{gear_set.name} ({bonus.pieces} pieces): {'; '.join(parts)}")
     return labels
 
 
+def bonus_parts(bonus: SetBonus) -> list[str]:
+    """What a set bonus gives, as players read it: stats, then effects."""
+    stats_text = format_stats(bonus.stats)
+    return ([stats_text] if stats_text else []) + [effects.describe(e) for e in bonus.effects]
+
+
+def set_summary(gear_set: GearSet) -> tuple[str, ...]:
+    """Every bonus a set has, e.g. "2 pieces: DEF +2; +4 ATK against wardens…"."""
+    return tuple(
+        f"{bonus.pieces} pieces: {'; '.join(bonus_parts(bonus))}" for bonus in gear_set.bonuses
+    )
+
+
 def _effects(loadout: list[Item]) -> list[str]:
-    """Effect text the loadout grants, from items, affixes and set bonuses."""
-    found = [e for item in loadout for e in item.effects]
-    found += [e for item in loadout for affix in item.affixes for e in affix.effects]
-    found += [e for _, bonus in active_set_bonuses(loadout) for e in bonus.effects]
-    return found
+    """What the loadout's effects do, as players read it (items, affixes, sets)."""
+    return [effects.describe(e) for e in loadout_effects(loadout)]

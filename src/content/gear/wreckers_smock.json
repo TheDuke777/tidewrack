@@ -1,0 +1,17 @@
+{
+  "id": "gear.wreckers_smock",
+  "name": "Wrecker's Smock",
+  "slot": "body",
+  "base": {
+    "def": 2,
+    "hp": 1
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.sailcloth": 2
+  },
+  "set": "gearset.wreckers_garb"
+}

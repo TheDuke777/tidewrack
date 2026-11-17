@@ -1,0 +1,19 @@
+{
+  "id": "gearset.leech_hunter",
+  "name": "Leech-Hunter",
+  "color": "green",
+  "bonuses": [
+    {
+      "pieces": 2,
+      "effects": [
+        "lifesteal:1"
+      ]
+    },
+    {
+      "pieces": 3,
+      "effects": [
+        "second_wind:2"
+      ]
+    }
+  ]
+}

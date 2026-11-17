@@ -177,18 +177,35 @@ def fed(you: Mapping[str, int], meal: MealSchema | None) -> dict[str, int]:
     return dict(player_stats(base, [], [StatSource(meal.name, dict(meal.stats))]).total)
 
 
-def fight(rng: Rng, you: Mapping[str, int], foe: Foe, rules: Rules, n: int) -> Odds:
+BIG = ("bounty", "warden", "final")  # what bane gear hits harder (core.gear.effects)
+
+
+def fight(
+    rng: Rng,
+    you: Mapping[str, int],
+    foe: Foe,
+    rules: Rules,
+    n: int,
+    effects: Mapping[str, int] | None = None,
+) -> Odds:
+    """`n` fights, the bot always attacking; `effects` are the player's gear effects
+    that act in a fight (lifesteal, bane, exposed), as core.combat.fight applies
+    them."""
+    effects = effects or {}
+    atk = you["atk"] + (effects.get("bane", 0) if foe.kind in BIG else 0)
+    steal, exposed = effects.get("lifesteal", 0), effects.get("exposed", 0)
     wins = lost = rounds = 0
     for _ in range(n):
         enemy = foe.roll(rng, rules)
         hp, enemy_hp = you["hp"], enemy["hp"]
         for _ in range(MAX_ROUNDS):
             rounds += 1
-            enemy_hp -= damage(rng, you["atk"], enemy.get("def", 0), False, rules)
+            enemy_hp -= damage(rng, atk, enemy.get("def", 0), False, rules)
+            hp = min(you["hp"], hp + steal)
             if enemy_hp <= 0:
                 wins += 1
                 break
-            hp -= damage(rng, enemy.get("atk", 0), you["def"], False, rules)
+            hp -= damage(rng, enemy.get("atk", 0), you["def"], False, rules) + exposed
             if hp <= 0:
                 hp = 0
                 break
@@ -375,6 +392,7 @@ def main(argv: list[str]) -> None:
         before = f"{e.earlier} {e.earlier_lost:.0%}" if e.earlier else "none"
         print(f"  {e.region:18} own: {e.own} {e.own_lost:.0%}   best before: {before}")
     print(tide_report(tide_curve(load_bundled_content(), max(fights // 4, 100))))
+    print(set_report(set_odds(load_bundled_content(), fights)))
 
 
 if __name__ == "__main__":
@@ -483,4 +501,90 @@ def tide_report(rows: list[TideRow]) -> str:
                 if (r.plan, r.difficulty) == (plan, difficulty)
             ]
             lines.append(f"    king, {plan:8} " + " ".join(cells))
+    return "\n".join(lines)
+
+
+# --- playstyle sets (v0.13.0) --------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SetRow:
+    region: str
+    gear_set: str
+    foe: str
+    plain: Odds  # the best plain loadout (sets only for their stats), fed
+    with_set: Odds  # the same with the region's playstyle set's pieces swapped in, fed
+    effects: Mapping[str, int]
+
+
+def playstyle_sets(content: Content, region_id: str) -> list[str]:
+    """Gear sets whose pieces come from this region and whose bonuses have effects."""
+    from tidewrack.core.procgen.head_start import region_gear
+
+    here = set(region_gear(content, region_id))
+    return sorted(
+        gs.id
+        for gs in content.gearsets.values()
+        if any(b.effects for b in gs.bonuses)
+        and any(g.set == gs.id and g.id in here for g in content.gear.values())
+    )
+
+
+def set_odds(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[SetRow]:
+    """Each region's hardest bounty (and the king in the last region), geared and
+    fed, with the best plain loadout versus that loadout wearing a playstyle set:
+    how much a set changes the fights that matter (Standard)."""
+    from tidewrack.core.gear.item import slots_taken
+    from tidewrack.core.gear.stat_pipeline import player_stats
+    from tidewrack.core.procgen.head_start import best_loadout, candidates
+
+    rng = Rng(seed).derive("set_odds")
+    rules = Rules()
+    order = regions(content)
+    base = content.world(WORLD).player
+    rows = []
+    for i, region_id in enumerate(order):
+        pool = candidates(content, order[: i + 1])
+        worn = best_loadout(base, pool).worn
+        plain_sheet = player_stats(base, worn)
+        meals = meals_by(content, content.regions[region_id].tier)
+        targets = [f for f in foes(content, region_id) if f.kind in ("bounty", "final")]
+        for set_id in playstyle_sets(content, region_id):
+            pieces = {}
+            for item in pool:
+                if item.gear_set and item.gear_set.id == set_id:
+                    pieces.setdefault(item.slot, item)
+            swapped = [w for w in worn if not set(slots_taken(w)) & set(pieces)] + list(
+                pieces.values()
+            )
+            sheet = player_stats(base, swapped)
+            for foe in targets:
+                plain_you, set_you = dict(plain_sheet.total), dict(sheet.total)
+                rows.append(
+                    SetRow(
+                        content.regions[region_id].name,
+                        content.gearsets[set_id].name,
+                        f"{foe.name} ({foe.kind})",
+                        _fed_fight(rng, plain_you, foe, rules, meals, fights),
+                        _fed_effect_fight(rng, set_you, foe, rules, meals, fights, sheet.effects),
+                        sheet.effects,
+                    )
+                )
+    return rows
+
+
+def _fed_effect_fight(rng, you, foe, rules, meals, fights, effects) -> Odds:
+    meal = best_meal(you, foe, rules, meals)
+    return fight(rng, fed(you, meal), foe, rules, fights, effects)
+
+
+def set_report(rows: list[SetRow]) -> str:
+    lines = ["\nPlaystyle sets, geared, fed, Standard (win/HP lost): plain -> with the set"]
+    for r in rows:
+        lines.append(
+            f"  {r.region:10} {r.gear_set:15} vs {r.foe:28}"
+            f" {_pct(r.plain.win).strip()}/{_pct(r.plain.hp_lost).strip()}"
+            f" -> {_pct(r.with_set.win).strip()}/{_pct(r.with_set.hp_lost).strip()}"
+            f"   {dict(r.effects)}"
+        )
     return "\n".join(lines)

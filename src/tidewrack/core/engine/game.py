@@ -137,8 +137,9 @@ from tidewrack.core.engine.events import (
     Waited,
     WayBarred,
 )
+from tidewrack.core.gear import effects as gear_effects
 from tidewrack.core.gear import stats
-from tidewrack.core.gear.compare import Comparison, compare
+from tidewrack.core.gear.compare import Comparison, compare, set_summary
 from tidewrack.core.gear.item import SLOT_LABELS, SLOTS, Item, slots_taken
 from tidewrack.core.gear.stat_pipeline import (
     StatSheet,
@@ -431,8 +432,9 @@ class ItemView:
     gear_set: str | None
     gear_set_id: str | None
     gear_set_color: str | None  # one of core.gear.item.SET_COLORS, if the set has one
-    effects: tuple[str, ...]
+    effects: tuple[str, ...]  # what the item's own effects do, as players read it
     comparison: Comparison  # against what the player has on now
+    set_bonuses: tuple[str, ...] = ()  # every bonus its set has (compare.set_summary)
     value: int = 0  # core.economy.value_model.value
     sell_price: int = 0  # what a shop that buys gear pays for it
 
@@ -1149,7 +1151,11 @@ class Game:
             gear_set=item.gear_set.name if item.gear_set else None,
             gear_set_id=item.gear_set.id if item.gear_set else None,
             gear_set_color=item.gear_set.color if item.gear_set else None,
-            effects=tuple(item.effects) + tuple(e for a in item.affixes for e in a.effects),
+            effects=tuple(
+                gear_effects.describe(e)
+                for e in [*item.effects, *(e for a in item.affixes for e in a.effects)]
+            ),
+            set_bonuses=set_summary(item.gear_set) if item.gear_set else (),
             comparison=compare(item, equipped, base),
             value=value(item),
             sell_price=sell_price(item, self.economy),

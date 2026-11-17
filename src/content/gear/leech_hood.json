@@ -1,0 +1,24 @@
+{
+  "id": "gear.leech_hood",
+  "name": "Leech-Hunter's Hood",
+  "slot": "head",
+  "base": {
+    "def": 2,
+    "hp": 2
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.toad_skin": 1,
+    "material.reeds": 1
+  },
+  "set": "gearset.leech_hunter"
+}

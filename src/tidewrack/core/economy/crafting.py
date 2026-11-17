@@ -70,6 +70,7 @@ def add(game: Game, stack: MaterialStack, source: str, enemy_id: str | None = No
     if source in ("loot", "gathered"):
         # Wrecker's Luck (8c): a chance of one more, on the saved gathering stream.
         pct = prestige.materials_pct(game.world.try_get(game.player, Prestige))
+        pct = min(100, pct + game.sheet().effects.get("salvage", 0))  # gear (v0.13.0)
         if pct and game.gather_rng.chance(pct / 100):
             stack = MaterialStack(stack.material, stack.count + 1)
     satchel = held(game)

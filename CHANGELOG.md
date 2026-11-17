@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Gear sets that change how you play. Each region has a new three-piece set
+  (head, body, feet) found in its wilds and carried by one of its foes:
+  Wrecker's Garb (coast) finds extra materials; Leech-Hunter (Fens) heals you
+  with every blow you land and as you recover; Highwayman (Moors) gets you away
+  from fights and keeps ambushes off the road; Reiver (Highlands) hits wardens,
+  bounties and the Drowned King much harder, at the cost of taking a little
+  more from every blow. Every set piece's card lists what the whole set does,
+  and your Inventory lists the effects you have on.
+
 ## [0.12.0] - 2026-11-17
 
 ### Added

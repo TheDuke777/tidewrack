@@ -11,9 +11,9 @@ never disagree with each other or with the stats the game uses.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
-from tidewrack.core.gear import stats
+from tidewrack.core.gear import effects, stats
 from tidewrack.core.gear.item import GearSet, Item, SetBonus
 from tidewrack.core.gear.stats import StatBlock
 
@@ -65,6 +65,16 @@ class StatSource:
 class StatSheet:
     total: StatBlock
     sources: tuple[StatSource, ...]  # what adds up to the total, in order
+    effects: dict[str, int] = field(default_factory=dict)  # gear effects by kind (effects.py)
+
+
+def loadout_effects(items: Iterable[Item]) -> list[str]:
+    """Every effect a loadout grants: its items', their affixes', its set bonuses'."""
+    items = list(items)
+    found = [e for item in items for e in item.effects]
+    found += [e for item in items for affix in item.affixes for e in affix.effects]
+    found += [e for _, bonus in active_set_bonuses(items) for e in bonus.effects]
+    return found
 
 
 def player_stats(
@@ -80,4 +90,8 @@ def player_stats(
         for gear_set, bonus in active_set_bonuses(equipped)
     ]
     sources += [StatSource(s.label, stats.full(s.stats)) for s in extra]
-    return StatSheet(stats.total(s.stats for s in sources), tuple(sources))
+    return StatSheet(
+        stats.total(s.stats for s in sources),
+        tuple(sources),
+        effects.total(loadout_effects(equipped)),
+    )

@@ -1,0 +1,23 @@
+{
+  "id": "gear.leech_jerkin",
+  "name": "Leech-Hunter's Jerkin",
+  "slot": "body",
+  "base": {
+    "def": 4,
+    "hp": 2
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.toad_skin": 2
+  },
+  "set": "gearset.leech_hunter"
+}

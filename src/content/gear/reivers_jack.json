@@ -1,0 +1,24 @@
+{
+  "id": "gear.reivers_jack",
+  "name": "Reiver's Jack",
+  "slot": "body",
+  "base": {
+    "def": 7,
+    "hp": 2
+  },
+  "rolls": {
+    "def": [
+      0,
+      1
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.bear_pelt": 1,
+    "material.sinew": 1
+  },
+  "set": "gearset.reiver"
+}

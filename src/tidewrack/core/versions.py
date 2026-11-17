@@ -48,4 +48,5 @@ SCHEMA_VERSION = 17
 # 18: the Drowned King (a final foe) in a Highlands Drowned Hall (8c)
 # 19: the Drowned King in the farthest room (the Drowned Throne), thanes guarding the way
 # 20: worlds after a tide are harder and richer (recipe tides), meals stronger
-GENERATOR_VERSION = 20
+# 21: playstyle gear sets (Wrecker's Garb, Leech-Hunter, Highwayman, Reiver) in finds and loot
+GENERATOR_VERSION = 21

@@ -1,0 +1,23 @@
+{
+  "id": "gear.riding_coat",
+  "name": "Riding Coat",
+  "slot": "body",
+  "base": {
+    "def": 4,
+    "hp": 3
+  },
+  "rolls": {
+    "hp": [
+      0,
+      3
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.wool": 2
+  },
+  "set": "gearset.highwayman"
+}

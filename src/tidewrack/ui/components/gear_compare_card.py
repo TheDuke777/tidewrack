@@ -101,6 +101,8 @@ def notes(item: ItemView) -> list[str]:
     lines += [f"Loses effect: {e}" for e in comparison.effects_lost]
     if comparison.equipped:
         lines += [f"Effect: {e}" for e in item.effects]
+    if item.gear_set and item.set_bonuses:
+        lines.append(f"{item.gear_set} set: " + " · ".join(item.set_bonuses))
     if comparison.at_max is not None:
         maxed = " · ".join(f"{STAT_LABELS[s]} {comparison.at_max[s]}" for s in STATS)
         lines.append(f"Fully upgraded, you'd have {maxed}")

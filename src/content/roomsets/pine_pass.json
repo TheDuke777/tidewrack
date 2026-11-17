@@ -123,7 +123,10 @@
       "gear.feathered_bonnet": 2,
       "gear.bearskin_cloak": 1,
       "gear.hill_brogues": 2,
-      "gear.studded_targe": 1
+      "gear.studded_targe": 1,
+      "gear.reivers_helm": 0.5,
+      "gear.reivers_jack": 0.5,
+      "gear.reivers_boots": 0.5
     }
   },
   "gathering": {

@@ -117,7 +117,10 @@
       "gear.waxed_jerkin": 1,
       "gear.fowlers_cap": 1,
       "gear.wading_boots": 2,
-      "gear.amber_charm": 2
+      "gear.amber_charm": 2,
+      "gear.leech_hood": 0.5,
+      "gear.leech_jerkin": 0.5,
+      "gear.leech_waders": 0.5
     }
   },
   "gathering": {

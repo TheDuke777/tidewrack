@@ -1,0 +1,24 @@
+{
+  "id": "gear.highwaymans_tricorn",
+  "name": "Highwayman's Tricorn",
+  "slot": "head",
+  "base": {
+    "def": 3,
+    "hp": 1
+  },
+  "rolls": {
+    "hp": [
+      0,
+      2
+    ]
+  },
+  "max_upgrade": 2,
+  "upgrade_step": {
+    "def": 1
+  },
+  "upgrade_materials": {
+    "material.wool": 1,
+    "material.adder_skin": 1
+  },
+  "set": "gearset.highwayman"
+}

@@ -19,7 +19,10 @@
     "gear": {
       "gear.hanger": 2,
       "gear.wolfskin_hood": 1,
-      "gear.hobnail_boots": 1
+      "gear.hobnail_boots": 1,
+      "gear.highwaymans_tricorn": 1,
+      "gear.riding_coat": 1,
+      "gear.riding_boots": 1
     }
   },
   "gold": [

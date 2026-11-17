@@ -21,6 +21,7 @@ from pydantic import (
 )
 
 from tidewrack.core.combat.rules import Rules
+from tidewrack.core.gear import effects as gear_effects
 from tidewrack.core.gear.item import SET_COLORS, SLOTS
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE, STATS
 from tidewrack.core.world.location import Exit, Location, Room
@@ -48,6 +49,16 @@ def _known_stats(block: dict[str, int]) -> dict[str, int]:
 
 
 StatBlock = Annotated[dict[str, int], AfterValidator(_known_stats)]
+
+
+def _known_effects(found: list[str]) -> list[str]:
+    problems = [p for e in found if (p := gear_effects.problem(e)) is not None]
+    if problems:
+        raise ValueError("; ".join(problems))
+    return found
+
+
+Effects = Annotated[list[Text], AfterValidator(_known_effects)]  # "kind:value" (gear/effects.py)
 Slot = Literal[SLOTS]  # type: ignore[valid-type]
 Weights = dict[str, Annotated[float, Field(gt=0)]]
 
@@ -132,7 +143,7 @@ class GearSchema(Schema):
     upgrade_step: StatBlock = {}  # added per upgrade level
     upgrade_materials: Counts = {}  # for each level, times the level being reached
     set: content_id("gearset") | None = None
-    effects: list[Text] = []
+    effects: Effects = []
 
     @model_validator(mode="after")
     def _check(self) -> GearSchema:
@@ -158,13 +169,13 @@ class AffixSchema(Schema):
     slots: list[Slot] = Field(min_length=1)  # gear it can appear on
     weight: float = Field(default=1.0, gt=0)
     stats: StatBlock = {}
-    effects: list[Text] = []
+    effects: Effects = []
 
 
 class SetBonusSchema(Schema):
     pieces: int = Field(ge=2)
     stats: StatBlock = {}
-    effects: list[Text] = []
+    effects: Effects = []
 
 
 class GearSetSchema(Schema):

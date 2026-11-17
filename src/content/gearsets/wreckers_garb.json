@@ -1,0 +1,22 @@
+{
+  "id": "gearset.wreckers_garb",
+  "name": "Wrecker's Garb",
+  "color": "amber",
+  "bonuses": [
+    {
+      "pieces": 2,
+      "effects": [
+        "salvage:15"
+      ]
+    },
+    {
+      "pieces": 3,
+      "stats": {
+        "hp": 3
+      },
+      "effects": [
+        "salvage:15"
+      ]
+    }
+  ]
+}

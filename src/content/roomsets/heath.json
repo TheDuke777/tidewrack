@@ -122,7 +122,10 @@
       "gear.drovers_coat": 1,
       "gear.hobnail_boots": 2,
       "gear.wolfskin_hood": 1,
-      "gear.hide_targe": 1
+      "gear.hide_targe": 1,
+      "gear.highwaymans_tricorn": 0.5,
+      "gear.riding_coat": 0.5,
+      "gear.riding_boots": 0.5
     }
   },
   "gathering": {

@@ -140,3 +140,16 @@ def test_no_boon_plan_breaks_the_tides(tides):
             assert 0.15 <= row.king.hp_lost <= 0.7, (plan, row.tide, row.king.hp_lost)
         for row in _tide_rows(tides, plan, "Hard"):
             assert row.king.win >= 0.9, (plan, row.tide)
+
+
+def test_playstyle_sets_are_a_choice_not_a_requirement_or_a_walkover():
+    # v0.13.0: each region's playstyle set trades stats for an effect. Swapped
+    # into the best plain loadout it must still win the fights that matter, cost
+    # at most a little more health, and never make them trivial.
+    rows = sim.set_odds(CONTENT, fights=400)
+    regions_with_sets = {r.region for r in rows}
+    assert len(regions_with_sets) == 4
+    for r in rows:
+        assert r.with_set.win >= 0.95, r
+        assert r.with_set.hp_lost <= r.plain.hp_lost + 0.15, r
+        assert r.with_set.hp_lost >= 0.4 * r.plain.hp_lost - 0.02, r

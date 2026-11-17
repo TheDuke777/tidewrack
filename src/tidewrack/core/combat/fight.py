@@ -77,7 +77,8 @@ def encounter(game: Game, event: RoomEntered) -> None:
     spawner = next(
         (s for _, (s,) in game.world.query(Spawner) if s.location == event.location), None
     )
-    if spawner and spawner.queue and game.encounter_rng.chance(spawner.chance):
+    stealth = game.sheet().effects.get("stealth", 0) / 100 if spawner else 0
+    if spawner and spawner.queue and game.encounter_rng.chance(spawner.chance * (1 - stealth)):
         enemy = spawner.queue.pop(0)
         entity = game.world.create(enemy, Position(event.location, event.room))
         _start(game, entity, enemy, event.from_room or event.room, wandering=True)
@@ -138,7 +139,8 @@ def defend(game: Game) -> None:
 def flee(game: Game) -> None:
     fighting = game.world.get(game.player, Fighting)
     enemy = game.world.get(fighting.enemy, Enemy)
-    if not game.combat_rng.chance(game.rules.flee_chance):
+    sure = game.sheet().effects.get("sure_footed", 0) / 100
+    if not game.combat_rng.chance(min(0.95, game.rules.flee_chance + sure)):
         game.bus.emit(FleeFailed(fighting.enemy, enemy.name))
         _enemy_strikes(game, defending=False)
         return
@@ -162,9 +164,15 @@ def _player_strikes(game: Game) -> bool:
     """The player's blow; True if it wins the fight."""
     fighting = game.world.get(game.player, Fighting)
     enemy = game.world.get(fighting.enemy, Enemy)
-    you = game.sheet().total
-    hit = damage(game.combat_rng, you["atk"], fighting.enemy_stats.get("def", 0), False, game.rules)
+    sheet = game.sheet()
+    atk = sheet.total["atk"]
+    if _is_big(game, fighting.enemy):
+        atk += sheet.effects.get("bane", 0)  # gear effects (v0.13.0)
+    hit = damage(game.combat_rng, atk, fighting.enemy_stats.get("def", 0), False, game.rules)
     fighting.enemy_damage += hit
+    if steal := sheet.effects.get("lifesteal", 0):
+        health = game.world.get(game.player, Health)
+        health.damage = max(0, health.damage - steal)
     game.bus.emit(Attacked(game.player, fighting.enemy, "You", enemy.name, hit, defended=False))
     if fighting.enemy_damage >= fighting.enemy_stats["hp"]:
         _win(game, fighting, enemy)
@@ -179,10 +187,16 @@ def _enemy_strikes(game: Game, defending: bool) -> None:
     hit = damage(
         game.combat_rng, fighting.enemy_stats.get("atk", 0), you["def"], defending, game.rules
     )
+    hit += game.sheet().effects.get("exposed", 0)
     game.world.get(game.player, Health).damage += hit
     game.bus.emit(Attacked(fighting.enemy, game.player, enemy.name, "you", hit, defending))
     if game.hp() <= 0:
         _lose(game, fighting, enemy)
+
+
+def _is_big(game: Game, entity: int) -> bool:
+    """A warden, a bounty or the final foe: what bane gear hits harder."""
+    return any(game.world.has(entity, kind) for kind in (Warden, Bounty, FinalFoe))
 
 
 def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
@@ -258,4 +272,5 @@ def regen_system(game: Game) -> None:
     health = game.world.get(game.player, Health)
     if health.damage and game.turn % game.rules.regen_every == 0:
         healed = regen(game.max_hp(), game.rules) + cooking.extra_regen(game)
+        healed += game.sheet().effects.get("second_wind", 0)
         health.damage = max(0, health.damage - healed)

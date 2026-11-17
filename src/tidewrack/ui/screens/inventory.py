@@ -28,6 +28,7 @@ from tidewrack.core.engine.game import (
     Unequip,
 )
 from tidewrack.core.gear.compare import format_stats
+from tidewrack.core.gear.effects import describe_totals
 from tidewrack.core.gear.stats import STAT_LABELS, STATS
 from tidewrack.services.session import GameSession
 from tidewrack.services.settings import SettingsStore
@@ -326,6 +327,8 @@ class InventoryScreen:
         lines += [
             _muted(f"{source.label}: {format_stats(source.stats) or 'nothing'}") for source in gear
         ]
+        # What gear does besides stats (set effects, v0.13.0): you can't miss it here.
+        lines += [_muted(f"Effect: {text}") for text in describe_totals(view.sheet.effects)]
         return lines
 
     def _slot(self, slot) -> ft.Control:
