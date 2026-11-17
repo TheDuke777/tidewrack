@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0-beta.2] - 2026-11-17
+
 ### Added
 - Ride the tide: once the Drowned King has fallen, the world menu lets you let
   the Wrack take your world and wake on a new shore in the same slot, whenever
