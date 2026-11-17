@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0-beta.3] - 2026-11-17
+
 ### Changed
 - The Drowned King now waits in the farthest hall from the shore, on the
   Drowned Throne, and two of his thanes guard the way to him. Ride the tide
