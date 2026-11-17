@@ -6,10 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-17
+
 ### Added
 - The Codex opens with "The tides": which tide you're on, what it did to this
   world (tougher foes, stronger meals, more gold), and every boon you've
   chosen, by tide and all added up.
+- Ride the tide: once the Drowned King has fallen, the world menu lets you let
+  the Wrack take your world and wake on a new shore in the same slot, whenever
+  you're ready. You start again with no gear, gold or map but keep your Codex,
+  and choose a boon to keep for good: more attack, defence or health, more gold
+  from foes and quests, or longer-lasting meals. Each tide's boons are a little
+  smaller than the last. The world list shows which tide each world is on.
+- The Drowned King waits on his throne deep in a drowned hall in the
+  Highlands. He's the hardest fight in the game: go in well fed. Beating him
+  turns the tide, the first step towards starting again on a new shore
+  (coming soon). Worlds you've already started that reach the Highlands get
+  him too.
 
 ### Fixed
 - Pop-ups are only as tall as what's in them, instead of filling the screen.
@@ -28,6 +41,18 @@ All notable changes to this project are documented here. The format follows
   after a few tides), Long Table makes meals give more instead of last longer,
   and Wrecker's Luck now finds you extra materials when you loot or gather
   (gold was never the limit), plus +4 health.
+- The Drowned King now waits in the farthest hall from the shore, on the
+  Drowned Throne, and two of his thanes guard the way to him. Ride the tide
+  by taking his crown from the throne once he's fallen, instead of from the
+  menu. (New worlds; a world whose king has already fallen finds the crown at
+  your feet.)
+- Important moments no longer hide in the log: seeing a warden, crossing into
+  a new region, finding the king's hall, the tide turning and being knocked
+  out are marked ⚑ and highlighted in the log, and pop up as a message when
+  the log is closed (the Log bar shows a dot until you open it). Finding the
+  king's hall and beating him open a pop-up explaining what's happened.
+- The world map marks the king's hall with ♚ once you've been there, and the
+  area map marks his throne.
 
 ## [0.12.0-beta.3] - 2026-11-17
 
