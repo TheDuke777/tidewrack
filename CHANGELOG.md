@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Meals from deeper regions are now worth cooking: each region's meals beat
+  anything you could cook before you got there, against its toughest bounties
+  and the warden on the road out. Fens, Moors and Highlands meals give more
+  defence (and some more attack and health); Drover's Hotpot, Fen Pottage, Bear
+  Stew and Cloudberry Cranachan take a little more of their key ingredient, and
+  bear meat is worth a bit more. New worlds only: worlds you've already started
+  keep their meals.
+
 ## [0.11.4] - 2026-11-17
 
 ### Changed

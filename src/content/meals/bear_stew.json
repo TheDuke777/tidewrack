@@ -3,13 +3,14 @@
   "name": "Bear Stew",
   "description": "Bear meat and barley stewed with pine nuts until the spoon stands up. You feel twice your size.",
   "ingredients": {
-    "material.bear_meat": 2,
+    "material.bear_meat": 3,
     "material.barley": 1,
     "material.pine_nuts": 1
   },
   "stats": {
     "atk": 4,
-    "def": 4
+    "def": 4,
+    "hp": 6
   },
   "turns": 60
 }

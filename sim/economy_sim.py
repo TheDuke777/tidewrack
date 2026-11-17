@@ -19,8 +19,11 @@ materials would have sold for. Meals (step 7c): a ready-made meal costs more tha
 cooking it (rule 2), and no meal's buff is worth more than MEAL_POWER_PER_VALUE
 times its ingredients, so pricier meals can be stronger but never runaway.
 
-Returning wanderers and restocks add more of both over time; they're not
-counted here (the step-8 difficulty sim plays worlds turn by turn).
+Over time returning wanderers, restocks and regrowth add more. Regrowth is
+reported on its own as a rate (``regrowth``): the gold a world's wild places
+could grow back per 100 turns if every spot is picked as soon as it grows, an
+upper bound since a place stops regrowing at its cap. Returning wanderers and
+restocks aren't counted.
 """
 
 from __future__ import annotations
@@ -31,6 +34,7 @@ from dataclasses import dataclass, field
 
 from tidewrack.core.data.loader import Content
 from tidewrack.core.economy.value_model import (
+    STANDARD_ECONOMY,
     buy_price,
     cook_fee,
     craft_fee,
@@ -46,6 +50,7 @@ from tidewrack.core.procgen.enemy_gen import generate_enemies
 from tidewrack.core.procgen.gear_gen import generate_finds, generate_kit, make_item
 from tidewrack.core.procgen.material_gen import (
     generate_gathering,
+    generate_growers,
     known_recipes,
     make_material,
     make_meal,
@@ -54,6 +59,8 @@ from tidewrack.core.procgen.material_gen import (
 from tidewrack.core.procgen.quest_gen import generate_quests
 from tidewrack.core.procgen.shop_gen import generate_shops
 from tidewrack.core.procgen.world_gen import generate_world
+
+REGROWTH_TURNS = 100  # the regrowth rate is reported per this many turns
 
 
 @dataclass
@@ -67,6 +74,7 @@ class WorldReport:
     cheapest_ware: int | None
     materials: int = 0  # selling every dropped and gathered material
     crafting: int = 0  # fees: the kit fully upgraded, each known recipe once
+    regrowth: float = 0.0  # most gold regrown gathering yields per REGROWTH_TURNS
     problems: list[str] = field(default_factory=list)
 
     @property
@@ -104,6 +112,7 @@ def simulate(seed: int, content: Content, recipe_id: str = "world.standard") -> 
         cheapest_ware=min((buy_price(i) for i in stock), default=None),
         materials=sum(material_sell_price(s.material) * s.count for s in stacks),
         crafting=fees,
+        regrowth=regrowth(world, content),
     )
     for item in stock + [w for s in shops for w in s.shop.wares]:
         if sell_price(item) >= buy_price(item):
@@ -113,6 +122,18 @@ def simulate(seed: int, content: Content, recipe_id: str = "world.standard") -> 
         if gear.rolls and value(item) >= value(best):
             report.problems.append(f"seed {seed}: a shop sells a top-roll {item.display_name}")
     return report
+
+
+def regrowth(world, content: Content, turns: int = REGROWTH_TURNS) -> float:
+    """Gold a world's regrowth yields per `turns` at most: each wild place grows
+    one spot every regrow_every turns (crafting.regrow_system), worth its table's
+    mean material sale price times its mean count."""
+    total = 0.0
+    for grower in generate_growers(world, content):
+        weights = sum(e.weight for e in grower.materials)
+        price = sum(material_sell_price(e.material) * e.weight for e in grower.materials)
+        total += price / weights * (grower.low + grower.high) / 2
+    return total * turns / STANDARD_ECONOMY.regrow_every
 
 
 def lint_content(content: Content) -> list[str]:
@@ -210,6 +231,7 @@ def main(seeds: int = 50) -> int:
     cheapest = [r.cheapest_ware for r in reports if r.cheapest_ware is not None]
     print(line("cheapest ware", cheapest))
     print(line("crafting fees (kit, recipes)", [r.crafting for r in reports]))
+    print(line(f"regrowth / {REGROWTH_TURNS} turns (most)", [round(r.regrowth) for r in reports]))
     print(f"{len(problems)} problem(s)")
     for problem in problems:
         print("  " + problem)

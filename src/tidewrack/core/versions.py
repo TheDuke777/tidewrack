@@ -40,4 +40,5 @@ SCHEMA_VERSION = 13
 # 14: every region has at least one place of each of its kinds
 # 15: standard worlds add the Highlands (28 places in four regions)
 # 16: Fens gear and foes stronger, Moors foes and Barrow Warden tougher (8b retune)
-GENERATOR_VERSION = 16
+# 17: meals sized per region (deeper meals stronger), bear meat worth more (8b)
+GENERATOR_VERSION = 17

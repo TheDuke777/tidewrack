@@ -81,3 +81,10 @@ def test_bounties_stay_fair_once_geared(rows):
     # hard on arrival, under about half your health once geared.
     for region in regions(rows):
         assert sim.summary(rows, region, "geared", "Standard")["bounty"].hp_lost <= 0.55, region
+
+
+def test_each_region_cooks_its_own_best_meal():
+    # 8b meals: a region's own meals beat everything cookable before it, for the
+    # fights they're for (its hardest bounty and the next warden), by a margin.
+    for edge in sim.meal_edges(CONTENT, fights=300)[1:]:
+        assert edge.own_lost <= 0.9 * edge.earlier_lost, edge

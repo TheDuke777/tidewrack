@@ -245,6 +245,51 @@ def simulate(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[Row]
     return rows
 
 
+@dataclass(frozen=True)
+class MealEdge:
+    region: str
+    own: str  # the region's best own meal (all its ingredients first found here)
+    own_lost: float
+    earlier: str | None  # the best meal from the regions before
+    earlier_lost: float
+
+
+def meal_edges(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[MealEdge]:
+    """Per region on Standard, geared there: the share of HP lost to its hardest
+    bounty plus the next region's warden (the fights a meal is for), fed with the
+    best meal that only became cookable here versus the best from before. Each
+    region's own meals should win (8b: meals sized against their region's foes)."""
+    rng = Rng(seed).derive("meal_edges")
+    rules = Rules()  # Standard
+    tiers = material_tiers(content)
+    order = regions(content)
+    out = []
+    for i, region_id in enumerate(order):
+        region = content.regions[region_id]
+        you = gear_stats(content, order[: i + 1])
+        hard = [f for f in foes(content, region_id) if f.kind == "bounty"]
+        if i + 1 < len(order):
+            hard += [f for f in foes(content, order[i + 1]) if f.kind == "warden"]
+        lost: dict[str, float] = {}
+        for meal in meals_by(content, region.tier):
+            fed_you = fed(you, meal)
+            lost[meal.id] = sum(fight(rng, fed_you, foe, rules, fights).hp_lost for foe in hard)
+        own = [m for m in lost if meal_tier(content.meals[m], tiers) == region.tier]
+        earlier = [m for m in lost if m not in own]
+        best_own = min(own, key=lambda m: (lost[m], m))
+        best_earlier = min(earlier, key=lambda m: (lost[m], m)) if earlier else None
+        out.append(
+            MealEdge(
+                region.name,
+                content.meals[best_own].name,
+                lost[best_own],
+                content.meals[best_earlier].name if best_earlier else None,
+                lost[best_earlier] if best_earlier else 0.0,
+            )
+        )
+    return out
+
+
 def summary(rows: list[Row], region: str, gear: str, difficulty: str) -> dict[str, Odds]:
     """Per kind for one region/gear/difficulty: the hardest foe (most HP lost),
     the median foe, the bounty and the warden, unfed."""
@@ -312,6 +357,10 @@ def main(argv: list[str]) -> None:
     print(report(rows))
     rounds = statistics.median(r.unfed.rounds for r in rows)
     print(f"\n{fights} fights per row; median rounds per fight {rounds:.1f}")
+    print("\nMeals, geared, Standard (HP lost to the bounty + the next warden):")
+    for e in meal_edges(load_bundled_content(), fights):
+        before = f"{e.earlier} {e.earlier_lost:.0%}" if e.earlier else "none"
+        print(f"  {e.region:18} own: {e.own} {e.own_lost:.0%}   best before: {before}")
 
 
 if __name__ == "__main__":

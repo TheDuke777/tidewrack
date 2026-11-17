@@ -9,7 +9,8 @@
   },
   "stats": {
     "atk": 3,
-    "def": 2
+    "def": 2,
+    "hp": 4
   },
   "turns": 60,
   "sold": true

@@ -19,3 +19,11 @@ def test_a_world_pays_enough_to_buy_from_its_shops():
     reports = [economy_sim.simulate(seed, CONTENT) for seed in range(15)]
     assert all(r.income > r.stock_cost for r in reports)
     assert CONTENT.world("world.standard").gold >= 4
+
+
+def test_regrowth_is_a_trickle():
+    # Even picking every spot the moment it grows, regrowth (v0.8.2) pays well
+    # under a tenth of what a world holds at the start, per 100 turns.
+    for seed in range(5):
+        r = economy_sim.simulate(seed, CONTENT)
+        assert 0 < r.regrowth <= 0.1 * r.income, (seed, r.regrowth, r.income)
