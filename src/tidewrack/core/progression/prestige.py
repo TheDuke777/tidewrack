@@ -16,7 +16,7 @@ from tidewrack.core.combat.rules import Rules
 from tidewrack.core.data.schemas import BoonSchema, TidesSchema
 from tidewrack.core.economy.value_model import EconomyRules
 from tidewrack.core.engine.components import Boon, Meal, Prestige
-from tidewrack.core.gear.stats import STATS
+from tidewrack.core.gear.stats import STAT_VALUES, STATS
 from tidewrack.core.rng import Rng
 
 BOON_DECAY = 0.8  # each ascent's boon is this share of the one before
@@ -28,6 +28,17 @@ def boon_size(base: int, tide: int, floor: int = 1) -> int:
     return max(floor, round(base * BOON_DECAY ** (tide - 1)))
 
 
+def boon_stat_sizes(stats: dict[str, int], tide: int) -> dict[str, int]:
+    """A boon's stats for the `tide`-th ascent: each shrinks with BOON_DECAY and may
+    reach 0 (so a DEF point, the cliffy stat, stops coming after a few tides),
+    but the boon keeps at least 1 of its biggest stat."""
+    sizes = {s: max(0, round(v * BOON_DECAY ** (tide - 1))) for s, v in stats.items()}
+    if stats and not any(sizes.values()):
+        biggest = max(stats, key=lambda s: (stats[s] * STAT_VALUES[s], s))
+        sizes[biggest] = 1
+    return sizes
+
+
 def make_boon(schema: BoonSchema, tide: int) -> Boon:
     """The boon `schema` gives on reaching tide `tide` (1 = the first ascent)."""
     return Boon(
@@ -35,21 +46,33 @@ def make_boon(schema: BoonSchema, tide: int) -> Boon:
         name=schema.name,
         description=schema.description,
         tide=tide,
-        stats={s: boon_size(v, tide) for s, v in schema.stats.items()},
+        stats=boon_stat_sizes(dict(schema.stats), tide),
         gold_pct=boon_size(schema.gold_pct, tide, MIN_PCT) if schema.gold_pct else 0,
         meal_turns_pct=(
             boon_size(schema.meal_turns_pct, tide, MIN_PCT) if schema.meal_turns_pct else 0
+        ),
+        meal_stats_pct=(
+            boon_size(schema.meal_stats_pct, tide, MIN_PCT) if schema.meal_stats_pct else 0
+        ),
+        materials_pct=(
+            boon_size(schema.materials_pct, tide, MIN_PCT) if schema.materials_pct else 0
         ),
     )
 
 
 def boon_text(boon: Boon) -> str:
-    """What a boon does, e.g. "+2 ATK", "+20% gold from foes and quests"."""
-    if boon.stats:
-        return ", ".join(f"+{v} {s.upper()}" for s, v in boon.stats.items() if v)
+    """What a boon does, e.g. "+2 ATK", "+20% gold from foes and quests, +4 HP"."""
+    parts = []
     if boon.gold_pct:
-        return f"+{boon.gold_pct}% gold from foes and quests"
-    return f"Meals last {boon.meal_turns_pct}% longer"
+        parts.append(f"+{boon.gold_pct}% gold from foes and quests")
+    if boon.materials_pct:
+        parts.append(f"{boon.materials_pct}% chance of an extra material when you loot or gather")
+    if boon.meal_stats_pct:
+        parts.append(f"meals give {boon.meal_stats_pct}% more")
+    if boon.meal_turns_pct:
+        parts.append(f"meals last {boon.meal_turns_pct}% longer")
+    parts += [f"+{v} {s.upper()}" for s, v in boon.stats.items() if v]
+    return ", ".join(parts)
 
 
 def boon_stats(boons: Iterable[Boon]) -> dict[str, int]:
@@ -62,6 +85,23 @@ def boon_stats(boons: Iterable[Boon]) -> dict[str, int]:
 
 def gold_pct(prestige: Prestige | None) -> int:
     return sum(b.gold_pct for b in prestige.boons) if prestige else 0
+
+
+def materials_pct(prestige: Prestige | None) -> int:
+    return min(100, sum(b.materials_pct for b in prestige.boons)) if prestige else 0
+
+
+def meal_stats_pct(prestige: Prestige | None) -> int:
+    return sum(b.meal_stats_pct for b in prestige.boons) if prestige else 0
+
+
+def stronger_meal(meal: Meal, pct: int) -> Meal:
+    """A meal's buff with `pct`% more to each stat (rounded, at least +1 where it
+    has the stat)."""
+    if not pct:
+        return meal
+    stats = {s: v + max(1, round(v * pct / 100)) if v else 0 for s, v in meal.stats.items()}
+    return replace(meal, stats=stats)
 
 
 def meal_turns_pct(prestige: Prestige | None) -> int:

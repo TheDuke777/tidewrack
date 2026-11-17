@@ -29,6 +29,7 @@ from tidewrack.core.engine.components import (
     Materials,
     MaterialStack,
     Position,
+    Prestige,
     Recipe,
     RecipePage,
     Recipes,
@@ -45,6 +46,7 @@ from tidewrack.core.engine.events import (
     RoomEntered,
 )
 from tidewrack.core.gear.item import Item
+from tidewrack.core.progression import prestige
 
 if TYPE_CHECKING:
     from tidewrack.core.engine.game import Game
@@ -65,6 +67,11 @@ def count(game: Game, material_id: str) -> int:
 def add(game: Game, stack: MaterialStack, source: str, enemy_id: str | None = None) -> None:
     if stack.count <= 0:
         return
+    if source in ("loot", "gathered"):
+        # Wrecker's Luck (8c): a chance of one more, on the saved gathering stream.
+        pct = prestige.materials_pct(game.world.try_get(game.player, Prestige))
+        if pct and game.gather_rng.chance(pct / 100):
+            stack = MaterialStack(stack.material, stack.count + 1)
     satchel = held(game)
     mine = satchel.get(stack.material.material_id)
     if mine is None:

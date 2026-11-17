@@ -125,6 +125,18 @@ def test_the_tides_hold_the_king_steady_for_a_balanced_player(tides):
         assert row.warden.win >= 0.95, row.tide
     assert standard[-1].king.hp_lost >= standard[0].king.hp_lost - 0.15
     for row in _tide_rows(tides, "mixed", "Hard"):
-        assert row.king.win >= 0.85, row.tide
+        assert row.king.win >= 0.9, row.tide
     for row in _tide_rows(tides, "mixed", "Easy"):
         assert row.king.win >= 0.98, row.tide
+
+
+def test_no_boon_plan_breaks_the_tides(tides):
+    # Whatever boons you pick (user, 2026-11-17: every boon should help in a fight,
+    # and stacking DEF mustn't trivialise later tides), the king stays beatable fed
+    # on every tide and never becomes a walkover on Standard.
+    for plan in sim.BOON_PLANS:
+        for row in _tide_rows(tides, plan, "Standard"):
+            assert row.king.win >= 0.95, (plan, row.tide)
+            assert 0.15 <= row.king.hp_lost <= 0.7, (plan, row.tide, row.king.hp_lost)
+        for row in _tide_rows(tides, plan, "Hard"):
+            assert row.king.win >= 0.9, (plan, row.tide)

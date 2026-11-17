@@ -1,7 +1,7 @@
 {
   "id": "boon.long_table",
   "name": "Long Table",
-  "description": "You learned to make a meal last when the sea took everything else.",
+  "description": "You learned to make a little go a long way when the sea took everything else. Meals do more for you.",
   "order": 5,
-  "meal_turns_pct": 50
+  "meal_stats_pct": 10
 }

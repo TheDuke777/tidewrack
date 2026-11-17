@@ -11,6 +11,11 @@ All notable changes to this project are documented here. The format follows
   foes have more health and hit slightly harder, they and quests pay more gold,
   and tavern meals give bigger boosts. Your boons help you keep up. (Worlds
   you've already started keep their foes as they are.)
+- Boons reworked so every one helps in a fight and none makes later tides a
+  walkover: Sea-Hardened gives +1 defence and +4 health (its defence stops
+  after a few tides), Long Table makes meals give more instead of last longer,
+  and Wrecker's Luck now finds you extra materials when you loot or gather
+  (gold was never the limit), plus +4 health.
 
 ## [0.12.0-beta.3] - 2026-11-17
 

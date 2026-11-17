@@ -1,7 +1,10 @@
 {
   "id": "boon.sea_hardened",
   "name": "Sea-Hardened",
-  "description": "The tide threw you on the rocks and you got up. Blows land softer now.",
+  "description": "The tide threw you on the rocks and you got up. Blows land softer, and you're harder to put down.",
   "order": 2,
-  "stats": { "def": 2 }
+  "stats": {
+    "def": 1,
+    "hp": 4
+  }
 }

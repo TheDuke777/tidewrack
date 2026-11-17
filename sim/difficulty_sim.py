@@ -388,7 +388,8 @@ BOON_PLANS = {
     "mixed": ["boon.keen_edge", "boon.sea_hardened", "boon.deep_lungs"],
     "all DEF": ["boon.sea_hardened"],
     "all ATK": ["boon.keen_edge"],
-    "no stats": ["boon.wreckers_luck", "boon.long_table"],
+    "gold + meals": ["boon.wreckers_luck", "boon.long_table"],
+    "all meals": ["boon.long_table"],
 }
 TIDES = range(0, 11)
 
@@ -404,12 +405,13 @@ class TideRow:
     warden: Odds  # its warden on arrival (gear from the regions before), fed
 
 
-def boon_stats_for(content: Content, plan: list[str], tide: int) -> dict[str, int]:
-    """Stats from the boons a plan has picked by `tide` (one per ascent so far)."""
+def boons_for(content: Content, plan: list[str], tide: int) -> tuple[dict[str, int], int]:
+    """What the boons a plan has picked by `tide` (one per ascent so far) add in a
+    fight: (stats, % stronger meals)."""
     from tidewrack.core.progression.prestige import boon_stats, make_boon
 
     picks = [make_boon(content.boons[plan[(t - 1) % len(plan)]], t) for t in range(1, tide + 1)]
-    return boon_stats(picks)
+    return boon_stats(picks), sum(b.meal_stats_pct for b in picks)
 
 
 def tide_curve(
@@ -427,10 +429,10 @@ def tide_curve(
     geared, arriving = gear_stats(content, order), gear_stats(content, order[:-1])
     rows = []
     for tide in tides:
-        own = _tide_meals(content, region.tier, tide)
-        before = _tide_meals(content, region.tier - 1, tide)
         for plan_name, plan in BOON_PLANS.items():
-            boons = boon_stats_for(content, plan, tide)
+            boons, meal_pct = boons_for(content, plan, tide)
+            own = _tide_meals(content, region.tier, tide, meal_pct)
+            before = _tide_meals(content, region.tier - 1, tide, meal_pct)
             you = {s: v + boons.get(s, 0) for s, v in geared.items()}
             came = {s: v + boons.get(s, 0) for s, v in arriving.items()}
             for preset in content.difficulty_choices():
@@ -449,16 +451,16 @@ def tide_curve(
     return rows
 
 
-def _tide_meals(content: Content, tier: int, tide: int) -> list[MealSchema]:
+def _tide_meals(content: Content, tier: int, tide: int, boon_pct: int = 0) -> list[MealSchema]:
     """The meals cookable by `tier`, their stats scaled for `tide` (as a world on
-    that tide's taverns snapshot them)."""
+    that tide's taverns snapshot them) and by boons that make meals stronger."""
     from tidewrack.core.procgen.material_gen import make_meal
-    from tidewrack.core.progression.prestige import tide_meal
+    from tidewrack.core.progression.prestige import stronger_meal, tide_meal
 
     tides = content.world(WORLD).tides
     out = []
     for schema in meals_by(content, tier):
-        meal = tide_meal(make_meal(schema, content), tides, tide)
+        meal = stronger_meal(tide_meal(make_meal(schema, content), tides, tide), boon_pct)
         out.append(schema.model_copy(update={"stats": dict(meal.stats)}))
     return out
 

@@ -134,7 +134,9 @@ def eat(game: Game, meal_id: str) -> None:
     turns = prestige.with_bonus(
         stack.meal.turns, prestige.meal_turns_pct(game.world.try_get(game.player, Prestige))
     )
-    game.world.add(game.player, WellFed(copy.deepcopy(stack.meal), turns))
+    held_by = game.world.try_get(game.player, Prestige)
+    meal = prestige.stronger_meal(copy.deepcopy(stack.meal), prestige.meal_stats_pct(held_by))
+    game.world.add(game.player, WellFed(meal, turns))
     game.bus.emit(MealEaten(meal_id, stack.meal.name, turns, replaced))
 
 

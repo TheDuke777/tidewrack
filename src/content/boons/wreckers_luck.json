@@ -1,7 +1,10 @@
 {
   "id": "boon.wreckers_luck",
   "name": "Wrecker's Luck",
-  "description": "Every tide leaves something shining on the shore, and you know where to look.",
+  "description": "Every tide leaves something on the shore, and you know where to look. You find more when you loot and gather, and keep your feet while you do.",
   "order": 4,
-  "gold_pct": 20
+  "stats": {
+    "hp": 4
+  },
+  "materials_pct": 25
 }

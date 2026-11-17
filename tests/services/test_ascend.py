@@ -85,14 +85,18 @@ def test_ascending_makes_a_new_world_in_the_same_slot(tmp_path):
 def test_boons_add_up_and_shrink_each_tide(tmp_path):
     session = session_with_turned_tide(tmp_path)
     base = session.game.sheet().total["atk"]
-    assert [b.stats for b in session.boon_choices(CONTENT)][:2] == [{"atk": 2}, {"def": 2}]
+    assert [b.stats for b in session.boon_choices(CONTENT)][:2] == [
+        {"atk": 2},
+        {"def": 1, "hp": 4},
+    ]
     session.ascend(CONTENT, "boon.keen_edge")
     assert session.game.sheet().total["atk"] == base + 2
     game = session.game
     turn_the_tide(game)
     choices = {b.boon_id: b for b in session.boon_choices(CONTENT)}
     assert choices["boon.deep_lungs"].stats == {"hp": boon_size(8, 2)} == {"hp": 6}
-    assert choices["boon.wreckers_luck"].gold_pct == 16
+    assert choices["boon.wreckers_luck"].materials_pct == 20
+    assert choices["boon.wreckers_luck"].stats == {"hp": 3}
     session.ascend(CONTENT, "boon.keen_edge")
     game = session.game
     assert game.world.get(game.player, Prestige).rank == 2
@@ -104,26 +108,45 @@ def test_boons_add_up_and_shrink_each_tide(tmp_path):
 def test_a_boon_never_shrinks_to_nothing(tide):
     for schema in CONTENT.boon_choices():
         boon = make_boon(schema, tide)
-        assert any(boon.stats.values()) or boon.gold_pct >= 5 or boon.meal_turns_pct >= 5
+        pcts = (boon.gold_pct, boon.meal_turns_pct, boon.meal_stats_pct, boon.materials_pct)
+        assert any(boon.stats.values()) or max(pcts) >= 5, (schema.id, tide)
     assert BOON_DECAY < 1
 
 
-def test_wreckers_luck_adds_to_loot_and_quest_gold_but_not_sales(tmp_path):
+def test_tides_pay_more_for_foes_and_quests_but_not_sales(tmp_path):
     from tidewrack.core.economy import shops
 
     session = session_with_turned_tide(tmp_path)
-    session.ascend(CONTENT, "boon.wreckers_luck")
+    session.ascend(CONTENT, "boon.keen_edge")
     game = session.game
     wallet = game.world.get(game.player, Wallet)
     before = wallet.gold
     assert game.economy.reward_gold == 1.1  # tide 1: foes and quests pay 10% more
     shops.gain(game, 100, "loot")
-    assert wallet.gold == before + 132  # 100 → 110 for the tide, +20% for the boon
+    assert wallet.gold == before + 110
     shops.gain(game, 100, "sale")
-    assert wallet.gold == before + 232  # sales get neither
+    assert wallet.gold == before + 210  # sales don't
 
 
-def test_long_table_makes_meals_last_longer(tmp_path):
+def test_wreckers_luck_finds_extra_materials(tmp_path):
+    from tidewrack.core.economy import crafting
+    from tidewrack.core.engine.components import MaterialStack
+    from tidewrack.core.procgen.material_gen import make_material
+
+    session = session_with_turned_tide(tmp_path)
+    session.ascend(CONTENT, "boon.wreckers_luck")
+    game = session.game
+    prestige = game.world.get(game.player, Prestige)
+    assert prestige.boons[-1].materials_pct == 25 and prestige.boons[-1].stats == {"hp": 4}
+    prestige.boons[-1].materials_pct = 100  # always, for the test
+    hide = make_material(CONTENT.materials["material.hide"])
+    crafting.add(game, MaterialStack(hide, 2), "loot", "enemy.wild_boar")
+    assert crafting.held(game)["material.hide"].count == 3
+    crafting.add(game, MaterialStack(hide, 2), "bought")  # buying gets no extra
+    assert crafting.held(game)["material.hide"].count == 5
+
+
+def test_long_table_makes_meals_stronger(tmp_path):
     from tidewrack.core.economy import cooking
     from tidewrack.core.engine.components import MealStack, WellFed
     from tidewrack.core.procgen.material_gen import make_meal
@@ -134,7 +157,9 @@ def test_long_table_makes_meals_last_longer(tmp_path):
     meal = make_meal(CONTENT.meals["meal.boar_roast"], CONTENT)
     cooking.held(game)[meal.meal_id] = MealStack(meal, 1)
     cooking.eat(game, meal.meal_id)
-    assert game.world.get(game.player, WellFed).turns_left == meal.turns * 3 // 2
+    fed = game.world.get(game.player, WellFed)
+    assert fed.turns_left == meal.turns
+    assert fed.meal.stats == {"atk": meal.stats["atk"] + 1}  # +10%, at least +1
 
 
 def test_a_new_world_still_plays(tmp_path):
@@ -160,7 +185,7 @@ def test_each_tide_makes_the_next_world_harder_and_richer(tmp_path):
     session.ascend(CONTENT, "boon.keen_edge")
     game = session.game
     assert game.rules.enemy_hp == base_rules.enemy_hp * 1.1
-    assert game.rules.enemy_atk == base_rules.enemy_atk * 1.02
+    assert game.rules.enemy_atk == base_rules.enemy_atk * 1.01
     assert game.economy.reward_gold == base_economy.reward_gold * 1.1
     shops = [s for _, (s,) in game.world.query(Shop) if s.meals]
     stew = next(r.meal for r in shops[0].meals if r.meal.meal_id == "meal.bear_stew")

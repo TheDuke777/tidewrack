@@ -271,8 +271,9 @@ class TideCrown:
 @dataclass
 class Boon:
     """A boon chosen when the tide turned (step 8c): a snapshot, so saves don't
-    need content. It does one of: `stats`, +`gold_pct`% gold from foes and quests,
-    meals lasting +`meal_turns_pct`% longer."""
+    need content. It gives any of: `stats`, +`gold_pct`% gold from foes and
+    quests, meals lasting +`meal_turns_pct`% longer, meal buffs `meal_stats_pct`%
+    stronger."""
 
     boon_id: str
     name: str
@@ -281,6 +282,8 @@ class Boon:
     stats: dict[str, int] = field(default_factory=dict)
     gold_pct: int = 0
     meal_turns_pct: int = 0
+    meal_stats_pct: int = 0  # meal buffs this much stronger while you're fed
+    materials_pct: int = 0  # % chance of one more material each time you loot or gather
 
 
 @dataclass

@@ -417,9 +417,11 @@ RULE_FIELDS = tuple(f.name for f in dataclass_fields(Rules) if f.name != "diffic
 
 class BoonSchema(Schema):
     """A boon (step 8c): one is chosen each time the tide turns and kept for good.
-    It does one thing: adds `stats`, adds `gold_pct`% to gold from foes and quests,
-    or makes meals last `meal_turns_pct`% longer. These are its first-ascent
-    amounts; later ascents give less (core.progression.prestige)."""
+    It adds `stats`, and/or `gold_pct`% to gold from foes and quests, or makes meal
+    buffs `meal_stats_pct`% stronger (or, in older content, `meal_turns_pct`%
+    longer). These are its first-ascent amounts; later ascents give less
+    (core.progression.prestige). Every boon should help in a fight (8c: the sim
+    checks each plan of picks stays beatable)."""
 
     id: content_id("boon")
     name: Text
@@ -428,12 +430,14 @@ class BoonSchema(Schema):
     stats: StatBlock = {}
     gold_pct: int = Field(default=0, ge=0, le=100)
     meal_turns_pct: int = Field(default=0, ge=0, le=200)
+    meal_stats_pct: int = Field(default=0, ge=0, le=100)
+    materials_pct: int = Field(default=0, ge=0, le=100)  # chance of one more when looting
 
     @model_validator(mode="after")
     def _check(self) -> BoonSchema:
-        effects = [bool(self.stats), bool(self.gold_pct), bool(self.meal_turns_pct)]
-        if sum(effects) != 1:
-            raise ValueError("a boon does exactly one thing: stats, gold_pct or meal_turns_pct")
+        effects = (self.gold_pct, self.meal_turns_pct, self.meal_stats_pct, self.materials_pct)
+        if not (self.stats or any(effects)):
+            raise ValueError("a boon must do something")
         if any(v <= 0 for v in self.stats.values()):
             raise ValueError("boon stats must be positive")
         return self

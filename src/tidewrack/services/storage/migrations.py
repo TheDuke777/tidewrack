@@ -1086,6 +1086,11 @@ def _v16_to_v17(envelope: Envelope) -> Envelope:
     game = envelope["game"]
     game.setdefault("rules", {}).setdefault("enemy_atk", 1.0)
     game.setdefault("economy", {}).setdefault("reward_gold", 1.0)
+    # Boons can make meals stronger too (Long Table, reworked).
+    for entity in game["entities"]:
+        for boon in entity["components"].get("Prestige", {}).get("boons", []):
+            boon.setdefault("meal_stats_pct", 0)
+            boon.setdefault("materials_pct", 0)
     return envelope
 
 
