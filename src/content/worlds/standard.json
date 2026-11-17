@@ -10,6 +10,12 @@
   "player": { "atk": 2, "def": 1, "hp": 20 },
   "kit": ["gear.driftwood_club", "gear.patched_coat"],
   "gold": 10,
-  "final": { "enemy": "enemy.drowned_king", "roomset": "roomset.drowned_hall", "room": "Throne Room" },
+  "final": {
+    "enemy": "enemy.drowned_king",
+    "roomset": "roomset.drowned_hall",
+    "room": "The Drowned Throne",
+    "room_description": "The deepest hall of all, black water to the waist. At its end, on a dais of green stone, a throne rises out of the loch, and someone sits it.",
+    "guards": { "enemy": "enemy.drowned_thane", "count": 2 }
+  },
   "quests": { "per_board": 3, "found": 2, "reward_affix_chance": 1.0, "recipe_chance": 0.35 }
 }

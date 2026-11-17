@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The Drowned King now waits in the farthest hall from the shore, on the
+  Drowned Throne, and two of his thanes guard the way to him. Ride the tide
+  by taking his crown from the throne once he's fallen, instead of from the
+  menu. (New worlds; a world whose king has already fallen finds the crown at
+  your feet.)
+- Important moments no longer hide in the log: seeing a warden, crossing into
+  a new region, finding the king's hall, the tide turning and being knocked
+  out are marked ⚑ and highlighted in the log, and pop up as a message when
+  the log is closed (the Log bar shows a dot until you open it). Finding the
+  king's hall and beating him open a pop-up explaining what's happened.
+- The world map marks the king's hall with ♚ once you've been there, and the
+  area map marks his throne.
+
 ## [0.12.0-beta.2] - 2026-11-17
 
 ### Added

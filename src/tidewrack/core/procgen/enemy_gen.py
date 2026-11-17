@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import NamedTuple
 
 from tidewrack.core.data.loader import Content
@@ -144,22 +144,27 @@ def wardens_hash(wardens: Iterable[PlacedWarden]) -> str:
 
 
 class PlacedFinal(NamedTuple):
-    """The world's final foe in its room; Game takes it as (location, room, enemy,
-    final)."""
+    """The world's final foe in its room, and the guards on the way to it; Game
+    takes it as (location, room, enemy, final). `room_name` and
+    `room_description` replace its room's (see crown_room)."""
 
     location: str
     room: str
     enemy: Enemy
     final: FinalFoe
+    room_name: str = ""
+    room_description: str = ""
+    guards: tuple[PlacedEnemy, ...] = ()
 
 
 def generate_final(
     seed: int, world: Overworld, content: Content, recipe: WorldRecipeSchema
 ) -> PlacedFinal | None:
     """The recipe's final foe (step 8c), on the seed's "final" substream: in one
-    place of its roomset in the deepest region, in the room with its noun farthest
-    from the way in (none: that place's farthest room). None if the recipe has
-    no final foe or the world no such place."""
+    place of its roomset in the deepest region, in the room farthest from the way
+    in, with its guards in the rooms just before it on the shortest way there
+    (never a gate). None if the recipe has no final foe or the world no such
+    place."""
     final = recipe.final
     if final is None or not world.regions:
         return None
@@ -172,14 +177,30 @@ def generate_final(
         return None
     rng = Rng(seed).derive("final")
     location = world.location(rng.choice(places))
-    room = farthest_room(location, final.room)
+    path = farthest_path(location)
+    room = path[-1]
     enemy = make_enemy(rng, content.enemies[final.enemy], content)
-    return PlacedFinal(location.id, room, enemy, FinalFoe(deepest.id))
+    guards: list[PlacedEnemy] = []
+    if final.guards is not None:
+        approach = [r for r in reversed(path[:-1]) if r not in location.gates]
+        for guard_room in approach[: final.guards.count]:
+            guard = make_enemy(rng, content.enemies[final.guards.enemy], content)
+            guards.append(PlacedEnemy(location.id, guard_room, guard))
+    return PlacedFinal(
+        location.id,
+        room,
+        enemy,
+        FinalFoe(deepest.id),
+        final.room,
+        final.room_description,
+        tuple(guards),
+    )
 
 
-def farthest_room(location: Location, noun: str) -> str:
-    """The non-gate room named for `noun` farthest (in steps) from where you
-    arrive; if none has that name, the farthest non-gate room."""
+def farthest_path(location: Location) -> list[str]:
+    """The shortest way (room ids, from where you arrive) to the non-gate room
+    farthest from it; ties go to the highest room id."""
+    parent: dict[str, str | None] = {location.start: None}
     depth = {location.start: 0}
     frontier = [location.start]
     while frontier:
@@ -188,11 +209,28 @@ def farthest_room(location: Location, noun: str) -> str:
             for neighbour in location.neighbours(room_id):
                 if neighbour not in depth:
                     depth[neighbour] = depth[room_id] + 1
+                    parent[neighbour] = room_id
                     nxt.append(neighbour)
         frontier = nxt
-    rooms = [r for r in location.rooms if r not in location.gates and r in depth]
-    named = [r for r in rooms if location.rooms[r].name.endswith(noun)]
-    return max(named or rooms, key=lambda r: (depth[r], r))
+    rooms = [r for r in depth if r not in location.gates] or list(depth)
+    here: str | None = max(rooms, key=lambda r: (depth[r], r))
+    path = []
+    while here is not None:
+        path.append(here)
+        here = parent[here]
+    return path[::-1]
+
+
+def crown_room(world: Overworld, final: PlacedFinal) -> None:
+    """Make the final foe's room its throne room: its name and description (the
+    world is snapshotted after this, at world creation)."""
+    location = world.location(final.location)
+    room = location.rooms[final.room]
+    location.rooms[final.room] = replace(
+        room,
+        name=final.room_name or room.name,
+        description=final.room_description or room.description,
+    )
 
 
 def final_hash(final: PlacedFinal | None) -> str:

@@ -31,6 +31,7 @@ from tidewrack.core.engine.components import (
     Prestige,
     Respawn,
     Spawner,
+    TideCrown,
     Warden,
 )
 from tidewrack.core.engine.events import (
@@ -213,6 +214,8 @@ def _win(game: Game, fighting: Fighting, enemy: Enemy) -> None:
         game.bus.emit(RegionOpened(warden.region, game.overworld.regions[warden.region].name))
     if final is not None:
         game.world.get(game.player, Prestige).tide_turned = True
+        # The crown stays where it fell: taking it rides the tide (8c).
+        game.world.create(TideCrown(), Position(position.location, position.room))
         region = game.overworld.regions.get(final.region)
         game.bus.emit(TideTurned(enemy.name, region.name if region else ""))
 

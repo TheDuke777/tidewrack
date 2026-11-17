@@ -11,7 +11,7 @@ from tidewrack.core.engine.events import (
     RegionOpened,
     WayBarred,
 )
-from tidewrack.core.engine.game import Attack, Flee, Game, Travel, Wait
+from tidewrack.core.engine.game import IMPORTANT, Attack, Flee, Game, Travel, Wait
 from tidewrack.core.procgen.enemy_gen import generate_wardens
 from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.content import load_bundled_content
@@ -52,7 +52,7 @@ def test_the_warden_waits_at_the_gate_and_only_fights_when_challenged():
     assert [type(e) for e in result.events][:2] == [WayBarred, CombatStarted]
     assert game.world.get(game.player, Position).location == NEAR  # you didn't get past
     fens = WORLD.regions["region.fens"].name
-    assert game.log[-1] == f"The Reed Warden bars the causeway into {fens}!"
+    assert game.log[-1] == f"{IMPORTANT}The Reed Warden bars the causeway into {fens}!"
 
 
 def test_beating_the_warden_opens_the_region_for_good():
@@ -61,7 +61,7 @@ def test_beating_the_warden_opens_the_region_for_good():
     result = game.perform(Attack())
     opened = [e for e in result.events if isinstance(e, RegionOpened)]
     assert opened == [RegionOpened("region.fens", WORLD.regions["region.fens"].name)]
-    assert game.log[-1] == f"The way into {opened[0].name} lies open."
+    assert game.log[-1] == f"{IMPORTANT}The way into {opened[0].name} lies open."
     assert all(r.guard is None for r in game.view().roads)
     # The Moors' and Highlands' wardens are still there.
     assert len(list(game.world.query(Warden))) == 2

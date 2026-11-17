@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tidewrack.core.combat.rules import STANDARD
-from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige
+from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige, TideCrown
 from tidewrack.core.engine.game import Attack, Defend, Look, Move, Wait
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
@@ -557,3 +557,28 @@ def test_v14_saves_get_no_boons(tmp_path):
     envelope = json.loads((FIXTURES / "v14_prestige.json").read_text(encoding="utf-8"))
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert session.game.world.get(session.game.player, Prestige).boons == []
+
+
+def test_v16_fixture_keeps_the_crown_on_the_throne(tmp_path):
+    envelope = json.loads((FIXTURES / "v16_crown.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.world.get(game.player, Prestige).tide_turned
+    [(_, (_, at))] = list(game.world.query(TideCrown, Position))
+    assert game.overworld.location(at.location).room(at.room).name == "The Drowned Throne"
+    assert not game.can_ascend()  # you're not there
+
+
+def test_v15_worlds_whose_king_fell_get_the_crown_where_you_stand(tmp_path):
+    envelope = json.loads((FIXTURES / "v15_ascended.json").read_text(encoding="utf-8"))
+    player = next(e for e in envelope["game"]["entities"] if "Player" in e["components"])
+    player["components"]["Prestige"]["tide_turned"] = True
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    game = session.game
+    assert game.can_ascend()  # the crown is at your feet
+
+
+def test_v15_worlds_with_their_king_alive_get_no_crown(tmp_path):
+    envelope = json.loads((FIXTURES / "v15_ascended.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert list(session.game.world.query(TideCrown)) == []

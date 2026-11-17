@@ -469,14 +469,22 @@ class RegionPlanSchema(Schema):
     locations: int = Field(ge=2, le=20)
 
 
+class FinalGuardsSchema(Schema):
+    enemy: content_id("enemy")
+    count: int = Field(ge=0, le=6)
+
+
 class FinalFoeSchema(Schema):
     """The foe whose defeat ends a world's story (step 8c): it waits in a place of
-    `roomset` in the last region, in the room named `room` farthest from the
-    way in (else that place's farthest room)."""
+    `roomset` in the last region, in the room farthest from the way in, which
+    becomes `room` (its name and description), with `guards` in the rooms just
+    before it on the way there."""
 
     enemy: content_id("enemy")
     roomset: content_id("roomset")
-    room: Text  # a room noun, e.g. "Throne Room"
+    room: Text  # the name its room is given, e.g. "The Drowned Throne"
+    room_description: Text
+    guards: FinalGuardsSchema | None = None
 
 
 class WorldRecipeSchema(Schema):

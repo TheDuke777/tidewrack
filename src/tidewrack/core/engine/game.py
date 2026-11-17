@@ -82,6 +82,7 @@ from tidewrack.core.engine.components import (
     Spawner,
     Stats,
     Stocked,
+    TideCrown,
     Wallet,
     Warden,
 )
@@ -115,6 +116,7 @@ from tidewrack.core.engine.events import (
     MealCooked,
     MealEaten,
     MealWoreOff,
+    Milestone,
     PlayerDefeated,
     QuestAbandoned,
     QuestAccepted,
@@ -389,6 +391,7 @@ class MapNode:
     shop: bool = False  # a visited room with a shop or inn in it (area maps)
     blocked: str | None = None  # why you can't go there from here yet (tap to be told)
     guarded: bool = False  # a warden bars the road there (world maps)
+    crown: bool = False  # the final foe or its crown is there, and you've been (8c)
 
 
 @dataclass(frozen=True)
@@ -625,6 +628,9 @@ class GameView:
     can_ascend: bool = False  # the tide has turned and you're not fighting
 
 
+IMPORTANT = "⚑ "  # starts a log line the player mustn't miss (8c; the UI highlights it)
+
+
 # --- the game ----------------------------------------------------------------------
 
 
@@ -728,7 +734,7 @@ class Game:
             if room_id not in location.gates or warden.road not in location.roads:
                 raise ValueError(f"warden not at a gate on its road: {location_id}/{room_id}")
             self.world.create(enemy, warden, Position(location_id, room_id))
-        for location_id, room_id, enemy, final in finals:
+        for location_id, room_id, enemy, final, *_ in finals:
             location = world.location(location_id)
             if room_id not in location.rooms or room_id in location.gates:
                 raise ValueError(f"final foe in a gate or unknown room {location_id}/{room_id}")
@@ -1273,8 +1279,34 @@ class Game:
 
     def can_ascend(self) -> bool:
         """Whether the player may ride the tide into a new world now (8c): its
-        final foe is beaten, and no fight is on. Never forced."""
-        return self._prestige().tide_turned and not self.world.has(self.player, Fighting)
+        final foe is beaten and you stand where its crown lies, out of a fight.
+        Never forced."""
+        return (
+            self._prestige().tide_turned
+            and self._crown_here() is not None
+            and not self.world.has(self.player, Fighting)
+        )
+
+    def _crown_here(self) -> int | None:
+        here = self.world.get(self.player, Position)
+        for entity, (_, at) in self.world.query(TideCrown, Position):
+            if (at.location, at.room) == (here.location, here.room):
+                return entity
+        return None
+
+    def _crowned(self) -> tuple[set[str], set[tuple[str, str]]]:
+        """Where the final foe or its crown is, for map marks: (places you've been
+        to, rooms you've been in)."""
+        explorer = self._explorer()
+        places, rooms = set(), set()
+        spots = [at for _, (_, at) in self.world.query(FinalFoe, Position)]
+        spots += [at for _, (_, at) in self.world.query(TideCrown, Position)]
+        for at in spots:
+            if at.location in explorer.locations_visited:
+                places.add(at.location)
+            if at.room in explorer.rooms_visited.get(at.location, ()):
+                rooms.add((at.location, at.room))
+        return places, rooms
 
     def carry_over(self, codex: Codex, prestige: Prestige) -> None:
         """Start this new world with what survived the tide (8c; GameSession.ascend
@@ -1667,6 +1699,7 @@ class Game:
         )
         room_map = world_map = None
         quest_places, quest_rooms = self._quest_places()
+        crowned_places, crowned_rooms = self._crowned()
         if location.has_map:
             room_map = _fog_map(
                 nodes=[(r.id, r.pos, r.name) for r in location.rooms.values()],
@@ -1684,6 +1717,7 @@ class Game:
                 },
                 quests={r for loc, r in quest_rooms if loc == location.id},
                 shops=self._shop_rooms(location.id) & rooms_visited,
+                crowns={r for loc, r in crowned_rooms if loc == location.id},
             )
             xs = [r.pos[0] for r in location.rooms.values()]
             ys = [r.pos[1] for r in location.rooms.values()]
@@ -1706,6 +1740,7 @@ class Game:
                     if len(explorer.rooms_visited.get(loc.id, ())) >= len(loc.rooms)
                 },
                 guarded={w.road for _, (w,) in self.world.query(Warden)},
+                crowns=crowned_places,
             )
             world_map = replace(
                 world_map,
@@ -1776,23 +1811,35 @@ class Game:
 
     def _narrate(self, event: Event) -> None:
         match event:
-            case LocationEntered(entity=entity, location=location_id, from_location=origin):
+            case LocationEntered(
+                entity=entity, location=location_id, from_location=origin, first_visit=first
+            ):
                 if entity == self.player:
                     location = self.overworld.location(location_id)
                     if origin is not None:
                         self._say(f"You take the road to {location.name}.")
                         crossed = self._region_change(origin, location_id)
                         if crossed:
-                            self._say(f"You cross into {crossed}.")
+                            self._say(f"You cross into {crossed}.", important=True)
                     self._say(f"— {location.name} · {location.kind} —")
                     if any(
                         at.location == location_id
                         for _, (_, at) in self.world.query(FinalFoe, Position)
                     ):
-                        self._say(
+                        court = (
                             "A bell tolls somewhere under the water. Deep in this hall"
                             " the Drowned King keeps his court, and waits."
                         )
+                        self._say(court, important=True)
+                        if first:
+                            self.bus.emit(
+                                Milestone(
+                                    "The Drowned King's hall",
+                                    court + " His thanes still guard the way to his"
+                                    " throne, in the farthest hall from the shore. He is"
+                                    " the hardest fight there is: go in well fed.",
+                                )
+                            )
             case RoomEntered(
                 entity=entity,
                 location=location_id,
@@ -1812,6 +1859,7 @@ class Game:
                     self._mention_board()
                     self._mention_shops()
                     self._mention_wardens()
+                    self._mention_crown()
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
                     s.text
@@ -1838,7 +1886,7 @@ class Game:
             case Rested(price=price):
                 self._say(f"You pay {price} gold for a bed and wake whole again.")
             case WayBarred(name=name, crossing=crossing, region=region):
-                self._say(f"The {name} bars {crossing} into {region}!")
+                self._say(f"The {name} bars {crossing} into {region}!", important=True)
             case CombatStarted(enemy=enemy, name=name, wandering=wandering):
                 if not self.world.has(enemy, Warden):  # WayBarred said it
                     self._say(
@@ -1860,7 +1908,7 @@ class Game:
                 if dropped:
                     self._say(f"It drops {_and(dropped)}.")
             case RegionOpened(name=name):
-                self._say(f"The way into {name} lies open.")
+                self._say(f"The way into {name} lies open.", important=True)
             case TideCarried(rank=rank, boon=boon, boon_text=does):
                 self._say(
                     "The Wrack came in the night: one great tide over everything you"
@@ -1869,20 +1917,26 @@ class Game:
                 self._say(
                     f"You wake on a strange shore, the {_ordinal(rank)} tide behind you,"
                     " the land new and the drowned already stirring. You remember all"
-                    f" you learned. {boon}: {does}."
+                    f" you learned. {boon}: {does}.",
+                    important=True,
                 )
             case TideTurned(enemy=name):
-                self._say(
+                turned = (
                     f"The {name} sinks into the black water and does not rise. Far off,"
                     " the sea draws a long breath: the old pact that held it back is"
                     " broken, and the tide is turning."
                 )
-                self._say(
-                    "When you're ready, ride the tide from the menu. It will wait while"
-                    " you finish what you came for."
+                how = (
+                    "His crown lies on the empty throne. Take it when you're ready and"
+                    " the Wrack will carry you to a new shore: you'll start again, keeping"
+                    " what you've learned and one boon of your choosing. The tide will"
+                    " wait while you finish what you came for."
                 )
+                self._say(turned, important=True)
+                self._say(how)
+                self.bus.emit(Milestone("The tide is turning", f"{turned}\n\n{how}"))
             case PlayerDefeated(name=name):
-                self._say(f"The {name} strikes you down. Everything goes dark.")
+                self._say(f"The {name} strikes you down. Everything goes dark.", important=True)
             case Respawned(location=location_id):
                 town = self.overworld.location(location_id).name
                 self._say(f"You come to at the edge of {town}, bruised but alive.")
@@ -1962,7 +2016,14 @@ class Game:
         for _, (enemy, warden, at) in self.world.query(Enemy, Warden, Position):
             if (at.location, at.room) == (position.location, position.room):
                 region = self.overworld.regions[warden.region].name
-                self._say(f"A {enemy.name} stands across {warden.crossing} into {region}.")
+                self._say(
+                    f"A {enemy.name} stands across {warden.crossing} into {region}.",
+                    important=True,
+                )
+
+    def _mention_crown(self) -> None:
+        if self._crown_here() is not None:
+            self._say("The Drowned Crown lies on the empty throne.", important=True)
 
     def _mention_shops(self) -> None:
         for _, shop in shops.shops_here(self):
@@ -1979,8 +2040,10 @@ class Game:
             else:
                 self._say(f"The {shop.name} is open for trade.")
 
-    def _say(self, line: str) -> None:
-        self.log.append(line)
+    def _say(self, line: str, important: bool = False) -> None:
+        """Write a log line; `important` ones start with IMPORTANT, which the UI
+        highlights (and toasts while the log is closed)."""
+        self.log.append(IMPORTANT + line if important else line)
         self.log_total += 1
         del self.log[:-LOG_LIMIT]
 
@@ -2015,6 +2078,7 @@ def _fog_map(
     blocked: dict[str, str] | None = None,
     shops: set[str] = frozenset(),  # type: ignore[assignment]
     guarded: set[str] = frozenset(),  # type: ignore[assignment]
+    crowns: set[str] = frozenset(),  # type: ignore[assignment]
 ) -> MapView:
     """Only what the player knows: discovered nodes, and paths out of visited ones."""
     shown = []
@@ -2039,6 +2103,7 @@ def _fog_map(
                 blocked=(blocked or {}).get(node_id),
                 shop=node_id in shops,
                 guarded=node_id in guarded,
+                crown=node_id in crowns,
             )
         )
     edges = sorted({tuple(sorted((a, b))) for a in visited for b in neighbours(a)})

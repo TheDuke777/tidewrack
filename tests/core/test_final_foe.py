@@ -4,19 +4,22 @@ from tidewrack.core.data.save import GameState
 from tidewrack.core.engine.components import (
     Clue,
     Enemy,
+    Explorer,
     FinalFoe,
     Position,
     Prestige,
     QuestItem,
     Stats,
+    TideCrown,
 )
 from tidewrack.core.engine.events import (
     CombatStarted,
     LocationEntered,
+    Milestone,
     PlayerDefeated,
     TideTurned,
 )
-from tidewrack.core.engine.game import Attack, Game, Move
+from tidewrack.core.engine.game import IMPORTANT, Attack, Game, Move
 from tidewrack.core.procgen.enemy_gen import generate_final
 from tidewrack.core.procgen.world_gen import generate_world
 from tidewrack.services.content import load_bundled_content
@@ -109,3 +112,46 @@ def test_his_hall_says_who_waits_in_it():
     game.bus.emit(LocationEntered(game.player, FINAL.location, None, first_visit=True))
     game.bus.flush()
     assert "the Drowned King keeps his court" in game.log[-1]
+
+
+def test_a_generated_world_crowns_his_room_and_guards_the_way(tmp_path):
+    session = GameSession.generate(FileSaveStore(tmp_path), CONTENT, "world.standard", "W", SEED)
+    game = session.game
+    [(_, (_, at))] = list(game.world.query(FinalFoe, Position))
+    room = game.overworld.location(at.location).room(at.room)
+    assert room.name == "The Drowned Throne"
+    guarded = {
+        (p.location, p.room): e.name
+        for _, (e, p) in game.world.query(Enemy, Position)
+        if p.location == at.location
+    }
+    for guard in FINAL.guards:
+        assert guarded[(guard.location, guard.room)] == "Drowned Thane"
+
+
+def test_his_fall_leaves_the_crown_and_a_pop_up(tmp_path):
+    game, way_in = game_beside_the_king(STRONG)
+    game.perform(Move(way_in))
+    result = game.perform(Attack())
+    [milestone] = [e for e in result.events if isinstance(e, Milestone)]
+    assert milestone.title == "The tide is turning" and "crown" in milestone.text
+    [(_, (_, at))] = list(game.world.query(TideCrown, Position))
+    assert (at.location, at.room) == (FINAL.location, FINAL.room)
+    assert game.can_ascend()
+    assert any(line.startswith(IMPORTANT) for line in game.log[-3:])
+    # The throne room keeps a crown mark on both maps.
+    explorer = game.world.get(game.player, Explorer)  # the test teleported you in
+    explorer.locations_visited.add(FINAL.location)
+    explorer.locations_discovered.add(FINAL.location)
+    view = game.view()
+    assert any(n.crown and n.id == FINAL.room for n in view.map.nodes)
+    assert any(n.crown and n.id == FINAL.location for n in view.world_map.nodes)
+
+
+def test_first_entering_his_hall_pops_up_once():
+    game = Game(SEED, WORLD, finals=[FINAL])
+    game.bus.emit(LocationEntered(game.player, FINAL.location, None, first_visit=True))
+    game.bus.flush()
+    game.bus.emit(LocationEntered(game.player, FINAL.location, None, first_visit=False))
+    game.bus.flush()
+    assert game.log[-1].startswith(IMPORTANT)

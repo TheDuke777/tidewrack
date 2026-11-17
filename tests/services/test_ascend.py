@@ -7,7 +7,9 @@ from tidewrack.core.engine.components import (
     Fighting,
     FinalFoe,
     Health,
+    Position,
     Prestige,
+    TideCrown,
     Wallet,
 )
 from tidewrack.core.engine.game import Wait
@@ -23,9 +25,15 @@ def session_with_turned_tide(tmp_path, difficulty="difficulty.standard") -> Game
     session = GameSession.generate(
         FileSaveStore(tmp_path), CONTENT, "world.standard", "W", 11, difficulty=difficulty
     )
-    game = session.game
-    game.world.get(game.player, Prestige).tide_turned = True  # as if the king fell
+    turn_the_tide(session.game)
     return session
+
+
+def turn_the_tide(game) -> None:
+    """As if the king fell where the player stands: the tide turned, his crown here."""
+    game.world.get(game.player, Prestige).tide_turned = True
+    here = game.world.get(game.player, Position)
+    game.world.create(TideCrown(), Position(here.location, here.room))
 
 
 def test_you_cant_ascend_until_the_tide_turns(tmp_path):
@@ -80,7 +88,7 @@ def test_boons_add_up_and_shrink_each_tide(tmp_path):
     session.ascend(CONTENT, "boon.keen_edge")
     assert session.game.sheet().total["atk"] == base + 2
     game = session.game
-    game.world.get(game.player, Prestige).tide_turned = True
+    turn_the_tide(game)
     choices = {b.boon_id: b for b in session.boon_choices(CONTENT)}
     assert choices["boon.deep_lungs"].stats == {"hp": boon_size(8, 2)} == {"hp": 6}
     assert choices["boon.wreckers_luck"].gold_pct == 16
@@ -133,3 +141,12 @@ def test_a_new_world_still_plays(tmp_path):
     session.perform(Wait())
     assert session.game.turn == 1
     assert session.game.world.get(session.game.player, Health).damage == 0
+
+
+def test_the_crown_must_be_in_your_room(tmp_path):
+    session = session_with_turned_tide(tmp_path)
+    game = session.game
+    [(crown, _)] = list(game.world.query(TideCrown))
+    game.world.get(crown, Position).room = "elsewhere"
+    assert not game.can_ascend() and not game.view().can_ascend
+    assert not session.ascend(CONTENT, "boon.keen_edge")

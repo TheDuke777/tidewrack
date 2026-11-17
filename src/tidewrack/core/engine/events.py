@@ -201,6 +201,15 @@ class TideTurned(Event):
 
 
 @dataclass(frozen=True)
+class Milestone(Event):
+    """A moment the player mustn't miss even with the log closed (8c): the UI
+    shows it as a pop-up. Emitted by the narrator alongside the log lines."""
+
+    title: str
+    text: str
+
+
+@dataclass(frozen=True)
 class TideCarried(Event):
     """A new world after ascending (step 8c): the player wakes on its shore, on
     tide `rank`, having chosen `boon`."""

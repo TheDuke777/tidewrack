@@ -261,6 +261,14 @@ class FinalFoe:
 
 
 @dataclass
+class TideCrown:
+    """The crown the world's final foe leaves where it fell (8c): taking it (with
+    a Position, in that room) rides the tide into a new world."""
+
+    name: str = "the Drowned Crown"
+
+
+@dataclass
 class Boon:
     """A boon chosen when the tide turned (step 8c): a snapshot, so saves don't
     need content. It does one of: `stats`, +`gold_pct`% gold from foes and quests,
@@ -470,5 +478,6 @@ COMPONENTS: dict[str, type] = {
         Warden,
         FinalFoe,
         Prestige,
+        TideCrown,
     )
 }

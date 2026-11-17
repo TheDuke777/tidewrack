@@ -44,6 +44,7 @@ from tidewrack.core.gear.item import Item
 from tidewrack.core.gear.stats import DEFAULT_PLAYER_BASE
 from tidewrack.core.procgen.enemy_gen import (
     PlacedEnemy,
+    crown_room,
     generate_enemies,
     generate_final,
     generate_wardens,
@@ -126,13 +127,14 @@ class GameSession:
         enemies, spawners = generate_enemies(seed, world, content)
         wardens = generate_wardens(seed, world, content)
         final = generate_final(seed, world, content, recipe)
+        taken = enemies
         if final is not None:
-            # The final foe holds its room alone, and quests keep out of it.
-            spot = (final.location, final.room)
-            enemies = [e for e in enemies if (e.location, e.room) != spot]
-        taken = (
-            [*enemies, PlacedEnemy(final.location, final.room, final.enemy)] if final else enemies
-        )
+            # The final foe and its guards hold their rooms alone; quests keep out.
+            crown_room(world, final)
+            spots = {(final.location, final.room)} | {(g.location, g.room) for g in final.guards}
+            enemies = [e for e in enemies if (e.location, e.room) not in spots]
+            enemies += final.guards
+            taken = [*enemies, PlacedEnemy(final.location, final.room, final.enemy)]
         plan = generate_quests(seed, world, content, recipe, taken, spawners)
         recipes = generate_recipes(seed, world, content, recipe, plan.quests)
         quests = [replace(q, recipe=recipes.rewards.get(q.quest_id)) for q in plan.quests]

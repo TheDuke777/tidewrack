@@ -24,7 +24,8 @@ when the same seed would produce different results (RNG or generation changes).
 # 13: a fuller codex (materials and meals in Codex)
 # 14: prestige (Prestige on the player; FinalFoe: the Drowned King)
 # 15: ascending (Boon snapshots kept in Prestige.boons)
-SCHEMA_VERSION = 15
+# 16: the Drowned Crown (TideCrown) where the king fell; taking it ascends
+SCHEMA_VERSION = 16
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
@@ -44,4 +45,5 @@ SCHEMA_VERSION = 15
 # 16: Fens gear and foes stronger, Moors foes and Barrow Warden tougher (8b retune)
 # 17: meals sized per region (deeper meals stronger), bear meat worth more (8b)
 # 18: the Drowned King (a final foe) in a Highlands Drowned Hall (8c)
-GENERATOR_VERSION = 18
+# 19: the Drowned King in the farthest room (the Drowned Throne), thanes guarding the way
+GENERATOR_VERSION = 19

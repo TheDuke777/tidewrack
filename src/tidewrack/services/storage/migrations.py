@@ -1058,6 +1058,28 @@ def _v14_to_v15(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v15_to_v16(envelope: Envelope) -> Envelope:
+    # v16 rides the tide by taking the Drowned Crown where the king fell (8c). A
+    # world whose king fell before then has no crown, and his room is gone with
+    # him, so the crown is where the player stands.
+    game = envelope["game"]
+    entities = [e["components"] for e in game["entities"]]
+    player = next(c for c in entities if "Player" in c)
+    turned = player.get("Prestige", {}).get("tide_turned")
+    if turned and not any("TideCrown" in c for c in entities):
+        game["entities"].append(
+            {
+                "id": game["next_entity_id"],
+                "components": {
+                    "TideCrown": {"name": "the Drowned Crown"},
+                    "Position": dict(player["Position"]),
+                },
+            }
+        )
+        game["next_entity_id"] += 1
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -1074,6 +1096,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     12: _v12_to_v13,
     13: _v13_to_v14,
     14: _v14_to_v15,
+    15: _v15_to_v16,
 }
 
 

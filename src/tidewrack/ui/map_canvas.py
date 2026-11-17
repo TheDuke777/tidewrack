@@ -571,7 +571,9 @@ class MapCanvas:
             key=label_rank,
         )
         names = {
-            n.id: label(n.name, n.kind, quest=n.quest, charted=n.charted, guarded=n.guarded)
+            n.id: label(
+                n.name, n.kind, quest=n.quest, charted=n.charted, guarded=n.guarded, crown=n.crown
+            )
             for n in named
         }
         everyone = frozenset(n.id for n in self.view.nodes if n.name)
@@ -615,6 +617,7 @@ class MapCanvas:
 
 QUEST_MARK, CHARTED_MARK, ITEMS_MARK, SHOP_MARK = "◆", "✓", "✦", "¤"
 GUARD_MARK = "⚔"
+CROWN_MARK = "♚"  # the Drowned King, or his crown once he's fallen (8c)
 
 
 def label(
@@ -623,16 +626,18 @@ def label(
     quest: bool = False,
     charted: bool = False,
     guarded: bool = False,
+    crown: bool = False,
 ) -> str:
     """A node's label: world-map places start with their kind's glyph, and end with
     ✓ once every room is visited, ◆ while an active quest leads there and ⚔ while
-    a warden bars the road to it."""
+    a warden bars the road to it; ♚ where the Drowned King (or his crown) is."""
     text = name if kind is None else f"{KIND_GLYPHS.get(kind, DEFAULT_GLYPH)} {name}"
     return (
         text
         + (f" {CHARTED_MARK}" if charted else "")
         + (f" {QUEST_MARK}" if quest else "")
         + (f" {GUARD_MARK}" if guarded else "")
+        + (f" {CROWN_MARK}" if crown else "")
     )
 
 
@@ -642,7 +647,13 @@ def label_rank(node: MapNode) -> int:
     Ranks 0 and 1 are always labelled."""
     if node.state == "current":
         return 0
-    if node.command is not None or node.blocked is not None or node.quest or node.guarded:
+    if (
+        node.command is not None
+        or node.blocked is not None
+        or node.quest
+        or node.guarded
+        or node.crown
+    ):
         return 1
     if node.kind is not None and LEGEND_NAMES.get(node.kind, node.kind) == "Town":
         return 2
@@ -651,9 +662,10 @@ def label_rank(node: MapNode) -> int:
 
 def badges(node: MapNode) -> str:
     """Area-map marks beside a room: a shop or inn, items left lying there, a quest
-    target."""
+    target, the Drowned King's throne."""
     return (
-        (SHOP_MARK if node.shop else "")
+        (CROWN_MARK if node.crown else "")
+        + (SHOP_MARK if node.shop else "")
         + (ITEMS_MARK if node.items else "")
         + (QUEST_MARK if node.quest else "")
     )

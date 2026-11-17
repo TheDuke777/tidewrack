@@ -30,9 +30,11 @@ from tidewrack.core.engine.events import (
     MaterialsSold,
     MealBought,
     MealCooked,
+    Milestone,
     QuestCompleted,
 )
 from tidewrack.core.engine.game import (
+    IMPORTANT,
     AcceptQuest,
     Buy,
     BuyMaterials,
@@ -82,11 +84,12 @@ LOG_LINES_SHOWN = 40
 
 ROOM_LEGEND = (
     "● visited   ○ unexplored   ◉ you   ■ gate (roads leave from here)\n"
-    "¤ shop or inn   ✦ items left here   ◆ quest target\n"
+    "¤ shop or inn   ✦ items left here   ◆ quest target   ♚ the throne\n"
     "Tap a ringed room to go there."
 )
 WORLD_LEGEND = (
     "● visited   ○ unexplored   ◉ you   ✓ fully explored   ◆ quest   ⚔ guarded\n"
+    "♚ the Drowned King's hall\n"
     "At a gate, tap a ringed place to travel."
 )
 
@@ -292,6 +295,8 @@ class GameScreen:
             overflow=ft.TextOverflow.ELLIPSIS,
             expand=True,
         )
+        self.log_title = ft.Text("Log", size=13, weight=ft.FontWeight.BOLD)
+        self._log_missed = False  # an important line came while the log was closed
         self.log_chevron = ft.Icon(
             ft.Icons.EXPAND_MORE, size=20, color=ft.Colors.ON_SURFACE_VARIANT
         )
@@ -309,7 +314,7 @@ class GameScreen:
                     spacing=8,
                     controls=[
                         ft.Icon(ft.Icons.DRAG_HANDLE, size=20, color=ft.Colors.ON_SURFACE_VARIANT),
-                        ft.Text("Log", size=13, weight=ft.FontWeight.BOLD),
+                        self.log_title,
                         self.log_hint,
                         self.log_chevron,
                     ],
@@ -326,13 +331,7 @@ class GameScreen:
         )
         self._shown_room: tuple[str, str] | None = None
         self._was_fighting = False
-        # Shown once the world's final foe has fallen (8c); see refresh().
-        self.ride_tide = ft.PopupMenuItem(
-            content="Ride the tide…",
-            icon=ft.Icons.WAVES,
-            visible=False,
-            on_click=lambda _: on_ascend(),
-        )
+        self.on_ascend = on_ascend  # taking the Drowned Crown (8c)
         header = ft.Row(
             controls=[
                 # A menu, not a back arrow: an arrow up here reads as "back one
@@ -342,7 +341,6 @@ class GameScreen:
                     icon=ft.Icons.MENU,
                     tooltip="Menu",
                     items=[
-                        self.ride_tide,
                         ft.PopupMenuItem(
                             content="Switch world",
                             icon=ft.Icons.PUBLIC,
@@ -391,8 +389,29 @@ class GameScreen:
             # Walking to another room here: show where you're walking, not the world.
             self.map_choice.selected = ["area"]
         with perf.timed("command"):
-            self.session.perform(command)  # autosaves
+            result = self.session.perform(command)  # autosaves
         self.refresh()
+        for event in result.events:
+            if isinstance(event, Milestone):
+                self._show_milestone(event)
+
+    def _show_milestone(self, milestone: Milestone) -> None:
+        """A moment not to miss, as a pop-up (8c): the log may be closed."""
+        try:
+            page = self.control.page
+        except RuntimeError:  # not on screen (tests)
+            page = None
+        if page is None:
+            return
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(milestone.title),
+            content=ft.Column(
+                tight=True, scroll=ft.ScrollMode.AUTO, controls=[ft.Text(milestone.text)]
+            ),
+            actions=[ft.FilledButton(content="Onward", on_click=lambda _: page.pop_dialog())],
+        )
+        page.show_dialog(dialog)
 
     def _reveal_map(self) -> None:
         if not self.session.reveal_map():
@@ -470,6 +489,10 @@ class GameScreen:
         self.log_chevron.icon = ft.Icons.EXPAND_MORE if self.split.visible else ft.Icons.EXPAND_LESS
         # While the log is hidden, its newest line still shows in the bar.
         self.log_hint.visible = not self.split.visible
+        if self.split.visible:
+            self._log_missed = False  # you've seen it now
+        # A dot on "Log" while it holds an important line you haven't opened it for.
+        self.log_title.badge = ft.Badge(small_size=8) if self._log_missed else None
 
     # --- rendering ---------------------------------------------------------------
 
@@ -481,7 +504,6 @@ class GameScreen:
         # Only an open shop panel needs its upgrade and recipe lists (v0.11.2).
         view = self.session.game.view(lists_for=self.opened or False)
         self.where.value = f"{self.session.meta.name} · {view.location} · {view.kind}"
-        self.ride_tide.visible = view.can_ascend
         self.room.value = view.room
         self.description.value = view.description
         if self._shown_room not in (None, (view.location, view.room)):
@@ -532,6 +554,12 @@ class GameScreen:
         elif view.log_total != self._log_total:
             self.log.auto_scroll_animation = None  # Flet's default glide for new lines
             self._fresh_from = self._log_total
+        if self._log_total is not None and view.log_total > self._log_total:
+            new = view.log[-min(view.log_total - self._log_total, len(view.log)) :]
+            important = [line for line in new if line.startswith(IMPORTANT)]
+            if important and not self.split.visible:
+                self._log_missed = True
+                self.notify(important[-1].removeprefix(IMPORTANT))
         self._log_total = view.log_total
         self.log.controls = log_lines(view.log[-LOG_LINES_SHOWN:], view.log_total, self._fresh_from)
         self.log_hint.value = view.log[-1] if view.log else ""
@@ -574,8 +602,16 @@ class GameScreen:
             page.run_task(self.details.scroll_to, offset=0)
 
     def _entrances(self, view: GameView) -> list[ft.Control]:
-        """The room's notice board and shops, one button each."""
+        """The room's crown, notice board and shops, one button each."""
         buttons: list[ft.Control] = []
+        if view.can_ascend:
+            buttons.append(
+                ft.FilledButton(
+                    content="Take the Drowned Crown",
+                    icon=ft.Icons.WAVES,
+                    on_click=lambda _: self.on_ascend(),
+                )
+            )
         if view.board is not None:
             ready = sum(q.state == "ready" for q in view.board)
             posted = len(view.board) - ready
@@ -1134,7 +1170,8 @@ def _upgrade_key(up) -> tuple:
 
 
 def log_lines(shown, total: int, fresh_from: int) -> list[ft.Control]:
-    """The log, with your latest action's lines in bold under a thin divider.
+    """The log, with your latest action's lines in bold under a thin divider, and
+    important lines (starting IMPORTANT) bold in the accent colour.
 
     `shown` are the last lines of a log whose lines ever written number `total`;
     those numbered `fresh_from` and up came from the latest action. Weight and a
@@ -1146,7 +1183,13 @@ def log_lines(shown, total: int, fresh_from: int) -> list[ft.Control]:
         fresh = first + i >= fresh_from
         if fresh and i > 0 and first + i == fresh_from:
             controls.append(ft.Divider(height=1, thickness=1, color=ft.Colors.OUTLINE_VARIANT))
-        controls.append(ft.Text(line, size=14, weight=ft.FontWeight.BOLD if fresh else None))
+        if line.startswith(IMPORTANT):
+            # Important lines (8c): bold in the accent colour, and their ⚑ stays.
+            controls.append(
+                ft.Text(line, size=14, weight=ft.FontWeight.BOLD, color=ft.Colors.TERTIARY)
+            )
+        else:
+            controls.append(ft.Text(line, size=14, weight=ft.FontWeight.BOLD if fresh else None))
     return controls
 
 
