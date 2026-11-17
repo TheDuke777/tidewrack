@@ -1,0 +1,65 @@
+"""Quick difficulty sim for CI (sim/difficulty_sim.py, CLAUDE.md §8.7)."""
+
+import difficulty_sim as sim
+import pytest
+
+from tidewrack.services.content import load_bundled_content
+
+CONTENT = load_bundled_content()
+
+
+@pytest.fixture(scope="module")
+def rows():
+    return sim.simulate(CONTENT, fights=300)
+
+
+def regions(rows):
+    return list(dict.fromkeys(r.region for r in rows))
+
+
+def test_ordinary_foes_are_always_beaten(rows):
+    # The bot never flees or defends: an ordinary foe of a region must still
+    # fall to the gear you'd arrive in (the coast: the starting kit), on Hard too.
+    for region in regions(rows):
+        for difficulty in ("Easy", "Standard", "Hard"):
+            s = sim.summary(rows, region, "arriving", difficulty)
+            assert s["median foe"].win >= 0.99, (region, difficulty)
+
+
+def test_wardens_are_a_test_with_a_meal_as_the_edge(rows):
+    for region in regions(rows):
+        for difficulty in ("Easy", "Standard", "Hard"):
+            s = sim.summary(rows, region, "arriving", difficulty)
+            if "warden" not in s:
+                continue
+            assert s["warden fed"].win >= 0.95, (region, difficulty)  # a meal gets you through
+            assert s["warden fed"].hp_lost < s["warden"].hp_lost, (region, difficulty)
+        assert (
+            sim.summary(rows, region, "arriving", "Standard").get("warden", sim.Odds(1, 0, 0)).win
+            >= 0.8
+        ), region
+
+
+def test_a_geared_region_is_comfortable(rows):
+    for region in regions(rows):
+        s = sim.summary(rows, region, "geared", "Standard")
+        assert s["worst foe"].hp_lost <= 0.1, region
+        assert s["bounty"].win >= 0.95, region
+
+
+def test_harder_presets_cost_more_health(rows):
+    for region in regions(rows):
+        for gear in ("arriving", "geared"):
+            lost = [
+                sim.summary(rows, region, gear, d)["worst foe"].hp_lost
+                for d in ("Easy", "Standard", "Hard")
+            ]
+            assert lost == sorted(lost), (region, gear, lost)
+
+
+def test_meals_unlock_with_their_ingredients():
+    tiers = sim.material_tiers(CONTENT)
+    for meal in CONTENT.meals.values():
+        assert sim.meal_tier(meal, tiers) is not None, meal.id  # every meal can be cooked
+    coast = {m.id for m in sim.meals_by(CONTENT, 1)}
+    assert "meal.bear_stew" not in coast and "meal.boar_roast" in coast
