@@ -3,7 +3,7 @@
   "name": "Billhook",
   "slot": "main_hand",
   "base": {
-    "atk": 6
+    "atk": 8
   },
   "rolls": {
     "atk": [

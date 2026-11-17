@@ -4,9 +4,9 @@
   "category": "spirit",
   "description": "Leather-brown and peat-stained, a man who went into the bog a thousand years ago and has decided to come back out.",
   "stats": {
-    "atk": 9,
-    "def": 5,
-    "hp": 22
+    "atk": 14,
+    "def": 7,
+    "hp": 32
   },
   "loot": {
     "chance": 0.45,

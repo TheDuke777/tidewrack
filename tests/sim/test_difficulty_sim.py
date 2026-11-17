@@ -63,3 +63,21 @@ def test_meals_unlock_with_their_ingredients():
         assert sim.meal_tier(meal, tiers) is not None, meal.id  # every meal can be cooked
     coast = {m.id for m in sim.meals_by(CONTENT, 1)}
     assert "meal.bear_stew" not in coast and "meal.boar_roast" in coast
+
+
+def test_every_region_after_the_coast_bites_on_arrival(rows):
+    # 8b retune (playtests: the Moors felt right, the coast and Fens too easy).
+    # Arriving in maxed gear from the region before, on Standard: its worst foe
+    # hurts and its warden costs about half your health unfed, without being a
+    # coin flip.
+    for region in regions(rows)[1:]:
+        s = sim.summary(rows, region, "arriving", "Standard")
+        assert s["worst foe"].hp_lost >= 0.08, region
+        assert 0.4 <= s["warden"].hp_lost <= 0.85, region
+
+
+def test_bounties_stay_fair_once_geared(rows):
+    # Bounties are "come back when you've geared up here" fights (user, 2026-11-16):
+    # hard on arrival, under about half your health once geared.
+    for region in regions(rows):
+        assert sim.summary(rows, region, "geared", "Standard")["bounty"].hp_lost <= 0.55, region

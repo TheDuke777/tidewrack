@@ -4,9 +4,9 @@
   "category": "beast",
   "description": "A toad the size of a sheep, sunk to its eyes in the black water. Its tongue could take your hand off.",
   "stats": {
-    "atk": 7,
-    "def": 3,
-    "hp": 16
+    "atk": 13,
+    "def": 4,
+    "hp": 24
   },
   "rolls": {
     "hp": [

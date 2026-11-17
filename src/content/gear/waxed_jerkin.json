@@ -3,8 +3,8 @@
   "name": "Waxed Jerkin",
   "slot": "body",
   "base": {
-    "def": 3,
-    "hp": 3
+    "def": 4,
+    "hp": 4
   },
   "rolls": {
     "hp": [

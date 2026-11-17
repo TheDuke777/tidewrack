@@ -4,7 +4,7 @@
   "slot": "head",
   "base": {
     "def": 2,
-    "hp": 2
+    "hp": 4
   },
   "rolls": {
     "hp": [

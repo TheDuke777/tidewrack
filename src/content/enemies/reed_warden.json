@@ -4,9 +4,9 @@
   "category": "spirit",
   "description": "A giant woven of reeds and black bog-oak, crowned with dead heron feathers. The fen-folk leave it offerings. It has never let a stranger pass.",
   "stats": {
-    "atk": 11,
-    "def": 5,
-    "hp": 48
+    "atk": 17,
+    "def": 8,
+    "hp": 62
   },
   "loot": {
     "chance": 1.0,

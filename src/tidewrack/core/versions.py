@@ -39,4 +39,5 @@ SCHEMA_VERSION = 13
 # 13: standard worlds add the Moors (21 places in three regions)
 # 14: every region has at least one place of each of its kinds
 # 15: standard worlds add the Highlands (28 places in four regions)
-GENERATOR_VERSION = 15
+# 16: Fens gear and foes stronger, Moors foes and Barrow Warden tougher (8b retune)
+GENERATOR_VERSION = 16

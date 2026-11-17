@@ -4,9 +4,9 @@
   "category": "spirit",
   "description": "A cold blue flame that bobs ahead, always just out of reach, until suddenly it isn't.",
   "stats": {
-    "atk": 8,
-    "def": 1,
-    "hp": 12
+    "atk": 14,
+    "def": 2,
+    "hp": 16
   },
   "loot": {
     "chance": 0.3,

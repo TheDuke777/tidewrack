@@ -3,7 +3,7 @@
   "name": "Amber Charm",
   "slot": "trinket",
   "base": {
-    "hp": 6
+    "hp": 7
   },
   "rolls": {
     "hp": [

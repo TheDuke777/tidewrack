@@ -5,9 +5,9 @@
   "plural": "Fen Pike",
   "description": "A long green shadow under the duckboards that strikes faster than you can step back.",
   "stats": {
-    "atk": 9,
-    "def": 2,
-    "hp": 14
+    "atk": 14,
+    "def": 3,
+    "hp": 18
   },
   "rolls": {
     "atk": [

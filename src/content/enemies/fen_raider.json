@@ -4,9 +4,9 @@
   "category": "person",
   "description": "Mud to the thigh, a billhook in hand, and a punt hidden in the reeds for the getaway.",
   "stats": {
-    "atk": 8,
-    "def": 4,
-    "hp": 20
+    "atk": 13,
+    "def": 6,
+    "hp": 28
   },
   "rolls": {
     "atk": [

@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The Fens now push back: their foes hit harder and take longer to bring down,
+  and the Reed Warden is a real test if you arrive in coast gear (a good meal
+  helps). Fens gear is stronger to match, so it's a clear step up from the
+  coast. Moors foes and the Barrow Warden have a little more health, so the
+  Moors keep their bite against the better Fens gear. New worlds only: worlds
+  you've already started keep their foes and gear.
+
 ## [0.11.3] - 2026-11-16
 
 ### Added

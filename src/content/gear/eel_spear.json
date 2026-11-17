@@ -4,7 +4,7 @@
   "slot": "main_hand",
   "two_handed": true,
   "base": {
-    "atk": 9,
+    "atk": 11,
     "def": 1
   },
   "rolls": {
