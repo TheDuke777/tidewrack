@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-19
+
 ### Added
 - Dread bounties: once you open a new region, worse things wake in the one
   you left. Two dread bounties go up on the board of its first town (the
