@@ -135,3 +135,22 @@ def test_revealing_the_map_posts_every_dread_bounty_but_the_deepest(tmp_path):
     sealed = {game.overworld.location(q.board).region for q in dread(game) if q.state == "sealed"}
     deepest = max(game.overworld.regions.values(), key=lambda r: r.tier)
     assert sealed == {deepest.id}
+
+
+def test_dread_rewards_are_the_next_regions_gear_at_its_tier(tmp_path):
+    # User playtest (2026-11-19): coast dread paid coast gear, already outgrown by
+    # the time Fens gear made it winnable. Rewards come from the region ahead.
+    game = world(tmp_path)
+    tiers = {r.id: r.tier for r in game.overworld.regions.values()}
+    deepest = max(tiers.values())
+    gear_tier = {}
+    for region in game.overworld.regions.values():
+        for roomset_id in [CONTENT.regions[region.id].town, *CONTENT.regions[region.id].roomsets]:
+            for gear_id in CONTENT.roomsets[roomset_id].finds.gear:
+                gear_tier.setdefault(gear_id, region.tier)
+    for quest in dread(game):
+        tier = tiers[game.overworld.location(quest.board).region]
+        want = min(tier + 1, deepest)
+        assert gear_tier.get(quest.reward.gear_id) == want, (quest.title, quest.reward.name)
+        [enchant] = [a for a in quest.reward.affixes if a.id.startswith("enchant.")]
+        assert int(enchant.id.rsplit(".", 1)[1]) == min(want, 4)

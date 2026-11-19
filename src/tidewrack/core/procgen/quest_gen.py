@@ -181,6 +181,20 @@ class _Builder:
         region = self.world.regions.get(location.region)
         return region.tier if region else 1
 
+    def next_region_place(self, rng: Rng, region_id: str) -> tuple[Location | None, int]:
+        """A wild place in the region after `region_id` (None for the deepest) and
+        that region's tier (this one's if there's none after it)."""
+        here = self.world.regions[region_id]
+        after = [r for r in self.world.regions.values() if r.tier == here.tier + 1]
+        if not after:
+            return None, here.tier
+        places = [
+            loc
+            for loc in self.all_wild
+            if loc.region == after[0].id and self.roomset[loc.id].finds.gear
+        ]
+        return (rng.choice(places) if places else None), after[0].tier
+
     def dread(self, rng: Rng, quest_id: str, region_id: str) -> Quest | None:
         """A dread bounty in `region_id` (v0.13.0): a kind from its places, far
         tougher, sealed in a free room until the region beyond opens; it pays gear
@@ -211,7 +225,11 @@ class _Builder:
         )
         words = {"target": name, "location": location.name}
         self.words[quest_id] = words
-        reward = enchant_item(rng, self.reward(rng, location), self.content, tier)
+        # Paid in the next region's gear (you hunt these once it's open, wearing
+        # its gear), at its best roll and enchanted at its tier; the deepest
+        # region pays its own (user playtest: the region's own gear was outgrown).
+        ahead, ahead_tier = self.next_region_place(rng, region_id)
+        reward = enchant_item(rng, self.reward(rng, ahead or location), self.content, ahead_tier)
         legendary = self.content.regions[region_id].legendary
         materials = (
             [
