@@ -118,3 +118,20 @@ def test_some_foes_drop_enchanted_gear(tmp_path):
     enchanted = [i for i in loot if any(a.id.startswith("enchant.") for a in i.affixes)]
     assert loot and enchanted  # a few, at their region's tier
     assert len(enchanted) < len(loot)
+
+
+def test_starting_in_a_later_region_posts_the_dread_bounties_behind_it(tmp_path):
+    # Dev "Start in": the regions before count as played through.
+    game = world(tmp_path)
+    regions = sorted(game.overworld.regions.values(), key=lambda r: r.tier)
+    assert game.skip_to_region(regions[2].id, [])
+    posted = {game.overworld.location(q.board).region for q in dread(game) if q.state == "posted"}
+    assert posted == {regions[0].id, regions[1].id}
+
+
+def test_revealing_the_map_posts_every_dread_bounty_but_the_deepest(tmp_path):
+    game = world(tmp_path)
+    assert game.reveal_map()
+    sealed = {game.overworld.location(q.board).region for q in dread(game) if q.state == "sealed"}
+    deepest = max(game.overworld.regions.values(), key=lambda r: r.tier)
+    assert sealed == {deepest.id}

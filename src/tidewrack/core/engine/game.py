@@ -1699,6 +1699,12 @@ class Game:
         for entity, _ in list(self.world.query(Warden)):
             self.world.destroy(entity)
         self._say("(Dev) The whole map is revealed and every road is open.")
+        # Every road open: every region but the deepest posts its dread bounties.
+        deepest = max((r.tier for r in self.overworld.regions.values()), default=0)
+        for region in self.overworld.regions.values():
+            if region.tier < deepest:
+                questing.post_dread(self, region.id)
+        self.bus.flush()
         return True
 
     def skip_to_region(
@@ -1744,6 +1750,10 @@ class Game:
         self.world.get(self.player, Position).location = town.id
         self.world.get(self.player, Position).room = town.start
         self._say(f"(Dev) You start in {target.name}, in gear from the regions before it.")
+        # As if their wardens fell: the regions before post their dread bounties.
+        for region in self.overworld.regions.values():
+            if region.tier < target.tier:
+                questing.post_dread(self, region.id)
         self.bus.emit(LocationEntered(self.player, town.id, None, first_visit=True))
         self.bus.emit(RoomEntered(self.player, town.id, town.start, None, first_visit=True))
         self.bus.flush()
