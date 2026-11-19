@@ -6,13 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-19
+
 ### Added
 - Every region now has a gear set: the Fens' Fen-Fowler (fowler's cap, waxed
   jerkin, wading boots) and the Moors' Drover's Garb (wolfskin hood, drover's
   coat, hobnail boots) give extra health, like the coast's Drowned Watch and
   the Highlands' Crag Guard. Every set piece's card lists what the whole set
   does.
-
 - Enchanting: every town has an Enchanter (the Tide-Priest on the coast, the
   Bog-Wife in the Fens, the Stone-Reader on the Moors, the Rune-Carver in the
   Highlands) who works an enchantment into a piece you carry, for that
