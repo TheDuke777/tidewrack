@@ -83,6 +83,24 @@ def roll_item(rng: Rng, gear: GearSchema, content: Content, affix_chance: float)
     return make_item(gear, content.gearsets, roll, affixes)
 
 
+def enchant_item(rng: Rng, item: Item, content: Content, tier: int) -> Item:
+    """`item` with an enchantment that fits it, at `tier` (or the enchantment's
+    highest below), in its prefix or suffix slot (v0.13.0: enchanted drops)."""
+    slot = "main_hand" if item.two_handed else item.slot
+    fitting = [e for _, e in sorted(content.enchantments.items()) if slot in e.slots]
+    if not fitting:
+        return item
+    schema = rng.choice(fitting)
+    level = min(tier, len(schema.tiers))
+    chosen = schema.tiers[level - 1]
+    prefix = schema.position == "prefix"
+    item.affixes = [a for a in item.affixes if a.prefix != prefix]
+    item.affixes.append(
+        Affix(f"{schema.id}.{level}", schema.name, prefix, dict(chosen.stats), list(chosen.effects))
+    )
+    return item
+
+
 def generate_kit(recipe: WorldRecipeSchema, content: Content) -> list[Item]:
     """The starting kit: plain copies (lowest rolls, no affixes), equipped at start."""
     return [

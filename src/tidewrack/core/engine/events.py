@@ -192,6 +192,15 @@ class RegionOpened(Event):
 
 
 @dataclass(frozen=True)
+class DreadPosted(Event):
+    """A region's dread bounties go up on its border town's board (v0.13.0)."""
+
+    region: str  # the region's name
+    board: str  # the town's name
+    titles: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class TideTurned(Event):
     """The world's final foe is beaten (step 8c): the tide turns, and the player
     may ascend whenever they choose."""

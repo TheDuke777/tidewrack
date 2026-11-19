@@ -1106,6 +1106,16 @@ def _v17_to_v18(envelope: Envelope) -> Envelope:
     return envelope
 
 
+def _v18_to_v19(envelope: Envelope) -> Envelope:
+    # v19 adds dread bounties (v0.13.0): quests can pay materials (Quest.materials),
+    # and sealed bounties wait (Sealed). Older worlds have no dread bounties.
+    for entity in envelope["game"]["entities"]:
+        quest = entity["components"].get("Quest")
+        if quest is not None:
+            quest.setdefault("materials", [])
+    return envelope
+
+
 # from-version -> function producing the next version's envelope
 MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     1: _v1_to_v2,
@@ -1125,6 +1135,7 @@ MIGRATIONS: dict[int, Callable[[Envelope], Envelope]] = {
     15: _v15_to_v16,
     16: _v16_to_v17,
     17: _v17_to_v18,
+    18: _v18_to_v19,
 }
 
 

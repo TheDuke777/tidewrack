@@ -30,6 +30,7 @@ from tidewrack.core.engine.components import (
     Position,
     Prestige,
     Respawn,
+    Sealed,
     Spawner,
     TideCrown,
     Warden,
@@ -68,7 +69,8 @@ def encounter(game: Game, event: RoomEntered) -> None:
         return
     for entity, (enemy, position) in game.world.query(Enemy, Position):
         here = (position.location, position.room) == (event.location, event.room)
-        if here and not game.world.has(entity, Warden):  # wardens wait to be challenged
+        # Wardens wait to be challenged; sealed dread bounties wait to be posted.
+        if here and not game.world.has(entity, Warden) and not game.world.has(entity, Sealed):
             _start(game, entity, enemy, event.from_room or event.room, wandering=False)
             return
     location = game.overworld.location(event.location)

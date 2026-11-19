@@ -6,7 +6,15 @@ from pathlib import Path
 import pytest
 
 from tidewrack.core.combat.rules import STANDARD
-from tidewrack.core.engine.components import Enemy, FinalFoe, Position, Prestige, Shop, TideCrown
+from tidewrack.core.engine.components import (
+    Enemy,
+    FinalFoe,
+    Position,
+    Prestige,
+    Quest,
+    Shop,
+    TideCrown,
+)
 from tidewrack.core.engine.game import Attack, Defend, Look, Move, Wait
 from tidewrack.core.world.overworld import Overworld
 from tidewrack.services.content import load_bundled_content
@@ -611,3 +619,18 @@ def test_v17_worlds_have_no_enchanters(tmp_path):
     envelope = json.loads((FIXTURES / "v17_tides.json").read_text(encoding="utf-8"))
     session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
     assert not any(s.enchants for _, (s,) in session.game.world.query(Shop))
+
+
+def test_v19_fixture_keeps_its_dread_bounties(tmp_path):
+    envelope = json.loads((FIXTURES / "v19_dread.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    states = sorted(q.state for _, (q,) in session.game.world.query(Quest) if q.source == "dread")
+    assert states.count("active") == 1 and states.count("posted") == 1
+    assert states.count("sealed") == 6
+
+
+def test_v18_worlds_have_no_dread_bounties(tmp_path):
+    envelope = json.loads((FIXTURES / "v18_enchanting.json").read_text(encoding="utf-8"))
+    session = GameSession.open(FileSaveStore(tmp_path), _install(tmp_path, envelope), CONTENT)
+    assert not any(q.source == "dread" for _, (q,) in session.game.world.query(Quest))
+    assert all(q.materials == [] for _, (q,) in session.game.world.query(Quest))

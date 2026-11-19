@@ -389,6 +389,20 @@ class QuestItemSchema(Schema):
     description: Text
 
 
+class DreadSchema(Schema):
+    """A bounty template's dread tier (v0.13.0): far tougher bounties, sealed until
+    the region beyond theirs is opened (the last region's: until its final foe
+    falls), then posted on their region's border town's board. Their stats are the
+    region's `dread` block (the kind only names them and fills their loot), so a
+    weak kind can't make an easy one."""
+
+    titles: list[Text] = Field(min_length=1)
+    summaries: list[Text] = Field(min_length=1)
+    epithets: dict[Literal[ENEMY_CATEGORIES], list[Text]]  # type: ignore[valid-type]
+    gold: tuple[int, int]
+    legendary: tuple[int, int] = (1, 1)  # how much of its region's legendary material
+
+
 class QuestTemplateSchema(Schema):
     """How one type of quest is written; worlds draw their quests from these."""
 
@@ -402,6 +416,7 @@ class QuestTemplateSchema(Schema):
     counts: tuple[int, int] = (3, 5)  # cull: how many to defeat
     items: list[QuestItemSchema] = []  # recover: what's lost
     gold: tuple[int, int] = (0, 0)  # paid on turning in, with the reward item
+    dread: DreadSchema | None = None  # bounty only: the dread tier (v0.13.0)
 
     @model_validator(mode="after")
     def _check(self) -> QuestTemplateSchema:
@@ -446,6 +461,15 @@ class QuestsRecipeSchema(Schema):
     found: int = Field(default=0, ge=0, le=10)  # left as clues out in the world
     reward_affix_chance: Unit = 1.0
     recipe_chance: Unit = 0.0  # each found recipe: a quest's extra reward, else a page
+    dread: int = Field(default=0, ge=0, le=5)  # dread bounties in each region (v0.13.0)
+
+
+class LootEnchantSchema(Schema):
+    """The chance a foe's gear drop comes enchanted (v0.13.0), at its region's tier."""
+
+    foe: Unit = 0.0
+    bounty: Unit = 0.0
+    warden: Unit = 0.0
 
 
 # --- difficulties --------------------------------------------------------------------
@@ -517,6 +541,8 @@ class RegionSchema(Schema):
     town: content_id("roomset")  # the kind of its first place (the start, on the coast)
     roomsets: Weights = Field(min_length=1)  # roomset id -> weight, for the other places
     warden: content_id("enemy") | None = None  # guards every road in (none on the coast)
+    legendary: content_id("material") | None = None  # dread bounties pay it (v0.13.0)
+    dread: StatBlock = {}  # a dread bounty's stats here, whatever its kind (v0.13.0)
     crossing: Text = "the road"  # what the warden bars: "the causeway"
 
 
@@ -556,6 +582,7 @@ class WorldRecipeSchema(Schema):
     quests: QuestsRecipeSchema = QuestsRecipeSchema()
     final: FinalFoeSchema | None = None  # beating it turns the tide (8c)
     tides: TidesSchema = TidesSchema()  # what each tide lived through adds (8c)
+    loot_enchant: LootEnchantSchema = LootEnchantSchema()  # enchanted drops (v0.13.0)
 
     @model_validator(mode="after")
     def _check(self) -> WorldRecipeSchema:

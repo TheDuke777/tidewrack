@@ -4,7 +4,8 @@
   "position": "suffix",
   "slots": [
     "body",
-    "trinket"
+    "trinket",
+    "off_hand"
   ],
   "description": "You catch your breath quicker between fights.",
   "tiers": [

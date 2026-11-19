@@ -20,16 +20,20 @@ from typing import TYPE_CHECKING
 
 from tidewrack.core.economy import crafting, shops
 from tidewrack.core.engine.components import (
+    Bounty,
     Carried,
     Clue,
     Explorer,
+    MaterialStack,
     Position,
     Quest,
     QuestItem,
     Respawn,
+    Sealed,
 )
 from tidewrack.core.engine.events import (
     ActionRejected,
+    DreadPosted,
     EnemyKilled,
     LocationDiscovered,
     QuestAbandoned,
@@ -39,7 +43,9 @@ from tidewrack.core.engine.events import (
     QuestItemFound,
     QuestProgress,
     QuestReady,
+    RegionOpened,
     RoomEntered,
+    TideTurned,
 )
 
 if TYPE_CHECKING:
@@ -139,6 +145,8 @@ def turn_in(game: Game, quest_id: str) -> None:
         shops.gain(game, quest.gold, "quest")
         if quest.recipe is not None:
             crafting.learn(game, quest.recipe, "quest")
+        for stack in quest.materials:  # a dread bounty's legendary material (v0.13.0)
+            crafting.add(game, MaterialStack(stack.material, stack.count), "quest")
 
 
 def abandon(game: Game, quest_id: str) -> None:
@@ -154,6 +162,48 @@ def abandon(game: Game, quest_id: str) -> None:
 
 
 # --- subscribers -------------------------------------------------------------------
+
+
+def on_region_opened(game: Game, event: RegionOpened) -> None:
+    """The region before the one just opened posts its dread bounties (v0.13.0)."""
+    opened = game.overworld.regions.get(event.region)
+    if opened is None:
+        return
+    before = [r for r in game.overworld.regions.values() if r.tier == opened.tier - 1]
+    for region in before:
+        post_dread(game, region.id)
+
+
+def on_tide_turned(game: Game, event: TideTurned) -> None:
+    """With the final foe gone, the deepest region posts its dread bounties too."""
+    if game.overworld.regions:
+        deepest = max(game.overworld.regions.values(), key=lambda r: r.tier)
+        post_dread(game, deepest.id)
+
+
+def post_dread(game: Game, region_id: str) -> None:
+    sealed = [
+        q
+        for q in all_quests(game)
+        if q.source == "dread"
+        and q.state == "sealed"
+        and q.board is not None
+        and game.overworld.location(q.board).region == region_id
+    ]
+    if not sealed:
+        return
+    ids = {q.quest_id for q in sealed}
+    for quest in sealed:
+        quest.state = "posted"
+    for entity, (bounty,) in list(game.world.query(Bounty)):
+        if bounty.quest_id in ids and game.world.has(entity, Sealed):
+            game.world.remove(entity, Sealed)
+    board = game.overworld.location(sealed[0].board)
+    game.bus.emit(
+        DreadPosted(
+            game.overworld.regions[region_id].name, board.name, tuple(q.title for q in sealed)
+        )
+    )
 
 
 def on_room_entered(game: Game, event: RoomEntered) -> None:

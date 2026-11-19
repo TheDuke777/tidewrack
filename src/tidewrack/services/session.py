@@ -137,8 +137,8 @@ class GameSession:
         economy = tide_economy(STANDARD_ECONOMY, recipe.tides, tide)
 
         world = generate_world(seed, recipe, content.roomsets, content.regions)
-        enemies, spawners = generate_enemies(seed, world, content)
-        wardens = generate_wardens(seed, world, content)
+        enemies, spawners = generate_enemies(seed, world, content, recipe.loot_enchant.foe)
+        wardens = generate_wardens(seed, world, content, recipe.loot_enchant.warden)
         final = generate_final(seed, world, content, recipe)
         taken = enemies
         if final is not None:

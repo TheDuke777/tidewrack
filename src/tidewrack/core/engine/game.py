@@ -78,6 +78,7 @@ from tidewrack.core.engine.components import (
     Recipes,
     Respawn,
     Scenery,
+    Sealed,
     Shop,
     Spawner,
     Stats,
@@ -92,6 +93,7 @@ from tidewrack.core.engine.events import (
     AmbientNoticed,
     Attacked,
     CombatStarted,
+    DreadPosted,
     EnemyKilled,
     Event,
     EventBus,
@@ -620,6 +622,8 @@ class QuestView:
     reward: ItemView
     gold: int = 0  # paid with the reward
     recipe: str | None = None  # also taught: what the recipe makes
+    materials: tuple[str, ...] = ()  # also paid, e.g. "2 Tide-Pearl" (dread bounties)
+    dread: bool = False  # a dread bounty (v0.13.0)
 
 
 @dataclass(frozen=True)
@@ -747,11 +751,13 @@ class Game:
             self.world.create(spawner)
         for quest in quests:
             self.world.create(quest)
-        for location_id, room_id, enemy, bounty in bounties:
+        for location_id, room_id, enemy, bounty, *sealed in bounties:
             location = world.location(location_id)
             if room_id not in location.rooms or room_id in location.gates:
                 raise ValueError(f"bounty placed in a gate or unknown room {location_id}/{room_id}")
-            self.world.create(enemy, bounty, Position(location_id, room_id))
+            entity = self.world.create(enemy, bounty, Position(location_id, room_id))
+            if sealed and sealed[0]:
+                self.world.add(entity, Sealed())  # a dread bounty, waiting (v0.13.0)
         for location_id, room_id, thing in quest_things:
             if room_id not in world.location(location_id).rooms:
                 raise ValueError(f"quest item placed in unknown room {location_id}/{room_id}")
@@ -838,6 +844,8 @@ class Game:
         self.bus.subscribe(RoomEntered, lambda e: questing.on_room_entered(self, e))
         self.bus.subscribe(RoomEntered, lambda e: fight.encounter(self, e))
         self.bus.subscribe(EnemyKilled, lambda e: questing.on_enemy_killed(self, e))
+        self.bus.subscribe(RegionOpened, lambda e: questing.on_region_opened(self, e))
+        self.bus.subscribe(TideTurned, lambda e: questing.on_tide_turned(self, e))
         self.bus.subscribe(GameStarted, lambda e: codex_items.note_recipes(self))
         self.bus.subscribe(RoomEntered, lambda e: codex_items.on_room_entered(self, e))
         self.bus.subscribe(MaterialsGained, lambda e: codex_items.on_materials_gained(self, e))
@@ -1282,6 +1290,8 @@ class Game:
             reward=self._item_view(-1, quest.reward),  # not in the world until earned
             gold=quest.gold,
             recipe=quest.recipe.name if quest.recipe else None,
+            materials=tuple(f"{m.count} {m.material.name}" for m in quest.materials),
+            dread=quest.source == "dread",
         )
 
     def quests(self) -> QuestLogView:
@@ -2006,6 +2016,20 @@ class Game:
                     " the land new and the drowned already stirring. You remember all"
                     f" you learned. {boon}: {does}.",
                     important=True,
+                )
+            case DreadPosted(region=region, board=board, titles=titles):
+                text = (
+                    f"Word comes from {board}: with the way beyond open, worse things have"
+                    f" woken in {region}. {len(titles)} dread bount"
+                    f"{'y is' if len(titles) == 1 else 'ies are'} posted on its notice board."
+                )
+                self._say(text, important=True)
+                self.bus.emit(
+                    Milestone(
+                        "Dread bounties",
+                        text + " They're far tougher than any bounty yet: go enchanted and well"
+                        " fed. Each pays enchanted gear and a legendary material.",
+                    )
                 )
             case TideTurned(enemy=name):
                 turned = (

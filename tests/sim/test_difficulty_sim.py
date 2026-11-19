@@ -151,3 +151,15 @@ def test_enchanting_helps_but_never_makes_the_king_a_walkover():
     assert king.enchanted.win >= 0.95
     assert 0.2 <= king.enchanted.hp_lost <= 0.75 * king.plain.hp_lost, king
     assert all(r.enchanted.win >= r.plain.win - 0.01 for r in rows)
+
+
+def test_dread_bounties_need_enchanting():
+    # v0.13.0: a region's dread bounty is posted once the next region opens. In
+    # the region's maxed gear, fed, it usually wins; enchanted at the next region's
+    # tier it's a hard but reliable kill.
+    rows = sim.dread_odds(CONTENT, fights=400)
+    assert len(rows) == 4
+    for row in rows:
+        assert row.plain.win <= 0.65, row
+        assert row.enchanted.win >= 0.9, row
+        assert 0.45 <= row.enchanted.hp_lost <= 0.9, row

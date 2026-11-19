@@ -42,6 +42,8 @@ def reward_text(quest: QuestView) -> str:
     gold = f" + {quest.gold} gold" if quest.gold else ""
     if quest.recipe:
         gold += f" + the {quest.recipe} recipe"
+    for material in quest.materials:
+        gold += f" + {material}"
     if quest.state == "done":
         return f"Reward: {quest.reward.name}{gold}"
     return f"Reward: {quest.reward.name} ({quest.reward.slot}){gold}"
@@ -89,7 +91,9 @@ def quest_card(
         ]
     body.append(ft.Text(quest.progress, size=13, weight=ft.FontWeight.BOLD))
     if full_reward and not collapsed:
-        gold = f" (and {quest.gold} gold)" if quest.gold else ""
+        extras = [f"{quest.gold} gold"] if quest.gold else []
+        extras += list(quest.materials)
+        gold = f" (and {', '.join(extras)})" if extras else ""
         body += [coins(f"Reward{gold}", size=13), gear_compare_card(quest.reward)]
     else:
         body.append(reward_line(quest))

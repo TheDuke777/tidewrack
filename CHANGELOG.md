@@ -6,6 +6,19 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Dread bounties: once you open a new region, worse things wake in the one
+  you left. Two dread bounties go up on the board of its first town (the
+  Highlands' once the Drowned King falls), with a pop-up to say so. They're
+  far tougher than any bounty: you'll want enchanted gear and a good meal.
+  Each pays gold, a piece of enchanted gear and a legendary material from its
+  region (Tide-Pearl, Bog-Heart, Barrow-Crown Shard, Stormglass), which
+  legendary enchantments will use in a later update.
+- Foes sometimes drop gear that's already enchanted: rarely from ordinary
+  foes, more often from bounties, usually from wardens, always from the
+  Drowned King.
+- Shields and other off-hand gear can now be enchanted (of Second Wind).
+
 ## [0.13.0] - 2026-11-19
 
 ### Added

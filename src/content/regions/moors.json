@@ -16,5 +16,7 @@
     "roomset.hill_farm": 0.5
   },
   "warden": "enemy.barrow_warden",
-  "crossing": "the drove road"
+  "crossing": "the drove road",
+  "legendary": "material.barrow_crown",
+  "dread": { "atk": 32, "def": 11, "hp": 121 }
 }

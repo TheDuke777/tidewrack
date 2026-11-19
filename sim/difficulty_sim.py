@@ -556,3 +556,34 @@ def enchant_odds(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[
                 EnchantRow(region.name, f"{foe.name} ({foe.kind})", plain, enchanted, effects)
             )
     return rows
+
+
+@dataclass(frozen=True)
+class DreadRow:
+    region: str
+    plain: Odds  # geared in the region, fed, no enchantments
+    enchanted: Odds  # with the next region's best fight enchantments (posted once it opens)
+
+
+def dread_odds(content: Content, fights: int = FIGHTS, seed: int = 1) -> list[DreadRow]:
+    """Each region's dread bounty (its region's `dread` stats) on Standard, geared
+    and fed: plain versus enchanted at the tier its next region's Enchanter offers
+    (dread bounties are posted when that region opens; the last region keeps IV)."""
+    rng = Rng(seed).derive("dread_odds")
+    rules = Rules()
+    order = regions(content)
+    rows = []
+    for i, region_id in enumerate(order):
+        region = content.regions[region_id]
+        if not region.dread:
+            continue
+        foe = Foe(f"Dread ({region.name})", "bounty", dict(region.dread), {})
+        you = gear_stats(content, order[: i + 1])
+        effects, stats = fight_enchants(content, min(region.tier + 1, 4))
+        boosted = {s: v + stats.get(s, 0) for s, v in you.items()}
+        meals = meals_by(content, region.tier)
+        plain = _fed_fight(rng, you, foe, rules, meals, fights)
+        meal = best_meal(boosted, foe, rules, meals)
+        enchanted = fight(rng, fed(boosted, meal), foe, rules, fights, effects)
+        rows.append(DreadRow(region.name, plain, enchanted))
+    return rows

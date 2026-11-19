@@ -16,5 +16,7 @@
     "roomset.crag_fort": 0.5
   },
   "warden": "enemy.crag_warden",
-  "crossing": "the high pass"
+  "crossing": "the high pass",
+  "legendary": "material.stormglass",
+  "dread": { "atk": 40, "def": 14, "hp": 184 }
 }

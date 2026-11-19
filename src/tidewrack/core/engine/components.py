@@ -298,11 +298,19 @@ class Prestige:
 
 
 @dataclass
+class Sealed:
+    """On a dread bounty's enemy while its quest is sealed (v0.13.0): it waits in its
+    room and fights no one until the quest is posted."""
+
+
+@dataclass
 class Quest:
     """A quest, on an entity of its own: a snapshot, reward included.
 
     States: board quests go posted → active → ready → done; found quests start
-    hidden (their Clue is still lying somewhere) and go active when found.
+    hidden (their Clue is still lying somewhere) and go active when found; dread
+    bounties (source "dread", v0.13.0) start sealed and are posted when the region
+    beyond theirs opens.
     """
 
     quest_id: str
@@ -310,8 +318,8 @@ class Quest:
     title: str
     summary: str
     reward: Item
-    state: str = "posted"  # posted, hidden, active, ready, done
-    source: str = "board"  # "board" or "found"
+    state: str = "posted"  # posted, hidden, sealed, active, ready, done
+    source: str = "board"  # "board", "found" or "dread"
     board: str | None = None  # the town whose notice board posts it
     found_in: str | None = None  # where its clue was found
     location: str | None = None  # where it sends you (cull: where they're common)
@@ -322,6 +330,7 @@ class Quest:
     achieved: bool = False  # bounty beaten or item recovered (counts before accepting)
     gold: int = 0  # paid on turning in, with the reward item
     recipe: Recipe | None = None  # also taught on turning in
+    materials: list[MaterialStack] = field(default_factory=list)  # also paid (v0.13.0)
 
 
 @dataclass
@@ -498,5 +507,6 @@ COMPONENTS: dict[str, type] = {
         FinalFoe,
         Prestige,
         TideCrown,
+        Sealed,
     )
 }

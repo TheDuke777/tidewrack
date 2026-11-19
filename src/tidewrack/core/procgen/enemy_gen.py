@@ -23,7 +23,7 @@ from tidewrack.core.data.loader import Content
 from tidewrack.core.data.schemas import EnemySchema, WorldRecipeSchema
 from tidewrack.core.engine.components import Enemy, EnemyTemplate, FinalFoe, Spawner, Warden
 from tidewrack.core.gear.stats import STATS
-from tidewrack.core.procgen.gear_gen import roll_item
+from tidewrack.core.procgen.gear_gen import enchant_item, roll_item
 from tidewrack.core.procgen.material_gen import drop_table, roll_drops
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location
@@ -41,7 +41,15 @@ class PlacedEnemy(NamedTuple):
     enemy: Enemy
 
 
-def make_enemy(rng: Rng, schema: EnemySchema, content: Content) -> Enemy:
+def make_enemy(
+    rng: Rng,
+    schema: EnemySchema,
+    content: Content,
+    enchant_chance: float = 0.0,
+    tier: int = 1,
+) -> Enemy:
+    """An enemy snapshot, its loot rolled now; a gear drop comes enchanted (at
+    `tier`) with `enchant_chance` (v0.13.0)."""
     stats = dict(schema.stats)
     for stat in STATS:
         if stat in schema.rolls:
@@ -51,6 +59,8 @@ def make_enemy(rng: Rng, schema: EnemySchema, content: Content) -> Enemy:
         choices = list(schema.loot.gear)
         gear_id = rng.weighted_choice(choices, [schema.loot.gear[g] for g in choices])
         loot.append(roll_item(rng, content.gear[gear_id], content, LOOT_AFFIX_CHANCE))
+        if enchant_chance and rng.chance(enchant_chance):
+            enchant_item(rng, loot[-1], content, tier)
     gold = rng.randint(*schema.gold) if schema.gold[1] else 0  # beasts don't use a draw
     materials = roll_drops(rng, schema.materials, content)
     return Enemy(
@@ -73,8 +83,10 @@ def drop_names(schema: EnemySchema, content: Content) -> list[str]:
 
 
 def generate_enemies(
-    seed: int, world: Overworld, content: Content
+    seed: int, world: Overworld, content: Content, enchant: float = 0.0
 ) -> tuple[list[PlacedEnemy], list[Spawner]]:
+    """Placed enemies and wanderer queues; `enchant` is the chance a gear drop
+    comes enchanted at its place's region tier (the recipe's loot_enchant.foe)."""
     rng = Rng(seed).derive("enemies")
     roomsets = {r.name: r for _, r in sorted(content.roomsets.items())}
     placed, spawners = [], []
@@ -89,10 +101,16 @@ def generate_enemies(
 
         for room in location.rooms.values():
             if room.id not in location.gates and location_rng.chance(table.placed_chance):
-                enemy = _pick(location_rng, choices, weights, content)
+                enemy = _pick(
+                    location_rng, choices, weights, content, enchant, _tier(world, location)
+                )
                 placed.append(PlacedEnemy(location.id, room.id, enemy))
         if table.wandering_chance:
-            queue = [_pick(location_rng, choices, weights, content) for _ in range(table.wanderers)]
+            tier = _tier(world, location)
+            queue = [
+                _pick(location_rng, choices, weights, content, enchant, tier)
+                for _ in range(table.wanderers)
+            ]
             # What can come back later (step 6c), on its own substream so the
             # placed enemies and the first queue never shift.
             returns_rng = rng.derive(f"returns.{location.id}")
@@ -116,7 +134,9 @@ class PlacedWarden(NamedTuple):
     warden: Warden
 
 
-def generate_wardens(seed: int, world: Overworld, content: Content) -> list[PlacedWarden]:
+def generate_wardens(
+    seed: int, world: Overworld, content: Content, enchant: float = 0.0
+) -> list[PlacedWarden]:
     """One warden on every road into a deeper region, at the near side's gate, on
     the seed's "wardens" substream (one sub-substream per border)."""
     rng = Rng(seed).derive("wardens")
@@ -125,7 +145,10 @@ def generate_wardens(seed: int, world: Overworld, content: Content) -> list[Plac
         region = content.regions.get(world.locations[there].region)
         if region is None or region.warden is None:
             continue
-        enemy = make_enemy(rng.derive(f"{here}.{there}"), content.enemies[region.warden], content)
+        tier = world.regions[world.locations[there].region].tier
+        enemy = make_enemy(
+            rng.derive(f"{here}.{there}"), content.enemies[region.warden], content, enchant, tier
+        )
         location = world.location(here)
         placed.append(
             PlacedWarden(
@@ -179,7 +202,7 @@ def generate_final(
     location = world.location(rng.choice(places))
     path = farthest_path(location)
     room = path[-1]
-    enemy = make_enemy(rng, content.enemies[final.enemy], content)
+    enemy = make_enemy(rng, content.enemies[final.enemy], content, 1.0, deepest.tier)
     guards: list[PlacedEnemy] = []
     if final.guards is not None:
         approach = [r for r in reversed(path[:-1]) if r not in location.gates]
@@ -269,8 +292,21 @@ def make_template(rng: Rng, schema: EnemySchema, weight: float, content: Content
     )
 
 
-def _pick(rng: Rng, choices: list[str], weights: list[float], content: Content) -> Enemy:
-    return make_enemy(rng, content.enemies[rng.weighted_choice(choices, weights)], content)
+def _pick(
+    rng: Rng,
+    choices: list[str],
+    weights: list[float],
+    content: Content,
+    enchant: float = 0.0,
+    tier: int = 1,
+) -> Enemy:
+    schema = content.enemies[rng.weighted_choice(choices, weights)]
+    return make_enemy(rng, schema, content, enchant, tier)
+
+
+def _tier(world: Overworld, location: Location) -> int:
+    region = world.regions.get(location.region)
+    return region.tier if region else 1
 
 
 def enemies_hash(placed: Iterable[PlacedEnemy], spawners: Iterable[Spawner]) -> str:

@@ -16,5 +16,7 @@
     "roomset.stilt_village": 0.5
   },
   "warden": "enemy.reed_warden",
-  "crossing": "the causeway"
+  "crossing": "the causeway",
+  "legendary": "material.bog_heart",
+  "dread": { "atk": 27, "def": 8, "hp": 112 }
 }

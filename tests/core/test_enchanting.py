@@ -84,3 +84,10 @@ def test_enchanting_refuses_the_wrong_slot_a_higher_tier_or_too_few_materials(tm
     assert "can't do that" in refused(Enchant(weapon, "enchant.baneful", 2))
     assert "You need" in refused(Enchant(weapon, "enchant.baneful", 1))
     assert not game.world.get(weapon, Item).affixes
+
+
+def test_every_slot_can_take_an_enchantment():
+    from tidewrack.core.gear.item import SLOTS
+
+    covered = {slot for e in CONTENT.enchantments.values() for slot in e.slots}
+    assert covered == set(SLOTS)

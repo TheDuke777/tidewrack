@@ -33,10 +33,19 @@ from tidewrack.core.data.schemas import (
     RoomsetSchema,
     WorldRecipeSchema,
 )
-from tidewrack.core.engine.components import Bounty, Clue, Enemy, Quest, QuestItem, Spawner
+from tidewrack.core.engine.components import (
+    Bounty,
+    Clue,
+    Enemy,
+    MaterialStack,
+    Quest,
+    QuestItem,
+    Spawner,
+)
 from tidewrack.core.gear.item import Item
 from tidewrack.core.procgen.enemy_gen import PlacedEnemy, make_enemy
-from tidewrack.core.procgen.gear_gen import make_item
+from tidewrack.core.procgen.gear_gen import enchant_item, make_item
+from tidewrack.core.procgen.material_gen import make_material
 from tidewrack.core.rng import Rng
 from tidewrack.core.world.location import Location
 from tidewrack.core.world.overworld import Overworld
@@ -47,6 +56,7 @@ class PlacedBounty(NamedTuple):
     room: str
     enemy: Enemy
     bounty: Bounty
+    sealed: bool = False  # a dread bounty, waiting until its quest is posted
 
 
 class Placed(NamedTuple):
@@ -152,7 +162,9 @@ class _Builder:
         pool = self.roomset[location.id].enemies.pool
         choices = sorted(pool)
         schema = self.content.enemies[rng.weighted_choice(choices, [pool[e] for e in choices])]
-        ordinary = make_enemy(rng, schema, self.content)
+        ordinary = make_enemy(
+            rng, schema, self.content, self.recipe.loot_enchant.bounty, self.tier(location)
+        )
         name = f"{rng.choice(t.epithets[schema.category])} {schema.name}"
         enemy = replace(
             ordinary,
@@ -164,6 +176,66 @@ class _Builder:
         self.plan.bounties.append(PlacedBounty(location.id, room, enemy, bounty))
         words = {"target": name, "location": location.name}
         return self._quest(rng, t, quest_id, words, location, target=name)
+
+    def tier(self, location: Location) -> int:
+        region = self.world.regions.get(location.region)
+        return region.tier if region else 1
+
+    def dread(self, rng: Rng, quest_id: str, region_id: str) -> Quest | None:
+        """A dread bounty in `region_id` (v0.13.0): a kind from its places, far
+        tougher, sealed in a free room until the region beyond opens; it pays gear
+        enchanted at the region's tier and the region's legendary material."""
+        t = self.templates.get("bounty")
+        board = next((loc for loc in self.towns if loc.region == region_id), None)
+        if t is None or t.dread is None or board is None or not self.hunting:
+            return None
+        dread = t.dread
+        location = rng.choice(self.hunting)
+        room = self.free_room(rng, location)
+        if room is None:
+            return None
+        pool = self.roomset[location.id].enemies.pool
+        choices = sorted(pool)
+        schema = self.content.enemies[rng.weighted_choice(choices, [pool[e] for e in choices])]
+        tier = self.tier(location)
+        ordinary = make_enemy(rng, schema, self.content, 1.0, tier)
+        name = f"{rng.choice(dread.epithets[schema.category])} {schema.name}"
+        stats = dict(self.content.regions[region_id].dread) or {
+            s: ceil(v * 2) for s, v in ordinary.stats.items()
+        }
+        enemy = replace(ordinary, name=name, stats=stats, gold=ceil(ordinary.gold * 2))
+        self.plan.bounties.append(
+            PlacedBounty(
+                location.id, room, enemy, Bounty(quest_id, schema.name, dict(ordinary.stats)), True
+            )
+        )
+        words = {"target": name, "location": location.name}
+        self.words[quest_id] = words
+        reward = enchant_item(rng, self.reward(rng, location), self.content, tier)
+        legendary = self.content.regions[region_id].legendary
+        materials = (
+            [
+                MaterialStack(
+                    make_material(self.content.materials[legendary]), rng.randint(*dread.legendary)
+                )
+            ]
+            if legendary
+            else []
+        )
+        return Quest(
+            quest_id=quest_id,
+            kind="bounty",
+            title=rng.choice(dread.titles).format(**words),
+            summary=rng.choice(dread.summaries).format(**words),
+            reward=reward,
+            state="sealed",
+            source="dread",
+            board=board.id,
+            location=location.id,
+            target=name,
+            gold=rng.randint(*dread.gold),
+            materials=materials,
+        )
 
     def _cull(self, rng: Rng, t: QuestTemplateSchema, quest_id: str) -> Quest | None:
         low, high = t.counts
@@ -270,6 +342,14 @@ def generate_quests(
                 )
             )
             builder.plan.quests.append(replace(quest, source="found", state="hidden"))
+    for region in world.regions:
+        # Dread bounties (v0.13.0), on their own stream so nothing above shifts.
+        builder.scope(region)
+        dread_rng = rng.derive(f"dread.{region}")
+        for i in range(recipe.quests.dread):
+            quest = builder.dread(dread_rng, f"quest.dread.{region.partition('.')[2]}.{i}", region)
+            if quest is not None:
+                builder.plan.quests.append(quest)
     return builder.plan
 
 

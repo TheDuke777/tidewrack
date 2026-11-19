@@ -27,7 +27,8 @@ when the same seed would produce different results (RNG or generation changes).
 # 16: the Drowned Crown (TideCrown) where the king fell; taking it ascends
 # 17: tide scaling (Rules.enemy_atk, EconomyRules.reward_gold)
 # 18: enchanting (Shop.enchants: an Enchanter's offers)
-SCHEMA_VERSION = 18
+# 19: dread bounties (Quest.materials, Sealed)
+SCHEMA_VERSION = 19
 # 2: worlds of locations; per-roomset layouts
 # 3: new worlds also get a starting kit and gear finds (procgen/gear_gen.py)
 # 4: new worlds also get enemies, placed and wandering (procgen/enemy_gen.py)
@@ -51,4 +52,5 @@ SCHEMA_VERSION = 18
 # 20: worlds after a tide are harder and richer (recipe tides), meals stronger
 # 21: a stat set in every region (Fen-Fowler, Drover's Garb); Barrow Wight HP 44
 # 22: an Enchanter in every town (Tide-Priest, Bog-Wife, Stone-Reader, Rune-Carver)
-GENERATOR_VERSION = 22
+# 23: dread bounties, legendary materials, enchanted drops
+GENERATOR_VERSION = 23

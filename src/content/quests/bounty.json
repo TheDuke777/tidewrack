@@ -16,5 +16,19 @@
     "spirit": ["Restless", "Howling", "Ancient", "Bitter"]
   },
   "strength": 1.5,
-  "gold": [12, 20]
+  "gold": [12, 20],
+  "dread": {
+    "titles": ["Dread bounty: the {target}", "Dread: the {target}"],
+    "summaries": [
+      "Something worse than any bounty has woken near {location}: the {target}. No one who's gone after it has come back. The reward is worth the risk, if you live.",
+      "The {target} stirs near {location} now the way beyond is open. Hunters won't go near it. Bring it down and name your price."
+    ],
+    "epithets": {
+      "beast": ["Dread", "Blood-Mad", "Night-Born"],
+      "person": ["Dread", "Black-Hearted", "Butcher"],
+      "spirit": ["Dread", "Wailing", "Hollow-Eyed"]
+    },
+    "gold": [40, 70],
+    "legendary": [1, 2]
+  }
 }

@@ -201,6 +201,8 @@ def _broken_references(loaded: dict[str, dict]) -> list[str]:
             problems.append(f"{path}: {region.town} isn't a town")
         if region.warden is not None:
             check(path, [region.warden], "enemies", "enemy")
+        if region.legendary is not None:
+            check(path, [region.legendary], "materials", "material")
     for enchant in loaded["enchantments"].values():
         path = _path("enchantments", enchant.id)
         for tier in enchant.tiers:

@@ -9,5 +9,7 @@
     "roomset.wailing_forest": 1.0,
     "roomset.old_mine": 0.8,
     "roomset.harbour_town": 0.5
-  }
+  },
+  "legendary": "material.tide_pearl",
+  "dread": { "atk": 23, "def": 4, "hp": 90 }
 }
