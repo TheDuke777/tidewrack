@@ -9,6 +9,7 @@ from tidewrack.core.engine.events import (
     LocationEntered,
     PlayerDefeated,
     RegionOpened,
+    RoomEntered,
     WayBarred,
 )
 from tidewrack.core.engine.game import IMPORTANT, Attack, Flee, Game, Travel, Wait
@@ -134,3 +135,24 @@ def test_the_codex_says_where_foes_are_found():
     game.world.get(game.player, Explorer).locations_discovered.add(FAR)
     found = {f.enemy_id: f.found_in for f in game.foes().foes}
     assert "Peat Bog" in found["enemy.bog_toad"] and found["enemy.bog_toad"].endswith(f"({fens})")
+
+
+def test_the_warden_is_flagged_when_you_arrive_not_each_time_you_pass_the_gate():
+    # User (2026-11-19): hunting near a border town, walking back through its gate
+    # toasted the warden every time. Only arriving by road marks it important.
+    from tidewrack.core.engine.game import Move
+
+    game = game_at_border()
+    near = WORLD.location(NEAR)
+    game.bus.emit(LocationEntered(game.player, NEAR, WORLD.start, first_visit=True))
+    game.bus.emit(RoomEntered(game.player, NEAR, near.start, None, first_visit=True))
+    game.bus.flush()
+    assert any(line == f"{IMPORTANT}{WARDEN_LINE}" for line in game.log[-4:])
+    out = near.room(near.start).exits[0]
+    game.perform(Move(out.label))
+    back = next(e.label for e in near.room(out.to).exits if e.to == near.start)
+    game.perform(Move(back))
+    assert game.log[-1] == WARDEN_LINE  # noted, not flagged
+
+
+WARDEN_LINE = f"A Reed Warden stands across the causeway into {WORLD.regions['region.fens'].name}."

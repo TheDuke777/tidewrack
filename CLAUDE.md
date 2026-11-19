@@ -486,6 +486,7 @@ Releases are **CI-built** (reproducible; the keystore never sits on a dev machin
 14. **Difficulty = a picker at world creation + prestige tier** (decided at step 8): Easy / Standard / Hard is fixed per world (§8.4b); prestige tier stacks on top; the difficulty sim checks every combination against the §8.7 bands.
 
 **Still open**
+0. **Legendary sets' prestige bonus** (user, 2026-11-17): earned by completing a legendary set, or by completing the post-king objective that needs it? Decide when post-king content is built (recommended: the objective).
 1. Other SSOs at launch or later? Recommended: Google only at launch; the `CloudProvider` interface makes others additive.
 2. Do shared worlds carry modifiers/difficulty settings? Recommended: yes, as world params.
 

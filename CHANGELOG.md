@@ -25,6 +25,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 - The Barrow Wight is a little tougher.
+- A warden at a town's gate pops up only when you arrive there by road, not
+  every time you walk back through the gate while hunting nearby (the log
+  still notes it).
 
 ## [0.12.0] - 2026-11-17
 

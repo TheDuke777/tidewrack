@@ -1943,7 +1943,9 @@ class Game:
                     self._mention_items(location_id, room_id)
                     self._mention_board()
                     self._mention_shops()
-                    self._mention_wardens()
+                    # Only arriving (by road, or waking after a defeat) flags the warden:
+                    # walking back to the gate while you hunt nearby just notes it.
+                    self._mention_wardens(arrived=origin is None)
                     self._mention_crown()
             case LookedAround(location=location_id, room=room_id):
                 scenery = [
@@ -2101,14 +2103,14 @@ class Game:
         if ready:
             self._say(f"You can turn in {ready} finished quest{'s' * (ready != 1)} here.")
 
-    def _mention_wardens(self) -> None:
+    def _mention_wardens(self, arrived: bool = True) -> None:
         position = self.world.get(self.player, Position)
         for _, (enemy, warden, at) in self.world.query(Enemy, Warden, Position):
             if (at.location, at.room) == (position.location, position.room):
                 region = self.overworld.regions[warden.region].name
                 self._say(
                     f"A {enemy.name} stands across {warden.crossing} into {region}.",
-                    important=True,
+                    important=arrived,
                 )
 
     def _mention_crown(self) -> None:
